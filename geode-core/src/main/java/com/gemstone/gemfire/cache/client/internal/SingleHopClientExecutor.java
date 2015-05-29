@@ -29,9 +29,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.logging.log4j.Logger;
-
+import com.gemstone.gemfire.GemFireException;
 import com.gemstone.gemfire.InternalGemFireException;
 import com.gemstone.gemfire.cache.CacheClosedException;
 import com.gemstone.gemfire.cache.client.ServerConnectivityException;
@@ -173,7 +172,6 @@ public class SingleHopClientExecutor {
                               .toLocalizedString()));
                 }
               }
-                
             }
             else if (ee.getCause() instanceof FunctionException) {
               if (isDebugEnabled) {
