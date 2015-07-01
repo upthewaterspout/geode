@@ -381,11 +381,13 @@ public class ExecuteRegionFunctionSingleHopOp {
                 throw new FunctionException(fite);
               }
               else if(result instanceof CacheClosedException) {
-                DistributedMember memberID = (DistributedMember)((ArrayList)resultResponse)
-                    .get(1);
                 FunctionInvocationTargetException fite = new InternalFunctionInvocationTargetException(
-                    ((CacheClosedException)result).getMessage(),memberID);
-                this.failedNodes.add(memberID.getId());
+                    ((CacheClosedException)result).getMessage());
+                if (resultResponse instanceof ArrayList) {
+                  DistributedMember memberID = (DistributedMember) ((ArrayList) resultResponse)
+                      .get(1);
+                  this.failedNodes.add(memberID.getId());
+                }                
                 throw new FunctionException(fite);
               }
               else if (result instanceof Throwable) {

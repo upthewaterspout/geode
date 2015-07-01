@@ -583,7 +583,6 @@ public class ExecuteRegionFunctionOp {
                       this.functionException.addException(fite);
                     }
                     else if (result instanceof CacheClosedException) {
-                      DistributedMember memberID = (DistributedMember)((ArrayList)resultResponse).get(1);
                       FunctionInvocationTargetException fite;
                       if(isHA) {
                         fite = new InternalFunctionInvocationTargetException(((CacheClosedException)result).getMessage());
@@ -591,7 +590,11 @@ public class ExecuteRegionFunctionOp {
                       else{
                         fite = new FunctionInvocationTargetException(((CacheClosedException)result).getMessage());
                       }
-                      this.failedNodes.add(memberID.getId());
+                      if (resultResponse instanceof ArrayList) {
+                        DistributedMember memberID = (DistributedMember) ((ArrayList) resultResponse)
+                            .get(1);
+                        this.failedNodes.add(memberID.getId());
+                      }                   
                       this.functionException = new FunctionException(fite);
                       this.functionException.addException(fite);
                     }
