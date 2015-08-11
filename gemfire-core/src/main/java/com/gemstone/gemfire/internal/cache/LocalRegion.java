@@ -41,6 +41,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.Logger;
 
@@ -12963,6 +12965,10 @@ public class LocalRegion extends AbstractRegion
   public static void simulateClearForTests(boolean flag) {
     simulateClearForTests = flag;
     
+  }
+
+  public Stream remoteStream() {
+    return new GFStreamPipeline(this);
   }
   
 }

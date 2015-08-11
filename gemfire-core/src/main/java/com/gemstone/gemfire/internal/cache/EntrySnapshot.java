@@ -94,7 +94,7 @@ private static final long serialVersionUID = -2139749921655693280L;
         return null;
       }
       if (v instanceof CachedDeserializable) {
-        if (region.isCopyOnRead()) {
+        if (region != null && region.isCopyOnRead()) {
           v = ((CachedDeserializable)v).getDeserializedWritableCopy(null, null);
         }
         else {
@@ -116,7 +116,7 @@ private static final long serialVersionUID = -2139749921655693280L;
     }
 
     public Object getValue() {
-      checkEntryDestroyed();
+//      checkEntryDestroyed();
       return getRawValue();
     }
 
