@@ -51,50 +51,42 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
 
   @Override
   public Iterator<P> iterator() {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely().iterator();
   }
 
   @Override
   public Spliterator<P> spliterator() {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean isParallel() {
-    // TODO Auto-generated method stub
-    return false;
+    return true;
   }
 
   @Override
   public Stream<P> sequential() {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Stream<P> parallel() {
-    // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   @Override
   public Stream<P> unordered() {
-    // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   @Override
   public Stream<P> onClose(Runnable closeHandler) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void close() {
-    // TODO Auto-generated method stub
-    
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -128,8 +120,7 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
   @Override
   public <R> Stream<R> flatMap(
       Function<? super P, ? extends Stream<? extends R>> mapper) {
-    // TODO Auto-generated method stub
-    return null;
+    return new <P> GFStreamPipeline<R>(source, this, e -> e.flatMap(mapper));
   }
 
   @Override
@@ -155,43 +146,132 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
 
   @Override
   public Stream<P> distinct() {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely(s -> s.distinct()).distinct();
   }
 
   @Override
   public Stream<P> sorted() {
-    // TODO Auto-generated method stub
-    return null;
+    //TODO - some sort of merge sort of the results?
+    return applyRemotely().sorted();
   }
 
   @Override
   public Stream<P> sorted(Comparator<? super P> comparator) {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely().sorted(comparator);
   }
 
   @Override
   public Stream<P> peek(Consumer<? super P> action) {
-    // TODO Auto-generated method stub
-    return null;
+    return new GFStreamPipeline(source, this, s -> s.peek(action));
   }
 
   @Override
   public Stream<P> limit(long maxSize) {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely(s -> s.limit(maxSize)).limit(maxSize);
   }
 
   @Override
   public Stream<P> skip(long n) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void forEach(Consumer<? super P> action) {
     applyRemotely().forEach(action);
+  }
+  
+  @Override
+  public void forEachOrdered(Consumer<? super P> action) {
+    applyRemotely().forEachOrdered(action);
+  }
+
+  @Override
+  public Object[] toArray() {
+    return applyRemotely().toArray();
+  }
+
+  @Override
+  public <A> A[] toArray(IntFunction<A[]> generator) {
+    return applyRemotely().toArray(generator);
+  }
+
+  @Override
+  public P reduce(P identity, BinaryOperator<P> accumulator) {
+    return applyRemotely(t-> Collections.singleton(t.reduce(identity, accumulator)).stream()).reduce(identity, accumulator);
+  }
+
+  @Override
+  public Optional<P> reduce(BinaryOperator<P> accumulator) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public <U> U reduce(U identity, BiFunction<U, ? super P, U> accumulator,
+      BinaryOperator<U> combiner) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public <R> R collect(Supplier<R> supplier,
+      BiConsumer<R, ? super P> accumulator, BiConsumer<R, R> combiner) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public <R, A> R collect(Collector<? super P, A, R> collector) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Optional<P> min(Comparator<? super P> comparator) {
+    return applyRemotely(s -> singleStream(s.min(comparator))).filter(Optional::isPresent).map(Optional::get).min(comparator);
+  }
+
+  @Override
+  public Optional<P> max(Comparator<? super P> comparator) {
+    return applyRemotely(s -> singleStream(s.max(comparator))).filter(Optional::isPresent).map(Optional::get).max(comparator);
+  }
+  
+  @Override
+  public long count() {
+    return applyRemotely(s -> Collections.singleton(s.count()).stream())
+        .mapToLong(Long::longValue).sum();
+  }
+
+  @Override
+  public boolean anyMatch(Predicate<? super P> predicate) {
+    return applyRemotely(s -> Collections.singleton(s.anyMatch(predicate)).stream())
+        .anyMatch(b-> b);
+  }
+
+  @Override
+  public boolean allMatch(Predicate<? super P> predicate) {
+    return applyRemotely(s -> Collections.singleton(s.allMatch(predicate)).stream())
+        .allMatch(b-> b);
+  }
+
+  @Override
+  public boolean noneMatch(Predicate<? super P> predicate) {
+    return applyRemotely(s -> Collections.singleton(s.noneMatch(predicate)).stream())
+       .noneMatch(b-> b);
+  }
+
+  @Override
+  public Optional<P> findFirst() {
+    //regions are not ordered
+    return findAny();
+  }
+
+  @Override
+  public Optional<P> findAny() {
+    return applyRemotely(s -> Collections.singleton(s.findAny()).stream())
+        .filter(o -> o.isPresent())
+        .map(o -> o.get())
+        .findAny();
   }
   
   /**
@@ -237,103 +317,6 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
     List<OUT[]> results = (List<OUT[]>) result.getResult();
     
     return results.stream().flatMap(a -> Arrays.asList(a).stream());
-  }
-
-  @Override
-  public void forEachOrdered(Consumer<? super P> action) {
-    // TODO Auto-generated method stub
-    
-  }
-
-  @Override
-  public Object[] toArray() {
-    return applyRemotely().toArray();
-  }
-
-  @Override
-  public <A> A[] toArray(IntFunction<A[]> generator) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public P reduce(P identity, BinaryOperator<P> accumulator) {
-    return applyRemotely(t-> Collections.singleton(t.reduce(identity, accumulator)).stream()).reduce(identity, accumulator);
-  }
-
-  @Override
-  public Optional<P> reduce(BinaryOperator<P> accumulator) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public <U> U reduce(U identity, BiFunction<U, ? super P, U> accumulator,
-      BinaryOperator<U> combiner) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public <R> R collect(Supplier<R> supplier,
-      BiConsumer<R, ? super P> accumulator, BiConsumer<R, R> combiner) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public <R, A> R collect(Collector<? super P, A, R> collector) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public Optional<P> min(Comparator<? super P> comparator) {
-    return applyRemotely(s -> singleStream(s.min(comparator))).filter(Optional::isPresent).map(Optional::get).min(comparator);
-  }
-
-  @Override
-  public Optional<P> max(Comparator<? super P> comparator) {
-    return applyRemotely(s -> singleStream(s.max(comparator))).filter(Optional::isPresent).map(Optional::get).max(comparator);
-  }
-  
-
-  @Override
-  public long count() {
-    return applyRemotely(s -> Collections.singleton(s.count()).stream())
-        .mapToLong(Long::longValue).sum();
-  }
-
-  @Override
-  public boolean anyMatch(Predicate<? super P> predicate) {
-    return applyRemotely(s -> Collections.singleton(s.anyMatch(predicate)).stream())
-        .anyMatch(b-> b);
-  }
-
-  @Override
-  public boolean allMatch(Predicate<? super P> predicate) {
-    return applyRemotely(s -> Collections.singleton(s.allMatch(predicate)).stream())
-        .allMatch(b-> b);
-  }
-
-  @Override
-  public boolean noneMatch(Predicate<? super P> predicate) {
-    return applyRemotely(s -> Collections.singleton(s.noneMatch(predicate)).stream())
-       .noneMatch(b-> b);
-  }
-
-  @Override
-  public Optional<P> findFirst() {
-    //regions are not ordered
-    return findAny();
-  }
-
-  @Override
-  public Optional<P> findAny() {
-    return applyRemotely(s -> Collections.singleton(s.findAny()).stream())
-        .filter(o -> o.isPresent())
-        .map(o -> o.get())
-        .findAny();
   }
   
   public Stream invoke(Stream in) {
