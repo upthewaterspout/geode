@@ -43,7 +43,7 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
     this.source = source;
   }
   
-  public GFStreamPipeline(Region source, GFStreamPipeline<P> previous, Operation op) {
+  public <A> GFStreamPipeline(Region source, GFStreamPipeline<A> previous, Operation op) {
     this.source = source;
     this.previous = previous;
     this.op = op;
@@ -99,13 +99,12 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
 
   @Override
   public Stream<P> filter(Predicate<? super P> predicate) {
-    return new GFStreamPipeline<P>(source, this, s -> s.filter(predicate));
+    return new <P> GFStreamPipeline<P>(source, this, s -> s.filter(predicate));
   }
 
   @Override
   public <R> Stream<R> map(Function<? super P, ? extends R> mapper) {
-    // TODO Auto-generated method stub
-    return null;
+    return new <P> GFStreamPipeline<R>(source, this, e -> e.map(mapper));
   }
 
   @Override
@@ -201,7 +200,7 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
    * @return
    */
   private final Stream<P> applyRemotely() {
-    return applyRemotely((Function & Serializable) t -> t);
+    return applyRemotely(t -> t);
   }
   
   /**
@@ -212,7 +211,7 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
    * @param remoteFunction
    * @return
    */
-  private final <OUT> Stream<OUT> applyRemotely(Function<Stream<P>, Stream<OUT>> remoteFunction) {
+  private final <OUT> Stream<OUT> applyRemotely(SerializableFunction<Stream<P>, Stream<OUT>> remoteFunction) {
     ResultCollector<?, ?> result = FunctionService.onRegion(source).withArgs(this).execute(new FunctionAdapter() {
       
       @Override
@@ -347,5 +346,8 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
   public static interface Operation<IN, OUT> extends Serializable {
     Stream<IN> apply(Stream<OUT> stream);
   }
-
+  
+  public static interface SerializableFunction<IN, OUT> extends Function<IN, OUT>, Serializable {
+    
+  }
 }

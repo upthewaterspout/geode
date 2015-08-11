@@ -3,8 +3,9 @@ package com.gemstone.gemfire.cache;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
@@ -53,11 +54,17 @@ public class StreamsP2PDUnitTest extends CacheTestCase {
     
     IntStream.range(0, 10).forEach(i -> region.put(i, i));
     
-    //Add all of the even integers 2 + 4 + 6 + 8 + 10;
+    //Add all of the even integers 2 + 4 + 6 + 8;
     ArrayList<Integer> results = new ArrayList<Integer>();
     region.remoteStream()
         .filter((SerializablePredicate<Map.Entry<Integer, Integer>>) (e -> e.getKey() % 2 == 0))
         .forEach(i -> results.add(i.getValue()));
+    
+    //Add all of the even integers with reduce;
+    int sum = region.remoteStream()
+        .filter((SerializablePredicate<Map.Entry<Integer, Integer>>) (e -> e.getKey() % 2 == 0))
+        .map(((Serializable & Function<Map.Entry<Integer, Integer>, Integer>) e -> e.getValue()))
+        .reduce(1, (Serializable & BinaryOperator<Integer>) Integer::sum);
     
     
     assertEquals(20, results.stream().mapToInt(i -> i.intValue()).sum());
