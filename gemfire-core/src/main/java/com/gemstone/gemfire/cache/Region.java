@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import com.gemstone.gemfire.cache.client.ClientRegionFactory;
 import com.gemstone.gemfire.cache.client.Pool;
@@ -1444,6 +1446,19 @@ public interface Region<K,V>  extends ConcurrentMap<K, V> {
    */
   public Set<Map.Entry<K,V>> entrySet(); //@todo darrel: should be Region.Entry
 
+  /**
+   * Returns a stream that will apply stream operations
+   * on the member hosting the data when possible.
+   * 
+   * This is similar to calling entrySet().parallelStream, except
+   * that the lamba functions will be sent to the remote members
+   * and processed there when possible.
+   * @return
+   */
+  default public Stream<Map.Entry<K, V>> remoteStream() {
+    return StreamSupport.stream(entrySet().spliterator(), true);
+  }
+  
   /**
    * Returns true if this region contains no entries.
    *@since 5.0
