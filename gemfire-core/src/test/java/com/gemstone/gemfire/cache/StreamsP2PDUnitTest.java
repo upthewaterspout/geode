@@ -1,8 +1,10 @@
 package com.gemstone.gemfire.cache;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
@@ -52,13 +54,13 @@ public class StreamsP2PDUnitTest extends CacheTestCase {
     IntStream.range(0, 10).forEach(i -> region.put(i, i));
     
     //Add all of the even integers 2 + 4 + 6 + 8 + 10;
-    int sum = region.remoteStream()
+    ArrayList<Integer> results = new ArrayList<Integer>();
+    region.remoteStream()
         .filter((SerializablePredicate<Map.Entry<Integer, Integer>>) (e -> e.getKey() % 2 == 0))
-        .mapToInt(e -> e.getValue())
-        .sum();
+        .forEach(i -> results.add(i.getValue()));
     
     
-    assertEquals(20, sum);
+    assertEquals(20, results.stream().mapToInt(i -> i.intValue()).sum());
   }
   
   private static interface SerializablePredicate<T> extends Predicate<T>, Serializable {
