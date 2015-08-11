@@ -289,50 +289,51 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
 
   @Override
   public Optional<P> min(Comparator<? super P> comparator) {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely(s -> singleStream(s.min(comparator))).filter(Optional::isPresent).map(Optional::get).min(comparator);
   }
 
   @Override
   public Optional<P> max(Comparator<? super P> comparator) {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely(s -> singleStream(s.max(comparator))).filter(Optional::isPresent).map(Optional::get).max(comparator);
   }
+  
 
   @Override
   public long count() {
-    // TODO Auto-generated method stub
-    return 0;
+    return applyRemotely(s -> Collections.singleton(s.count()).stream())
+        .mapToLong(Long::longValue).sum();
   }
 
   @Override
   public boolean anyMatch(Predicate<? super P> predicate) {
-    // TODO Auto-generated method stub
-    return false;
+    return applyRemotely(s -> Collections.singleton(s.anyMatch(predicate)).stream())
+        .anyMatch(b-> b);
   }
 
   @Override
   public boolean allMatch(Predicate<? super P> predicate) {
-    // TODO Auto-generated method stub
-    return false;
+    return applyRemotely(s -> Collections.singleton(s.allMatch(predicate)).stream())
+        .allMatch(b-> b);
   }
 
   @Override
   public boolean noneMatch(Predicate<? super P> predicate) {
-    // TODO Auto-generated method stub
-    return false;
+    return applyRemotely(s -> Collections.singleton(s.noneMatch(predicate)).stream())
+       .noneMatch(b-> b);
   }
 
   @Override
   public Optional<P> findFirst() {
-    // TODO Auto-generated method stub
-    return null;
+    //regions are not ordered
+    return findAny();
   }
 
   @Override
   public Optional<P> findAny() {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely(s -> Collections.singleton(s.findAny()).stream())
+        .filter(o -> o.isPresent())
+        .map(o -> o.get())
+        .findAny();
   }
   
   public Stream invoke(Stream in) {
@@ -341,6 +342,10 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
     } else {
       return this.op.apply(this.previous.invoke(in));
     }
+  }
+  
+  private static final <T> Stream<T> singleStream(T object) {
+    return Collections.singleton(object).stream();
   }
   
   public static interface Operation<IN, OUT> extends Serializable {
