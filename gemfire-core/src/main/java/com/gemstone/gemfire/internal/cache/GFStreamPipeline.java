@@ -209,21 +209,18 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
   @Override
   public <U> U reduce(U identity, BiFunction<U, ? super P, U> accumulator,
       BinaryOperator<U> combiner) {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely(s -> singleStream(s.reduce(identity, accumulator, combiner))).reduce(identity, combiner);
   }
 
   @Override
   public <R> R collect(Supplier<R> supplier,
       BiConsumer<R, ? super P> accumulator, BiConsumer<R, R> combiner) {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely(s -> singleStream(s.collect(supplier, accumulator, combiner))).collect(supplier, combiner, combiner);
   }
 
   @Override
   public <R, A> R collect(Collector<? super P, A, R> collector) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
