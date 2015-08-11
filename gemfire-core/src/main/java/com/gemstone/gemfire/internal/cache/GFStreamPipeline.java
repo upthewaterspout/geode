@@ -2,6 +2,7 @@ package com.gemstone.gemfire.internal.cache;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -191,6 +192,27 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
 
   @Override
   public void forEach(Consumer<? super P> action) {
+    applyRemotely().forEach(action);
+  }
+  
+  /**
+   * Apply the stream on the remote server and return a stream
+   * that is the flatMap of the results from all servers
+   * @return
+   */
+  private final Stream<P> applyRemotely() {
+    return applyRemotely((Function & Serializable) t -> t);
+  }
+  
+  /**
+   * Apply a function on the remote server and the results of applying the pipeline
+   * up until this point on the remote server. The function should return a stream
+   * of values. That stream will be flatMapped with the results from other members
+   * and returned as a single stream.
+   * @param remoteFunction
+   * @return
+   */
+  private final <OUT> Stream<OUT> applyRemotely(Function<Stream<P>, Stream<OUT>> remoteFunction) {
     ResultCollector<?, ?> result = FunctionService.onRegion(source).withArgs(this).execute(new FunctionAdapter() {
       
       @Override
@@ -207,15 +229,15 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
         if(PartitionRegionHelper.isPartitionedRegion(dataSet)) {
           dataSet = PartitionRegionHelper.getLocalDataForContext(regionContext);
         }
-        Stream data = pipeline.invoke(dataSet.entrySet().stream());
+        Stream<P> data = pipeline.invoke(dataSet.entrySet().stream());
         
-        context.getResultSender().lastResult(data.toArray());
+        context.getResultSender().lastResult(remoteFunction.apply(data).toArray());
       }
     });
     
-    List<P[]> results = (List<P[]>) result.getResult();
-    results.stream().flatMap(a -> Arrays.asList(a).stream()).forEach(action);
+    List<OUT[]> results = (List<OUT[]>) result.getResult();
     
+    return results.stream().flatMap(a -> Arrays.asList(a).stream());
   }
 
   @Override
@@ -226,8 +248,7 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
 
   @Override
   public Object[] toArray() {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely().toArray();
   }
 
   @Override
@@ -238,8 +259,7 @@ public class GFStreamPipeline<P> implements Stream<P>, Serializable {
 
   @Override
   public P reduce(P identity, BinaryOperator<P> accumulator) {
-    // TODO Auto-generated method stub
-    return null;
+    return applyRemotely(t-> Collections.singleton(t.reduce(identity, accumulator)).stream()).reduce(identity, accumulator);
   }
 
   @Override
