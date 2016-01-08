@@ -16,12 +16,6 @@
  */
 package com.gemstone.gemfire.internal.cache;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInput;
@@ -94,6 +88,7 @@ import com.gemstone.gemfire.internal.cache.persistence.BytesAndBits;
 import com.gemstone.gemfire.internal.cache.persistence.DiskRecoveryStore;
 import com.gemstone.gemfire.internal.cache.persistence.DiskRegionView;
 import com.gemstone.gemfire.internal.cache.persistence.DiskStoreID;
+import com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface;
 import com.gemstone.gemfire.internal.cache.persistence.UninterruptibleFileChannel;
 import com.gemstone.gemfire.internal.cache.persistence.UninterruptibleRandomAccessFile;
 import com.gemstone.gemfire.internal.cache.versions.CompactVersionHolder;
@@ -118,6 +113,12 @@ import com.gemstone.gemfire.internal.util.BlobHelper;
 import com.gemstone.gemfire.internal.util.IOUtils;
 import com.gemstone.gemfire.internal.util.TransformUtils;
 import com.gemstone.gemfire.pdx.internal.PdxWriterImpl;
+
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 /**
  * Implements an operation log to write to disk. As of prPersistSprint2 this
@@ -5412,7 +5413,7 @@ public final class Oplog implements CompactableOplog, Flushable {
           flushAllNoSync(true); // fix for bug 41205
         }
         try {
-          UninterruptibleRandomAccessFile myRAF = null;
+          RandomAccessFileInterface myRAF = null;
           if (this.crf.RAFClosed) {
             myRAF = new UninterruptibleRandomAccessFile(this.crf.f, "r");
             this.stats.incOpenOplogs();
@@ -6408,7 +6409,7 @@ public final class Oplog implements CompactableOplog, Flushable {
 
   private static class OplogFile {
     public File f;
-    public UninterruptibleRandomAccessFile raf;
+    public RandomAccessFileInterface raf;
     public volatile boolean RAFClosed = true;
     public UninterruptibleFileChannel channel;
     public ByteBuffer writeBuf;
