@@ -5311,7 +5311,7 @@ public class Oplog implements CompactableOplog, Flushable {
           flushAllNoSync(true); // fix for bug 41205
         }
         try {
-          UninterruptibleRandomAccessFile myRAF = null;
+          RandomAccessFileInterface myRAF = null;
           if (this.crf.RAFClosed) {
             myRAF = new UninterruptibleRandomAccessFile(this.crf.f, "r");
             this.stats.incOpenOplogs();
@@ -6479,7 +6479,7 @@ public class Oplog implements CompactableOplog, Flushable {
 
   private static class OplogFile {
     public File f;
-    public UninterruptibleRandomAccessFile raf;
+    public RandomAccessFileInterface raf;
     public volatile boolean RAFClosed = true;
     public UninterruptibleFileChannel channel;
     public ByteBuffer writeBuf;

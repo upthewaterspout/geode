@@ -24,7 +24,7 @@ import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 
-public class UninterruptibleRandomAccessFile {
+public class UninterruptibleRandomAccessFile implements RandomAccessFileInterface {
   private RandomAccessFile raf;
   private final UninterruptibleFileChannelImpl channel;
   private final File file;
@@ -38,6 +38,10 @@ public class UninterruptibleRandomAccessFile {
     this.channel = new UninterruptibleFileChannelImpl();
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#getChannel()
+   */
+  @Override
   public UninterruptibleFileChannel getChannel() {
     return channel;
   }
@@ -55,39 +59,71 @@ public class UninterruptibleRandomAccessFile {
     this.raf.seek(lastPosition);
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#close()
+   */
+  @Override
   public synchronized void close() throws IOException {
     this.isClosed = true;
     this.raf.close();
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#setLength(long)
+   */
+  @Override
   public synchronized void setLength(long newLength) throws IOException {
     this.raf.setLength(newLength);
 
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#getFD()
+   */
+  @Override
   public synchronized FileDescriptor getFD() throws IOException {
     return this.raf.getFD();
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#getFilePointer()
+   */
+  @Override
   public synchronized long getFilePointer() throws IOException {
     return this.raf.getFilePointer();
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#seek(long)
+   */
+  @Override
   public synchronized void seek(long readPosition) throws IOException {
     this.raf.seek(readPosition);
 
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#readFully(byte[])
+   */
+  @Override
   public synchronized void readFully(byte[] valueBytes) throws IOException {
     this.raf.readFully(valueBytes);
 
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#readFully(byte[], int, int)
+   */
+  @Override
   public synchronized void readFully(byte[] valueBytes, int i, int valueLength) throws IOException {
     this.raf.readFully(valueBytes, i, valueLength);
 
   }
 
+  /* (non-Javadoc)
+   * @see com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface#length()
+   */
+  @Override
   public synchronized long length() throws IOException {
     return this.raf.length();
   }
