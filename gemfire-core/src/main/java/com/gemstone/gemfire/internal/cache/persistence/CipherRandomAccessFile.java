@@ -15,6 +15,8 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
 
+import org.junit.Assert;
+
 import com.gemstone.gemfire.GemFireIOException;
 
 public class CipherRandomAccessFile implements RandomAccessFileInterface {
@@ -58,8 +60,7 @@ public class CipherRandomAccessFile implements RandomAccessFileInterface {
   }
 
   public synchronized void setLength(long newLength) throws IOException {
-    this.raf.setLength(newLength);
-    
+    throw new UnsupportedOperationException();
   }
 
   public synchronized FileDescriptor getFD() throws IOException {
@@ -72,12 +73,10 @@ public class CipherRandomAccessFile implements RandomAccessFileInterface {
 
   public synchronized void seek(long readPosition) throws IOException {
     this.position = readPosition;
-    
   }
 
   public synchronized void readFully(byte[] valueBytes) throws IOException {
     this.readFully(valueBytes, 0, valueBytes.length);
-    
   }
 
   public synchronized void readFully(byte[] valueBytes, int i, int valueLength) throws IOException {
@@ -117,7 +116,32 @@ public class CipherRandomAccessFile implements RandomAccessFileInterface {
   }
   
   public int write(ByteBuffer src) throws IOException {
-    throw new UnsupportedOperationException();
+    if(position != lastWritePosition) {
+      //Read the current block if we don't already have it cached in the write buffer
+      writeBuffer.clear();
+      read(writeBuffer);
+    }
+    while(src.hasRemaining()) {
+      writeBuffer.put(src);
+      if(!writeBuffer.hasRemaining())
+        saveWriteBuffer();
+    }
+    saveWriteBuffer();
+  }
+
+  private void saveWriteBuffer() throws IOException {
+    this.fileChannel.position(cipherBlock(position));
+    encryptedBuffer.clear();
+    try {
+      encrypt.doFinal(writeBuffer, encryptedBuffer);
+    } catch (ShortBufferException | IllegalBlockSizeException
+        | BadPaddingException e) {
+      throw new GemFireIOException("Error encrypting data", e);
+    }
+    int writtenBytes = this.fileChannel.write(encryptedBuffer);
+    position += writtenBytes;
+    lastWritePosition += writtenBytes;
+    Assert.assertFalse(writeBuffer.hasRemaining());
   }
 
   private long cipherBlock(long position) {
