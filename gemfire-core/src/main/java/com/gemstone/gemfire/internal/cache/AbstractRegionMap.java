@@ -1271,10 +1271,7 @@ abstract class AbstractRegionMap implements RegionMap {
     
     final LocalRegion owner = _getOwner();
 
-    if (owner == null) {
-      Assert.assertTrue(false, "The owner for RegionMap " + this    // "fix" for bug 32440
-          + " is null for event " + event);
-    }
+    checkOwnerValidity(event, owner);
     
     //mbid: this has been added to maintain consistency between the disk region
     // and
@@ -1357,12 +1354,8 @@ RETRY_LOOP:
         // we need to create an entry if in token mode or if we've received
         // a destroy from a peer or WAN gateway and we need to retain version
         // information for concurrency checks
-        boolean retainForConcurrency = (!haveTombstone
-            && (owner.dataPolicy.withReplication() || event.isFromServer())
-            && owner.concurrencyChecksEnabled
-            && (event.isOriginRemote() /* destroy received from other must create tombstone */
-                || event.isFromWANAndVersioned() /* wan event must create a tombstone */
-                || event.isBridgeEvent())); /* event from client must create a tombstone so client has a version # */ 
+        boolean retainForConcurrency = retainForConcurrency(event, owner,
+            haveTombstone); 
         if (inTokenMode
             || retainForConcurrency) { 
           // removeRecoveredEntry should be false in this case
@@ -1556,9 +1549,7 @@ RETRY_LOOP:
                     }
                   }
                   if (throwex) {
-                    if (!event.isOriginRemote() && !event.getOperation().isLocal() &&
-                        (event.isFromBridgeAndVersioned() ||  // if this is a replayed client event that already has a version
-                            event.isFromWANAndVersioned())) { // or if this is a WAN event that has been applied in another system
+                    if (mustDistribute(event)) { // or if this is a WAN event that has been applied in another system
                       // we must distribute these since they will update the version information in peers
                       if (logger.isDebugEnabled()) {
                         logger.debug("ARM.destroy is allowing wan/client destroy of {} to continue", event.getKey());
@@ -1846,6 +1837,31 @@ RETRY_LOOP:
     }
     } // retry loop
     return false;
+  }
+
+  protected boolean mustDistribute(EntryEventImpl event) {
+    return !event.isOriginRemote() && !event.getOperation().isLocal() &&
+        (event.isFromBridgeAndVersioned() ||  // if this is a replayed client event that already has a version
+            event.isFromWANAndVersioned());
+  }
+
+  protected boolean retainForConcurrency(EntryEventImpl event,
+      final LocalRegion owner, boolean haveTombstone) {
+    boolean retainForConcurrency = (!haveTombstone
+        && (owner.dataPolicy.withReplication() || event.isFromServer())
+        && owner.concurrencyChecksEnabled
+        && (event.isOriginRemote() /* destroy received from other must create tombstone */
+            || event.isFromWANAndVersioned() /* wan event must create a tombstone */
+            || event.isBridgeEvent())); /* event from client must create a tombstone so client has a version # */
+    return retainForConcurrency;
+  }
+
+  protected void checkOwnerValidity(EntryEventImpl event,
+      final LocalRegion owner) {
+    if (owner == null) {
+      Assert.assertTrue(false, "The owner for RegionMap " + this    // "fix" for bug 32440
+          + " is null for event " + event);
+    }
   }
 
   public final void txApplyDestroy(Object key, TransactionId txId,
@@ -2149,12 +2165,7 @@ RETRY_LOOP:
     final boolean isDebugEnabled = logger.isDebugEnabled();
     
     final LocalRegion owner = _getOwner();
-    if (owner == null) {
-      // "fix" for bug 32440
-      Assert.assertTrue(false, "The owner for RegionMap " + this
-          + " is null for event " + event);
-
-    }
+    checkOwnerValidity(event, owner);
     boolean didInvalidate = false;
     RegionEntry invalidatedRe = null;
     boolean clearOccured = false;
@@ -2585,12 +2596,7 @@ RETRY_LOOP:
   public void updateEntryVersion(EntryEventImpl event) throws EntryNotFoundException {
 
     final LocalRegion owner = _getOwner();
-    if (owner == null) {
-      // "fix" for bug 32440
-      Assert.assertTrue(false, "The owner for RegionMap " + this
-          + " is null for event " + event);
-
-    }
+    checkOwnerValidity(event, owner);
     
     DiskRegion dr = owner.getDiskRegion();
     if (dr != null) {
@@ -3049,11 +3055,7 @@ RETRY_LOOP:
         TimeoutException {
     final LocalRegion owner = _getOwner();
     boolean clearOccured = false;
-    if (owner == null) {
-      // "fix" for bug 32440
-      Assert.assertTrue(false, "The owner for RegionMap " + this
-          + " is null for event " + event);
-    }
+    checkOwnerValidity(event, owner);
     if (logger.isTraceEnabled(LogMarker.LRU_TOMBSTONE_COUNT) && !(owner instanceof HARegion)) {
       logger.trace(LogMarker.LRU_TOMBSTONE_COUNT,
           "ARM.basicPut called for {} expectedOldValue={} requireOldValue={} ifNew={} ifOld={} initialized={} overwriteDestroyed={}",
