@@ -65,11 +65,7 @@ public class EntryDestroyer {
     RETRY_LOOP: while (retry) {
       retry = false;
 
-      lockSqlfIndex();
-      opCompleted = false;
-      doPart3 = false;
-
-      doUnlock = true;
+      setupForDestroy();
       map.lockForCacheModification(owner, event);
       try {
 
@@ -77,23 +73,12 @@ public class EntryDestroyer {
             null, true, true);
         tombstone = null;
         haveTombstone = false;
-        /*
-         * Execute the test hook runnable inline (not threaded) if it is not
-         * null.
-         */
-        if (null != map.testHookRunnableFor48182) {
-          map.testHookRunnableFor48182.run();
-        }
+        executeTestHook();
 
         try {
           map.logTombstoneCount(event, inTokenMode, duringRI, isEviction, owner,
               re);
-          if (event.isFromRILocalDestroy()) {
-            // for RI local-destroy we don't want to keep tombstones.
-            // In order to simplify things we just set this recovery
-            // flag to true to force the entry to be removed
-            removeRecoveredEntry = true;
-          }
+
           // the logic in this method is already very involved, and adding
           // tombstone
           // permutations to (re != null) greatly complicates it. So, we check
@@ -111,87 +96,12 @@ public class EntryDestroyer {
             if (inTokenMode || retainForConcurrency) {
               RegionEntry newRe = map.getEntryFactory().createEntry(owner,
                   event.getKey(), Token.REMOVED_PHASE1);
-              // Fix for Bug #44431. We do NOT want to update the region and
-              // wait
-              // later for index INIT as region.clear() can cause inconsistency
-              // if
-              // happened in parallel as it also does index INIT.
-              if (oqlIndexManager != null) {
-                oqlIndexManager.waitForIndexInit();
-              }
+              waitForIndexInit();
               try {
                 synchronized (newRe) {
-                  oldRe = map.putEntryIfAbsent(event.getKey(), newRe);
-                  while (!opCompleted && oldRe != null) {
-                    synchronized (oldRe) {
-                      if (oldRe.isRemovedPhase2()) {
-                        oldRe = map.putEntryIfAbsent(event.getKey(), newRe);
-                        if (oldRe != null) {
-                          owner.getCachePerfStats().incRetries();
-                        }
-                      } else {
-                        event.setRegionEntry(oldRe);
-
-                        // Last transaction related eviction check. This should
-                        // prevent
-                        // transaction conflict (caused by eviction) when the
-                        // entry
-                        // is being added to transaction state.
-                        if (isEviction) {
-                          if (!map.confirmEvictionDestroy(oldRe)
-                              || (owner.getEvictionCriteria() != null && !owner
-                                  .getEvictionCriteria().doEvict(event))) {
-                            opCompleted = false;
-                            return opCompleted;
-                          }
-                        }
-                        try {
-                          destroyed = map.destroyEntry(oldRe, event,
-                              inTokenMode, cacheWrite, expectedOldValue, false,
-                              removeRecoveredEntry);
-                          if (destroyed) {
-                            if (retainForConcurrency) {
-                              owner.basicDestroyBeforeRemoval(oldRe, event);
-                            }
-                            owner.basicDestroyPart2(oldRe, event, inTokenMode,
-                                false /* conflict with clear */, duringRI,
-                                true);
-                            // if (!oldRe.isTombstone() || isEviction) {
-                            map.lruEntryDestroy(oldRe);
-                            // } else { // tombstone
-                            // lruEntryUpdate(oldRe);
-                            // lruUpdateCallback = true;
-                            // }
-                            doPart3 = true;
-                          }
-                        } catch (RegionClearedException rce) {
-                          // region cleared implies entry is no longer there
-                          // so must throw exception if expecting a particular
-                          // old value
-                          // if (expectedOldValue != null) {
-                          // throw new EntryNotFoundException("entry not found
-                          // with expected value");
-                          // }
-
-                          // Ignore. The exception will ensure that we do not
-                          // update
-                          // the LRU List
-                          owner.basicDestroyPart2(oldRe, event, inTokenMode,
-                              true/* conflict with clear */, duringRI, true);
-                          doPart3 = true;
-                        } catch (ConcurrentCacheModificationException ccme) {
-                          VersionTag tag = event.getVersionTag();
-                          if (tag != null && tag.isTimeStampUpdated()) {
-                            // Notify gateways of new time-stamp.
-                            owner.notifyTimestampsToGateways(event);
-                          }
-                          throw ccme;
-                        }
-                        re = oldRe;
-                        opCompleted = true;
-                      }
-                    } // synchronized oldRe
-                  } // while
+                  if (!putNewReOrDestroyOldRe(newRe)) {
+                    return false;
+                  }
                   if (!opCompleted) {
                     // The following try has a finally that cleans up the newRe.
                     // This is only needed if newRe was added to the map which
@@ -439,9 +349,7 @@ public class EntryDestroyer {
             }
           } // no current entry
           else { // current entry exists
-            if (oqlIndexManager != null) {
-              oqlIndexManager.waitForIndexInit();
-            }
+            waitForIndexInit();
             try {
               synchronized (re) {
                 // if the entry is a tombstone and the event is from a peer or a
@@ -668,6 +576,130 @@ public class EntryDestroyer {
     } // retry loop
     return false;
 
+  }
+
+  private boolean putNewReOrDestroyOldRe(RegionEntry newRe) {
+    oldRe = map.putEntryIfAbsent(event.getKey(), newRe);
+    while (!opCompleted && oldRe != null) {
+      synchronized (oldRe) {
+        if (oldRe.isRemovedPhase2()) {
+          oldRe = retryPutEntryIfAbsent(newRe);
+        } else {
+          event.setRegionEntry(oldRe);
+
+          if (!handleEviction()) {
+            return false;
+          }
+          destroyOldRe();
+          re = oldRe;
+          opCompleted = true;
+        }
+      } // synchronized oldRe
+    } // while
+
+    return true;
+  }
+
+  private void destroyOldRe() {
+    try {
+      destroyed = map.destroyEntry(oldRe, event, inTokenMode, cacheWrite,
+          expectedOldValue, false, removeRecoveredEntry);
+      if (destroyed) {
+        if (retainForConcurrency) {
+          owner.basicDestroyBeforeRemoval(oldRe, event);
+        }
+        owner.basicDestroyPart2(oldRe, event, inTokenMode,
+            false /* conflict with clear */, duringRI, true);
+        // if (!oldRe.isTombstone() || isEviction) {
+        map.lruEntryDestroy(oldRe);
+        // } else { // tombstone
+        // lruEntryUpdate(oldRe);
+        // lruUpdateCallback = true;
+        // }
+        doPart3 = true;
+      }
+    } catch (RegionClearedException rce) {
+      // region cleared implies entry is no longer there
+      // so must throw exception if expecting a particular
+      // old value
+      // if (expectedOldValue != null) {
+      // throw new EntryNotFoundException("entry not found
+      // with expected value");
+      // }
+
+      // Ignore. The exception will ensure that we do not
+      // update
+      // the LRU List
+      owner.basicDestroyPart2(oldRe, event, inTokenMode,
+          true/* conflict with clear */, duringRI, true);
+      doPart3 = true;
+    } catch (ConcurrentCacheModificationException ccme) {
+      VersionTag tag = event.getVersionTag();
+      if (tag != null && tag.isTimeStampUpdated()) {
+        // Notify gateways of new time-stamp.
+        owner.notifyTimestampsToGateways(event);
+      }
+      throw ccme;
+    }
+  }
+
+  private boolean handleEviction() {
+    // Last transaction related eviction check. This should
+    // prevent
+    // transaction conflict (caused by eviction) when the
+    // entry
+    // is being added to transaction state.
+    if (isEviction) {
+      if (!map.confirmEvictionDestroy(oldRe)
+          || (owner.getEvictionCriteria() != null
+              && !owner.getEvictionCriteria().doEvict(event))) {
+        opCompleted = false;
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private RegionEntry retryPutEntryIfAbsent(RegionEntry newRe) {
+    RegionEntry oldRe = map.putEntryIfAbsent(event.getKey(), newRe);
+    if (oldRe != null) {
+      owner.getCachePerfStats().incRetries();
+    }
+    return oldRe;
+  }
+
+  private void waitForIndexInit() {
+    // Fix for Bug #44431. We do NOT want to update the region and
+    // wait
+    // later for index INIT as region.clear() can cause inconsistency
+    // if
+    // happened in parallel as it also does index INIT.
+    if (oqlIndexManager != null) {
+      oqlIndexManager.waitForIndexInit();
+    }
+  }
+
+  private void executeTestHook() {
+    /*
+     * Execute the test hook runnable inline (not threaded) if it is not null.
+     */
+    if (null != map.testHookRunnableFor48182) {
+      map.testHookRunnableFor48182.run();
+    }
+  }
+
+  private void setupForDestroy() {
+    lockSqlfIndex();
+    opCompleted = false;
+    doPart3 = false;
+
+    doUnlock = true;
+    if (event.isFromRILocalDestroy()) {
+      // for RI local-destroy we don't want to keep tombstones.
+      // In order to simplify things we just set this recovery
+      // flag to true to force the entry to be removed
+      removeRecoveredEntry = true;
+    }
   }
 
   private void lockSqlfIndex() {
