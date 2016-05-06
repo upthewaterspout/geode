@@ -1150,7 +1150,8 @@ public abstract class AbstractDistributionConfig
 
   static final InetAddress _getDefaultMcastAddress() {
     String ipLiteral;
-    if ( SocketCreator.preferIPv6Addresses() ) {
+//    if ( SocketCreator.preferIPv6Addresses() ) {
+    if ( 1 == 0) {
       ipLiteral = "FF38::1234"; // fix for bug 30014
     } else {
       ipLiteral = "239.192.81.1"; // fix for bug 30014

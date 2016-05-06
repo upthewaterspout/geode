@@ -123,6 +123,10 @@ dependencies {
   testCompile 'org.powermock:powermock-module-junit4:' + project.'powermock.version'
   testCompile 'org.powermock:powermock-api-mockito:' + project.'powermock.version'
   jpfTestCompile files('/home/dsmith/data/java_pathfinder/jpf-core/build/jpf.jar')
+//  jpfTestCompile files('/home/dsmith/data/binary_pathfinder/jpf-core/build/jpf.jar')
+  jpfTestCompile sourceSets.main.output
+  jpfTestCompile configurations.compile
+  jpfTestCompile 'junit:junit:' + project.'junit.version'
 }
 
 def generatedResources = "$buildDir/generated-resources/main"
@@ -217,7 +221,7 @@ task generateJPFProperties () {
   def jpfFile = file "$buildDir/jpf.properties"
   outputs.file jpfFile
   doLast {
-    def classpath = configurations.jpfTestRuntime.asPath + ':' + sourceSets.jpfTest.output.asPath
+    def classpath = sourceSets.jpfTest.output.asPath + ":" + configurations.jpfTestRuntime.asPath 
     def properties = new Properties()
     properties.setProperty('classpath', classpath)
     jpfFile.getParentFile().mkdirs();

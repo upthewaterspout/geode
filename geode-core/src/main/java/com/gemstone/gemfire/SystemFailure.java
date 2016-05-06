@@ -700,7 +700,8 @@ public final class SystemFailure {
       try {
         //*** catnap...
         try {
-          Thread.sleep(MEMORY_POLL_INTERVAL * 1000);
+//          Thread.sleep(MEMORY_POLL_INTERVAL * 1000);
+          Thread.sleep(10);
         }
         catch (InterruptedException e) {
           // ignore

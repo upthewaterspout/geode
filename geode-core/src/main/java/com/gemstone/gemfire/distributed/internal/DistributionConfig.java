@@ -3761,7 +3761,7 @@ public interface DistributionConfig extends Config, LogConfig {
           atts.add((String) field.get(null));
           attributes.put((String) field.get(null), field.getAnnotation(ConfigAttribute.class));
         } catch (IllegalAccessException e) {
-          e.printStackTrace();
+ //         e.printStackTrace();
         }
       }
     }

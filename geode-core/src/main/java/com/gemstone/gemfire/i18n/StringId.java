@@ -51,7 +51,8 @@ public class StringId {
   public static final StringId LITERAL = new StringId(1, "{0}"); 
   
   static {
-    setLocale(Locale.getDefault());
+//    setLocale(Locale.getDefault());
+        setLocale(Locale.ENGLISH);
   }
 
   /*
@@ -141,7 +142,8 @@ public class StringId {
     if (includeMsgIDs) {
       idStr = "msgID "+this.id+": ";
     }
-    return MessageFormat.format(idStr + StringId.rb.getString(this), params);
+//    return MessageFormat.format(idStr + StringId.rb.getString(this), params);
+    return "";
   }
   
   /**

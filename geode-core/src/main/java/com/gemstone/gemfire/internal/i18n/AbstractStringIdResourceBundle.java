@@ -59,7 +59,7 @@ public class AbstractStringIdResourceBundle {
 
     InputStream is = null;
     try {
-      is = ClassPathLoader.getLatest().getResourceAsStream(getClass(), resource);
+//      is = ClassPathLoader.getLatest().getResourceAsStream(getClass(), resource);
     } catch (SecurityException se) {
       //We do not have a logger yet
       System.err.println("A SecurityException occurred while attempting to load the resource bundle, defaulting to English." + se.toString());

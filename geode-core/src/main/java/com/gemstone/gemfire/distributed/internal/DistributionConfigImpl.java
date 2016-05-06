@@ -653,9 +653,9 @@ public class DistributionConfigImpl
                                 boolean ignoreGemFirePropsFile, boolean isConnected) {
     HashMap props = new HashMap();
     if (!ignoreGemFirePropsFile) {//For admin bug #40434
-      props.putAll(loadPropertiesFromURL(DistributedSystem.getPropertyFileURL(), false));
+//      props.putAll(loadPropertiesFromURL(DistributedSystem.getPropertyFileURL(), false));
     }
-    props.putAll(loadPropertiesFromURL(DistributedSystem.getSecurityPropertiesFileURL(), true));
+ //   props.putAll(loadPropertiesFromURL(DistributedSystem.getSecurityPropertiesFileURL(), true));
 
     // Now override values picked up from the file with values passed
     // in from the caller's code
