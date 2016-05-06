@@ -122,6 +122,7 @@ dependencies {
   testCompile 'org.powermock:powermock-core:' + project.'powermock.version'
   testCompile 'org.powermock:powermock-module-junit4:' + project.'powermock.version'
   testCompile 'org.powermock:powermock-api-mockito:' + project.'powermock.version'
+  jpfTestCompile files('/home/dsmith/data/java_pathfinder/jpf-core/build/jpf.jar')
 }
 
 def generatedResources = "$buildDir/generated-resources/main"
@@ -209,6 +210,21 @@ task jcaJar (type: Jar, dependsOn: raJar) {
   extension 'rar'
   metaInf { from 'src/jca/ra.xml' }
   from raJar.archivePath
+}
+
+task generateJPFProperties () {
+  description 'Generates a jpf.properties file with the appropriate classpath'
+  def jpfFile = file "$buildDir/jpf.properties"
+  outputs.file jpfFile
+  doLast {
+    def classpath = configurations.jpfTestRuntime.asPath + ':' + sourceSets.jpfTest.output.asPath
+    def properties = new Properties()
+    properties.setProperty('classpath', classpath)
+    jpfFile.getParentFile().mkdirs();
+    new FileOutputStream(jpfFile).withStream { fos ->
+      properties.store(fos, '')
+    }
+  }
 }
 
 configurations {

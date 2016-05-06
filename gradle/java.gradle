@@ -87,6 +87,11 @@ subprojects {
     main.runtimeClasspath -= configurations.provided
     test.compileClasspath += configurations.provided
     test.runtimeClasspath += configurations.provided
+
+    jpfTest
+
+    jpfTest.compileClasspath += test.compileClasspath
+    jpfTest.runtimeClasspath += test.compileClasspath
   }
 
   javadoc.classpath += configurations.provided
