@@ -1,0 +1,19 @@
+This branch is an experiment with using JPF to test geode.
+
+There is currently a hardcoded path to JPF in geode-core/build.gradle to the location of jpf.jar. I had to download jpf and build from source.
+
+To run the tests, make the project in intellij and then run 
+./gradlew geode-core:generateJPFProperties
+
+You should then be able to run the tests in intellij.
+
+That's all at I tested so far.
+
+
+jpf-core was at this revision:
+changeset:   29:820b89dd6c97
+tag:         tip
+user:        nastaran <nastaran.shafiei@gmail.com>
+date:        Fri Oct 16 15:55:08 2015 -0700
+summary:     Fixed a bug in the implementation for lambda support. Now, every invocation of invokedynamic that is associated with a lamabda expression including free variables leads to a new instance of a function object.
+
