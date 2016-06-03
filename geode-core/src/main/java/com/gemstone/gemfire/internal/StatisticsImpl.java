@@ -17,11 +17,15 @@
 package com.gemstone.gemfire.internal;
 
 //import com.gemstone.gemfire.distributed.DistributedSystem;
+import java.util.function.IntSupplier;
+import java.util.function.LongSupplier;
+
 import com.gemstone.gemfire.StatisticDescriptor;
 import com.gemstone.gemfire.Statistics;
 import com.gemstone.gemfire.StatisticsType;
 import com.gemstone.gemfire.internal.concurrent.Atomics;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
+import com.gemstone.gemfire.internal.util.concurrent.CopyOnWriteHashMap;
 
 // @todo darrel Add statistics instances to archive when they are created. 
 /**
@@ -60,6 +64,19 @@ public abstract class StatisticsImpl implements Statistics {
 
   /** Uniquely identifies this instance */
   private long uniqueId;
+
+  /**
+   * Suppliers of int sample values to be sampled every sample-interval
+   */
+  private final CopyOnWriteHashMap<Integer, IntSupplier> intSuppliers = new CopyOnWriteHashMap<>();
+  /**
+   * Suppliers of long sample values to be sampled every sample-interval
+   */
+  private final CopyOnWriteHashMap<Integer, IntSupplier> longSuppliers = new CopyOnWriteHashMap<>();
+  /**
+   * Suppliers of double sample values to be sampled every sample-interval
+   */
+  private final CopyOnWriteHashMap<Integer, IntSupplier> doubleSuppliers = new CopyOnWriteHashMap<>();
 
   ///////////////////////  Constructors  ///////////////////////
 
@@ -369,6 +386,24 @@ public abstract class StatisticsImpl implements Statistics {
    */
   public void prepareForSample() {
     // nothing needed in this impl.
+  }
+
+  public void invokeSuppliers() {
+  }
+
+  @Override public IntSupplier setIntSupplier(final int id, final IntSupplier supplier) {
+    if(id < type.getIntStatCount()) {
+      throw new IllegalArgumentException("Id " + id + " is not in range for stat" + type);
+    }
+    return intSuppliers.put(id, supplier);
+  }
+
+  @Override public IntSupplier setIntSupplier(final String name, final IntSupplier supplier) {
+    return null;
+  }
+
+  @Override public IntSupplier setIntSupplier(final StatisticDescriptor descriptor, final IntSupplier supplier) {
+    return null;
   }
 
   /**

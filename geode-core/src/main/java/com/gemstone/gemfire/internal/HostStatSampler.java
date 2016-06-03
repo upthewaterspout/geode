@@ -519,6 +519,17 @@ public abstract class HostStatSampler
       }
     }
 
+    long callbackStart = System.nanoTime();
+    int callbacksInvoked = 0;
+    if(!prepareOnly) {
+      for (Statistics s : statsList) {
+        if (stopRequested()) return;
+        if (s instanceof StatisticsImpl) {
+          ((StatisticsImpl)s).invokeSuppliers();
+        }
+      }
+    }
+
     if (!prepareOnly && this.vmStats != null) {
       if (stopRequested()) return;
       this.vmStats.refresh();
