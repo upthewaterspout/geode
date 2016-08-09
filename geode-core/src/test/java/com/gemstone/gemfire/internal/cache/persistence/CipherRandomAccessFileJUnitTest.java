@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import com.gemstone.gemfire.internal.cache.persistence.cipher.CipherRandomAccessFile;
 import com.gemstone.gemfire.test.junit.categories.UnitTest;
 
 @Category(UnitTest.class)
@@ -69,6 +70,16 @@ public class CipherRandomAccessFileJUnitTest {
     SecretKey key = keyFactory.generateSecret(dks);
     return key;
   }
+
+  @Test
+  public void testSizes()
+    throws InvalidKeySpecException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException
+  {
+    System.out.println("encrypt block = " + getEncryptCipher().getBlockSize());
+    System.out.println("decrypt block = " + getDecryptCipher().getBlockSize());
+    System.out.println("encrypt output = " + getEncryptCipher().getOutputSize(getDecryptCipher().getBlockSize()));
+    System.out.println("decrypt output = " + getDecryptCipher().getOutputSize(getEncryptCipher().getBlockSize()));
+  }
   
   @Test
   public void testAppendData() throws IOException {
@@ -81,19 +92,36 @@ public class CipherRandomAccessFileJUnitTest {
     assertTrue(IOUtils.contentEquals(Channels.newInputStream(plainRAF.getChannel()), Channels.newInputStream(cipherRAF.getChannel())));
   }
 
+  @Test
+  public void testAppend10Bytes() throws IOException {
+
+    ByteBuffer bytes = ByteBuffer.allocate(10);
+    fillRandomBytes(bytes);
+    appendBytes(bytes);
+
+    plainRAF.seek(0);
+    cipherRAF.seek(0);
+
+    assertTrue(IOUtils.contentEquals(Channels.newInputStream(plainRAF.getChannel()), Channels.newInputStream(cipherRAF.getChannel())));
+  }
+
   private void appendRandomData() throws IOException {
     ByteBuffer bytes = ByteBuffer.allocate(1024);
     for(int i =0; i < 100; i++) {
       fillRandomBytes(bytes);
-      bytes.mark();
-      int plainWritten = plainRAF.getChannel().write(bytes);
-      bytes.reset();
-      int cipherWritten = cipherRAF.getChannel().write(bytes);
-      assertEquals(plainWritten, cipherWritten);
+      appendBytes(bytes);
       assertEquals(plainRAF.getFilePointer(), cipherRAF.getFilePointer());
     }
   }
-  
+
+  private void appendBytes(final ByteBuffer bytes) throws IOException {
+    bytes.mark();
+    int plainWritten = plainRAF.getChannel().write(bytes);
+    bytes.reset();
+    int cipherWritten = cipherRAF.getChannel().write(bytes);
+    assertEquals(plainWritten, cipherWritten);
+  }
+
   @Test
   public void testRandomReads() throws IOException {
     appendRandomData();

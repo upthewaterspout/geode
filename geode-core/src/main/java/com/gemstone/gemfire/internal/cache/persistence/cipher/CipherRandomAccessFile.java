@@ -1,47 +1,33 @@
-package com.gemstone.gemfire.internal.cache.persistence;
+package com.gemstone.gemfire.internal.cache.persistence.cipher;
 
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.ShortBufferException;
 
-import com.gemstone.gemfire.GemFireIOException;
-import com.gemstone.gemfire.internal.Assert;
+import com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface;
+import com.gemstone.gemfire.internal.cache.persistence.UninterruptibleFileChannel;
 
 public class CipherRandomAccessFile implements RandomAccessFileInterface {
-  private static final int DEFAULT_BLOCK_SIZE = 512;
+  private final BlockIO blockIO;
   private RandomAccessFileInterface raf;
   private final CipherFileChannelImpl channel;
   private boolean isClosed;
-  private int plainTextBlockSize;
-  private int encryptedBlockSize;
   private long position;
   private UninterruptibleFileChannel fileChannel;
-  private final ByteBuffer encryptedBuffer;
-  private final ByteBuffer plainTextReadBuffer;
-  private long lastWritePosition;
-  private final ByteBuffer plainTextWriteBuffer;
   private Cipher encryptCipher;
-  private Cipher decryptCipher;
+  private BufferManager bufferManager;
 
   public CipherRandomAccessFile(RandomAccessFileInterface raf, Cipher encrypt, Cipher decrypt) throws FileNotFoundException {
     this.encryptCipher = encrypt;
-    this.decryptCipher = decrypt;
-    int blockSize = encrypt.getBlockSize();
-    this.plainTextBlockSize = blockSize == 0 ? DEFAULT_BLOCK_SIZE : blockSize;
-    this.encryptedBlockSize = encrypt.getOutputSize(blockSize);
     this.raf = raf;
     this.fileChannel = raf.getChannel();
     this.channel = new CipherFileChannelImpl();
-    this.encryptedBuffer = ByteBuffer.allocate(this.encryptedBlockSize);
-    this.plainTextReadBuffer = ByteBuffer.allocate(this.plainTextBlockSize);
-    this.plainTextWriteBuffer = plainTextReadBuffer;
+
+    this.blockIO = new BlockIO(decrypt, encrypt, this.fileChannel);
+    this.bufferManager = new BufferManager(2, blockIO.getPlainTextBlockSize(), blockIO);
   }
 
   public UninterruptibleFileChannel getChannel() {
@@ -84,69 +70,55 @@ public class CipherRandomAccessFile implements RandomAccessFileInterface {
   }
   
   protected synchronized int read(ByteBuffer buf) throws IOException {
-    this.fileChannel.position(cipherBlock(this.position));
-    
     long initialPosition = this.position;
     while(buf.remaining() > 0) {
-      encryptedBuffer.clear();
-      plainTextReadBuffer.clear();
-      this.fileChannel.read(encryptedBuffer);
-      try {
-        decryptCipher.doFinal(encryptedBuffer, plainTextReadBuffer);
-      } catch (ShortBufferException | IllegalBlockSizeException
-          | BadPaddingException e) {
-        throw new GemFireIOException("Error decrypting data", e);
-      }
-
-      plainTextReadBuffer.flip();
-      plainTextReadBuffer.position(blockPosition(position));
-      int toTransfer = Math.min(buf.remaining(), plainTextReadBuffer.remaining());
-      plainTextReadBuffer.limit(plainTextReadBuffer.position() + toTransfer);
-      buf.put(plainTextReadBuffer);
-      position+= toTransfer;
+      ByteBuffer plainText = bufferManager.getBuffer(block(position));
+      plainText.position(blockPosition(position));
+      int toTransfer = Math.min(buf.remaining(), plainText.remaining());
+      int oldLimit = plainText.limit();
+      plainText.limit(plainText.position() + toTransfer);
+      plainText.limit(oldLimit);
+      buf.put(plainText);
+      position += toTransfer;
     }
     
     return (int) (this.position - initialPosition);
   }
+
+  public long block(long position) {
+    return position / blockIO.getPlainTextBlockSize();
+  }
   
   public int write(ByteBuffer src) throws IOException {
-    if(position != lastWritePosition) {
-      //Read the current block if we don't already have it cached in the write buffer
-      plainTextWriteBuffer.clear();
-      read(plainTextWriteBuffer);
-    }
     int written = 0;
+    ByteBuffer plainText = null;
     while(src.hasRemaining()) {
-      plainTextWriteBuffer.put(src);
-      if(!plainTextWriteBuffer.hasRemaining())
-        written += saveWriteBuffer();
+      plainText = bufferManager.getBuffer(block(position));
+      plainText.position(blockPosition(position));
+      plainText.limit(plainText.capacity());
+      int oldLimit = src.limit();
+      src.limit(src.position() + Math.min(plainText.remaining(), src.remaining()));
+      plainText.put(src);
+      src.limit(oldLimit);
+      if(!plainText.hasRemaining()) {
+        written += save(plainText);
+      }
     }
-    written += saveWriteBuffer();
+    if(plainText != null) {
+      written += save(plainText);
+    }
     return written;
   }
 
-  private int saveWriteBuffer() throws IOException {
-    this.fileChannel.position(cipherBlock(position));
-    encryptedBuffer.clear();
-    try {
-      encryptCipher.doFinal(plainTextWriteBuffer, encryptedBuffer);
-    } catch (ShortBufferException | IllegalBlockSizeException
-        | BadPaddingException e) {
-      throw new GemFireIOException("Error encrypting data", e);
-    }
-    int writtenBytes = this.fileChannel.write(encryptedBuffer);
-    position += writtenBytes;
-    lastWritePosition += writtenBytes;
-    Assert.assertTrue(!plainTextWriteBuffer.hasRemaining());
-    return writtenBytes;
+  private int save(final ByteBuffer plainText) throws IOException {
+    int written = blockIO.save(block(position), plainText);
+    position += written;
+    return written;
   }
 
-  private long cipherBlock(long position) {
-    return (position/ plainTextBlockSize) * encryptedBlockSize;
-  }
-  
+
   private int blockPosition(long position) {
-    return (int) (position % plainTextBlockSize);
+    return (int) (position % blockIO.getPlainTextBlockSize());
   }
 
   public synchronized long length() throws IOException {
@@ -232,7 +204,6 @@ public class CipherRandomAccessFile implements RandomAccessFileInterface {
     }
     
   }
-
 
 
 }
