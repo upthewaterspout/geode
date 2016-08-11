@@ -16,6 +16,7 @@
  */
 package com.gemstone.gemfire.internal.cache.execute;
 
+import static com.gemstone.gemfire.test.dunit.Wait.pause;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -23,15 +24,18 @@ import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
+import com.gemstone.gemfire.cache.CacheClosedException;
 import com.gemstone.gemfire.cache.execute.Execution;
+import com.gemstone.gemfire.cache.execute.Function;
+import com.gemstone.gemfire.cache.execute.FunctionContext;
 import com.gemstone.gemfire.cache.execute.FunctionException;
 import com.gemstone.gemfire.cache.execute.ResultCollector;
 import com.gemstone.gemfire.distributed.DistributedMember;
+import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
+import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.test.dunit.Host;
 import com.gemstone.gemfire.test.dunit.cache.internal.JUnit4CacheTestCase;
-import com.gemstone.gemfire.test.dunit.internal.JUnit4DistributedTestCase;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,14 +47,14 @@ import org.junit.rules.ExpectedException;
  * Base class for tests of FunctionService that are agnostic to the
  * type of Execution that they are running on. The goal is to completely
  * cover all common behavior of sending results and sending exceptions
- * here.
+ * here and have them run with all topologies in child classes.
  */
 public abstract class FunctionServiceBase extends JUnit4CacheTestCase {
 
   @Rule
   public transient ExpectedException thrown = ExpectedException.none();
 
-  private transient CustomCollector customCollector;
+  protected transient CustomCollector customCollector;
 
   @Before
   public void createCollector() {
@@ -255,7 +259,41 @@ public abstract class FunctionServiceBase extends JUnit4CacheTestCase {
     assertEquals(result, customCollector.getResult());
   }
 
-  private static class CustomCollector implements ResultCollector<Object, List<Object>> {
+  /**
+   * Test that a custom result collector will still receive all partial
+   * results from other members when one member fails
+   */
+  @Test
+  public void nonHAFunctionResultCollectorIsPassedPartialResultsAfterCloseCache() {
+    List<InternalDistributedMember> members = getAllMembers();
+
+    InternalDistributedMember firstMember = members.iterator().next();
+
+    //Execute a function which will close the cache on one member.
+    try {
+      ResultCollector rc = getExecution()
+        .withCollector(customCollector)
+        .execute(new CacheClosingNonHAFunction(firstMember));
+      rc.getResult();
+      fail("Should have thrown an exception");
+    } catch(Exception expected) {
+      expected.printStackTrace();
+      //do nothing
+    }
+    members.remove(firstMember);
+    assertEquals(members, customCollector.getResult());
+    assertEquals(numberOfExecutions() - 1, customCollector.getResult().size());
+  }
+
+  protected List<InternalDistributedMember> getAllMembers() {
+    //Get a list of all of the members
+    ResultCollector rs = getExecution().execute(functionContext -> {
+      functionContext.getResultSender().lastResult(InternalDistributedSystem.getAnyInstance().getDistributedMember());
+    });
+    return (List<InternalDistributedMember>) rs.getResult();
+  }
+
+  public static class CustomCollector implements ResultCollector<Object, List<Object>> {
     private ArrayList<Object> results = new ArrayList<Object>();
 
     @Override
@@ -284,4 +322,34 @@ public abstract class FunctionServiceBase extends JUnit4CacheTestCase {
       results.clear();
     }
   }
+
+  /**
+   * A function which will close the cache if the given member matches
+   * the member executing this function
+   */
+  private class CacheClosingNonHAFunction implements Function {
+
+    private final InternalDistributedMember member;
+
+    public CacheClosingNonHAFunction(final InternalDistributedMember member) {
+      this.member = member;
+    }
+
+    @Override
+    public void execute(FunctionContext context) {
+      final InternalDistributedMember myId = InternalDistributedSystem.getAnyInstance().getDistributedMember();
+      if (myId.equals(member)) {
+        getCache().close();
+        throw new CacheClosedException();
+      }
+      pause(1000);
+      context.getResultSender().lastResult(myId);
+    }
+
+    @Override
+    public boolean isHA() {
+      return false;
+    }
+  }
+
 }
