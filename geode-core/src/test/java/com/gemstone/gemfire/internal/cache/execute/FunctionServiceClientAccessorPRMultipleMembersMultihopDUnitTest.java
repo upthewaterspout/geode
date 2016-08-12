@@ -23,7 +23,7 @@ import org.junit.Ignore;
 import org.junit.experimental.categories.Category;
 
 /**
- * Tests onServers using multiple servers from a single client.
+ * Tests onRegion using multiple servers from a single client that has single hop disabled
  */
 @Category(DistributedTest.class)
 public class FunctionServiceClientAccessorPRMultipleMembersMultihopDUnitTest extends FunctionServiceClientAccessorPRBase {
