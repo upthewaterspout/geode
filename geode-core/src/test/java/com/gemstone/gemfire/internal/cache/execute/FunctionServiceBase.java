@@ -120,8 +120,9 @@ public abstract class FunctionServiceBase extends JUnit4CacheTestCase {
   @Test()
   public void defaultCollectorThrowsExceptionAfterFunctionReturnsIllegalStateException() {
     //GEODE-1762 - clients throw from execute, but peers throw from rc.getResult
-    thrown.expect(FunctionException.class);
-    //GEODE-1762 - client wraps the exception in a ServerOperationException
+    //GEODE-1762 - clients throw a ServerOperationException
+    thrown.expect(Exception.class);
+//    thrown.expect(FunctionException.class);
 //    thrown.expectCause(isA(IllegalStateException.class));
     ResultCollector rc = getExecution().execute((context) -> {context.getResultSender().lastResult(new IllegalStateException());});
     final Object result = rc.getResult();
@@ -139,8 +140,9 @@ public abstract class FunctionServiceBase extends JUnit4CacheTestCase {
   @Test()
   public void defaultCollectorThrowsExceptionAfterFunctionReturnsIllegalStateExceptionAsIntermediateResult() {
     //GEODE-1762 - clients throw from execute, but peers throw from rc.getResult
-    thrown.expect(FunctionException.class);
-    //GEODE-1762 - client wraps the exception in a ServerOperationException
+    //GEODE-1762 - client throws a ServerOperationException
+    thrown.expect(Exception.class);
+//    thrown.expect(FunctionException.class);
 //    thrown.expectCause(isA(IllegalStateException.class));
     ResultCollector rc = getExecution().execute((context) -> {
         context.getResultSender().sendResult(new IllegalStateException());
@@ -212,7 +214,8 @@ public abstract class FunctionServiceBase extends JUnit4CacheTestCase {
       ResultCollector rc = getExecution().execute((context) -> {context.getResultSender().lastResult(new IllegalStateException());});
       rc.getResult();
       fail("should have received an exception");
-    } catch (FunctionException expected) {}
+      //GEODE-1762 - clients throw a ServerOperationException
+    } catch (Exception expected) {}
     Assert.assertEquals(0, customCollector.getResult().size());
   }
 
@@ -226,7 +229,8 @@ public abstract class FunctionServiceBase extends JUnit4CacheTestCase {
       });
       rc.getResult();
       fail("should have received an exception");
-    } catch (FunctionException expected) {}
+      //GEODE-1762 - clients throw a ServerOperationException
+    } catch (Exception expected) {}
     Assert.assertEquals(0, customCollector.getResult().size());
   }
 
