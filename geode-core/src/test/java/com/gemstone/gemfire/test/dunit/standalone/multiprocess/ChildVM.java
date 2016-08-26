@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.gemstone.gemfire.test.dunit.standalone;
-
-import java.rmi.Naming;
+package com.gemstone.gemfire.test.dunit.standalone.multiprocess;
 
 import com.gemstone.gemfire.internal.OSProcess;
 import com.gemstone.gemfire.internal.logging.LogService;
+import com.gemstone.gemfire.test.dunit.standalone.DUnitLauncher;
 import com.gemstone.gemfire.test.dunit.standalone.DUnitLauncher.MasterRemote;
 
 import org.apache.logging.log4j.Logger;
@@ -38,20 +37,12 @@ public class ChildVM {
     stopMainLoop = true;
   }
 
-  private final static Logger logger = LogService.getLogger();
-
   public static void main(String[] args) throws Throwable {
     try {
       int namingPort = Integer.getInteger(DUnitLauncher.RMI_PORT_PARAM);
       int vmNum = Integer.getInteger(DUnitLauncher.VM_NUM_PARAM);
       int pid = OSProcess.getId();
-      logger.info("VM" + vmNum + " is launching" + (pid > 0? " with PID " + pid : ""));
-      MasterRemote holder = (MasterRemote) Naming.lookup("//localhost:" + namingPort + "/" + DUnitLauncher.MASTER_PARAM);
-      DUnitLauncher.init(holder);
-      DUnitLauncher.locatorPort = holder.getLocatorPort();
-      final RemoteDUnitVM dunitVM = new RemoteDUnitVM();
-      Naming.rebind("//localhost:" + namingPort + "/vm" + vmNum, dunitVM);
-      holder.signalVMReady();
+      MasterRemote holder = DUnitLauncher.initChild(namingPort, vmNum, pid);
       //This loop is here so this VM will die even if the master is mean killed.
       while (!stopMainLoop) {
         holder.ping();
@@ -62,4 +53,5 @@ public class ChildVM {
       System.exit(1);
     }
   }
+
 }

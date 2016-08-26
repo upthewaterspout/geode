@@ -53,7 +53,7 @@ public class StandAloneDUnitEnv extends DUnitEnv {
 
   @Override
   public int getPid() {
-    return Integer.getInteger(DUnitLauncher.VM_NUM_PARAM, -1).intValue();
+    return DUnitLauncher.pid;
   }
 
   @Override

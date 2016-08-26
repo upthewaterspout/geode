@@ -25,6 +25,7 @@ import hydra.MethExecutorResult;
 import org.apache.logging.log4j.Logger;
 
 import com.gemstone.gemfire.internal.logging.LogService;
+import com.gemstone.gemfire.test.dunit.standalone.multiprocess.ChildVM;
 
 /**
  *

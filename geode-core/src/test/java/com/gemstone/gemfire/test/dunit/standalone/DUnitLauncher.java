@@ -28,9 +28,13 @@ import com.gemstone.gemfire.test.dunit.DUnitEnv;
 import com.gemstone.gemfire.test.dunit.Host;
 import com.gemstone.gemfire.test.dunit.SerializableCallable;
 import com.gemstone.gemfire.test.dunit.VM;
+import com.gemstone.gemfire.test.dunit.standalone.multiprocess.MultiProcessNodeManager;
+import com.gemstone.gemfire.test.dunit.standalone.classloader.ClassLoaderNodeManager;
+
 import hydra.MethExecutorResult;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.FileAppender;
 import org.apache.logging.log4j.core.config.LoggerConfig;
@@ -40,6 +44,7 @@ import org.junit.Assert;
 import java.io.*;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
@@ -62,19 +67,22 @@ import static com.gemstone.gemfire.distributed.ConfigurationProperties.*;
  * a lot of files that it leaves around.
  */
 public class DUnitLauncher {
+  private final static Logger logger = LogService.getLogger();
+
 
   /** change this to use a different log level in unit tests */
   public static final String logLevel = System.getProperty("logLevel", "info");
   
   public static final String LOG4J = System.getProperty("log4j.configurationFile");
   
-  static int locatorPort;
+  public static int locatorPort;
+  public static int pid;
 
   private static final int NUM_VMS = 4;
   private static final int DEBUGGING_VM_NUM = -1;
   private static final int LOCATOR_VM_NUM = -2;
 
-  static final long STARTUP_TIMEOUT = 30 * 1000;
+  public static final long STARTUP_TIMEOUT = 30 * 1000;
   private static final String SUSPECT_FILENAME = "dunit_suspect.log";
   private static File DUNIT_SUSPECT_FILE;
 
@@ -82,11 +90,13 @@ public class DUnitLauncher {
   public static final String WORKSPACE_DIR_PARAM = "WORKSPACE_DIR";
   public static final boolean LOCATOR_LOG_TO_DISK = Boolean.getBoolean("locatorLogToDisk");
 
-  static final String MASTER_PARAM = "DUNIT_MASTER";
+  public static final String MASTER_PARAM = "DUNIT_MASTER";
   public static final String RMI_PORT_PARAM = DistributionConfig.GEMFIRE_PREFIX + "DUnitLauncher.RMI_PORT";
-  static final String VM_NUM_PARAM = DistributionConfig.GEMFIRE_PREFIX + "DUnitLauncher.VM_NUM";
+  public static final String VM_NUM_PARAM = DistributionConfig.GEMFIRE_PREFIX + "DUnitLauncher.VM_NUM";
 
   private static final String LAUNCHED_PROPERTY = DistributionConfig.GEMFIRE_PREFIX + "DUnitLauncher.LAUNCHED";
+
+  private static final boolean USE_MULTIPLE_PROCESSES = Boolean.getBoolean("DUnitLauncher.USE_MULTIPLE_PROCESSES");
 
   private static Master master;
 
@@ -146,7 +156,12 @@ public class DUnitLauncher {
     Registry registry = LocateRegistry.createRegistry(namingPort);
     System.setProperty(RMI_PORT_PARAM, ""+namingPort);
 
-    final ProcessManager processManager = new ProcessManager(namingPort, registry);
+    final ProcessManager processManager;
+    if(USE_MULTIPLE_PROCESSES) {
+      processManager = new MultiProcessNodeManager(namingPort, registry);
+    } else {
+      processManager = new ClassLoaderNodeManager(namingPort, registry);
+    }
     master = new Master(registry, processManager);
     registry.bind(MASTER_PARAM, master);
 
@@ -360,6 +375,20 @@ public class DUnitLauncher {
             + suspectStringBuilder);
       }
     }
+  }
+
+  public static MasterRemote initChild(final int namingPort, final int vmNum, final int pid)
+    throws NotBoundException, MalformedURLException, RemoteException
+  {
+    logger.info("VM" + vmNum + " is launching" + (pid > 0? " with PID " + pid : ""));
+    MasterRemote holder = (MasterRemote) Naming.lookup("//localhost:" + namingPort + "/" + MASTER_PARAM);
+    init(holder);
+    locatorPort = holder.getLocatorPort();
+    DUnitLauncher.pid = pid;
+    final RemoteDUnitVM dunitVM = new RemoteDUnitVM();
+    Naming.rebind("//localhost:" + namingPort + "/vm" + vmNum, dunitVM);
+    holder.signalVMReady();
+    return holder;
   }
 
   public interface MasterRemote extends Remote {
