@@ -165,6 +165,12 @@ public class IndexManager {
     SAFE_QUERY_TIME.set(0);
   }
 
+  /** only for test purposes
+   **/
+  public static long getIndexBufferTime() {
+    return SAFE_QUERY_TIME.get();
+  }
+
   /**
    * Calculates whether we need to reevluate the key for the region entry We added a way to
    * determine whether to reevaluate an entry for query execution The method is to keep track of the
