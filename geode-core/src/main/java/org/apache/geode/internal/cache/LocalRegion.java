@@ -7371,6 +7371,7 @@ public class LocalRegion extends AbstractRegion implements LoaderHelperFactory,
       lastModified = cacheTimeMillis();
     }
     entry.updateStatsForPut(lastModified);
+    IndexManager.setIndexBufferTime(lastModified, cacheTimeMillis());
     if (this.statisticsEnabled && !isProxy()) {
       // do not reschedule if there is already a task in the queue.
       // this prevents bloat in the TimerTask since cancelled tasks

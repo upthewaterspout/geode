@@ -381,7 +381,7 @@ public class GemFireCacheImpl
    * retrieval operations. It is assumed that the traversal operations on cache servers list vastly
    * outnumber the mutative operations such as add, remove.
    */
-  private final List allCacheServers = new CopyOnWriteArrayList();
+  private volatile List allCacheServers = new CopyOnWriteArrayList();
 
   /**
    * Controls updates to the list of all gateway senders

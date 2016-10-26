@@ -58,13 +58,11 @@ import org.apache.geode.test.junit.categories.IntegrationTest;
 @Category(IntegrationTest.class)
 public class RangeIndexAPIJUnitTest {
   private Region region = null;
-  private long originalWindow;
 
   @Before
   public void setUp() throws java.lang.Exception {
     CacheUtils.startCache();
-    originalWindow = IndexManager.IN_PROGRESS_UPDATE_WINDOW;
-    IndexManager.IN_PROGRESS_UPDATE_WINDOW = Long.MIN_VALUE;
+    IndexManager.ENABLE_UPDATE_IN_PROGRESS_INDEX_CALCULATION = false;
     region = CacheUtils.createRegion("portfolios", Portfolio.class);
     for (int i = 0; i < 12; i++) {
       // CacheUtils.log(new Portfolio(i));
@@ -80,7 +78,7 @@ public class RangeIndexAPIJUnitTest {
 
   @After
   public void tearDown() throws java.lang.Exception {
-    IndexManager.IN_PROGRESS_UPDATE_WINDOW = originalWindow;
+    IndexManager.ENABLE_UPDATE_IN_PROGRESS_INDEX_CALCULATION = true;
     CacheUtils.closeCache();
   }
 
