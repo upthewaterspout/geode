@@ -720,12 +720,12 @@ public class MemoryIndexStore implements IndexStore {
    * A wrapper over the entry in the CSL index map. It maps IndexKey -> RegionEntry
    * 
    */
-  class MemoryIndexStoreEntry implements IndexStoreEntry {
+  public class MemoryIndexStoreEntry implements IndexStoreEntry {
     private Object deserializedIndexKey;
-    private RegionEntry regionEntry;
-    private boolean updateInProgress;
+    public RegionEntry regionEntry;
+    public boolean updateInProgress;
     private Object value;
-    private long iteratorStartTime;
+    public long iteratorStartTime;
 
     private MemoryIndexStoreEntry(long iteratorStartTime) {
       this.iteratorStartTime = iteratorStartTime;

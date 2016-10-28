@@ -68,7 +68,9 @@ import org.apache.geode.internal.cache.RegionEntryContext;
 import org.apache.geode.internal.cache.VMThinRegionEntryHeap;
 import org.apache.geode.internal.cache.persistence.query.CloseableIterator;
 import org.apache.geode.internal.i18n.LocalizedStrings;
+import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.pdx.internal.PdxString;
+import org.apache.logging.log4j.Logger;
 
 // @todo Extend to support the keys or entries of a region.
 /**
@@ -84,6 +86,7 @@ import org.apache.geode.pdx.internal.PdxString;
  * @since GemFire 6.0
  */
 public class CompactRangeIndex extends AbstractIndex {
+  private static final Logger logger = LogService.getLogger();
 
   private static TestHook testHook;
 
@@ -852,7 +855,15 @@ public class CompactRangeIndex extends AbstractIndex {
         } else {
           if (value != null) {
             boolean ok = true;
-            if (indexEntry.isUpdateInProgress() || TEST_ALWAYS_UPDATE_IN_PROGRESS) {
+//            if (indexEntry.isUpdateInProgress() || TEST_ALWAYS_UPDATE_IN_PROGRESS) {
+            if(indexStore instanceof MemoryIndexStore) {
+              MemoryIndexStoreEntry memoryStore = ((MemoryIndexStoreEntry) indexEntry);
+              final boolean updateInProgress = memoryStore.updateInProgress;
+              final boolean entryUpdateInProgress = memoryStore.regionEntry.isUpdateInProgress();
+              final long iteratorStartTime = memoryStore.iteratorStartTime;
+              final long lastModified = memoryStore.regionEntry.getLastModified();
+              long safeTime = IndexManager.SAFE_QUERY_TIME.get();
+              indexEntry.isUpdateInProgress();
               IndexInfo indexInfo = (IndexInfo) context.cacheGet(CompiledValue.INDEX_INFO);
               if (runtimeItr == null) {
                 runtimeItr = getRuntimeIteratorForThisIndex(context, indexInfo);
@@ -866,6 +877,11 @@ public class CompactRangeIndex extends AbstractIndex {
               // Verify index key in region entry value.
 
               ok = evaluateEntry((IndexInfo) indexInfo, context, null);
+
+              if(!ok && !updateInProgress && !entryUpdateInProgress && !IndexManager.needsRecalculation(safeTime, iteratorStartTime, lastModified)) {
+                logger.error("Reevaluation found the entry was not ok, but we would have skipped evaluation. safeTime=" + safeTime + "iteratorStartTime=" + iteratorStartTime + "lastModified=" + lastModified);
+                ok = true;
+              }
             }
             if (runtimeItr != null) {
               runtimeItr.setCurrent(value);

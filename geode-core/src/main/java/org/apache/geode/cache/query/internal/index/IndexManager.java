@@ -194,6 +194,11 @@ public class IndexManager {
         && queryStartTime <= SAFE_QUERY_TIME.get() - queryStartTime + lastModifiedTime;
   }
 
+  public static boolean needsRecalculation(long safeTime, long queryStartTime, long lastModifiedTime) {
+    return ENABLE_UPDATE_IN_PROGRESS_INDEX_CALCULATION
+      && queryStartTime <= safeTime - queryStartTime + lastModifiedTime;
+  }
+
   /**
    * 
    * @param value
