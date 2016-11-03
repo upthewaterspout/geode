@@ -5876,7 +5876,7 @@ public class LocalRegion extends AbstractRegion implements LoaderHelperFactory,
         } catch (QueryException e) {
           throw new IndexMaintenanceException(e);
         } finally {
-          IndexManager.setIndexBufferTime(lastModified, cacheTimeMillis());
+          IndexManager.setIndexBufferTime(lastModifiedTime, cacheTimeMillis());
         }
       }
     }
