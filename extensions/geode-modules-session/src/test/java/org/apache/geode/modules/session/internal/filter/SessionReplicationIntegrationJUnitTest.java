@@ -42,6 +42,8 @@ import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringReader;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -1135,6 +1137,75 @@ public class SessionReplicationIntegrationJUnitTest {
 
     assertEquals("Underlying native sessions must remain the same across requests", nativeSessionId,
         ((GemfireHttpSession) r.get(sessionId)).getNativeSession().getId());
+  }
+
+  /**
+   * Test that a servlet can modify cookies
+   */
+  @Test
+  public void testUserCookieIsNotHarmed() throws Exception {
+    Callback c = new Callback() {
+      @Override
+      public void call(HttpServletRequest request, HttpServletResponse response)
+          throws IOException {
+        Cookie userCookie = findUserCookie(request.getCookies());
+        if(userCookie == null) {
+          userCookie = new Cookie("mycookie", "0");
+        }
+        request.getSession().setAttribute("mycookie", "0");
+
+        userCookie.setValue(Integer.toString(Integer.valueOf(userCookie.getValue()) + 1));
+        response.addCookie(userCookie);
+      }
+    };
+
+    tester.setAttribute("callback_1", c);
+    tester.start();
+    // ContextManager.getInstance().putContext(
+    // servletHolder.getServlet().getServletConfig().getServletContext());
+
+    request.setMethod("GET");
+    request.setURI("/test/hello");
+    request.setHeader("Host", "tester");
+    request.setVersion("HTTP/1.0");
+
+    final ByteBuffer responses = tester.getResponses(request.generate());
+//    byte[] data = new byte[responses.remaining()];
+//    responses.get(data);
+//    System.out.println("DANDEBUG="+ new String(data));
+    response = HttpTester.parseResponse(responses);
+
+    List<Cookie> cookies = getCookies(response);
+    Cookie userCookie = findUserCookie(cookies.toArray(new Cookie[0]));
+//    Cookie sessionCookie = findSessionId(cookies.toArray(new Cookie[0]));
+    assertEquals("1", userCookie.getValue());
+
+    request.setHeader("Cookie", "myCookie=" + userCookie.getValue());
+//    request.setHeader("Cookie", "JSESSIONID=" + sessionCookie.getValue());
+    response = HttpTester.parseResponse(tester.getResponses(request.generate()));
+    assertEquals("2", userCookie.getValue());
+  }
+
+  private Cookie findUserCookie(Cookie[] cookies) {
+    if(cookies == null) {
+      return null;
+    }
+    Cookie userCookie = null;
+    for(Cookie cookie : cookies) {
+      if(cookie.getName().equals("mycookie")) {
+        userCookie = cookie;
+      }
+    }
+    return userCookie;
+  }
+
+  private Cookie findSessionId(Cookie[] cookies) {
+    for(Cookie cookie : cookies) {
+      if(cookie.getName().equals("JSESSIONID")) {
+        return cookie;
+      }
+    }
+    return null;
   }
 
   /**
