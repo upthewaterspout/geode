@@ -18,6 +18,7 @@ import org.apache.geode.cache.CacheFactory;
 import org.apache.geode.cache.EvictionAction;
 import org.apache.geode.cache.EvictionAttributes;
 import org.apache.geode.cache.query.Struct;
+import org.apache.geode.distributed.ConfigurationProperties;
 import org.apache.geode.pdx.PdxReader;
 import org.apache.geode.pdx.PdxSerializable;
 import org.apache.geode.pdx.PdxWriter;
@@ -164,8 +165,11 @@ public class PartitionedRegionQueryDUnitTest extends JUnit4CacheTestCase {
 
     SerializableRunnableIF createPR = () -> {
       CacheFactory cf = new CacheFactory();
+      cf.set(ConfigurationProperties.STATISTIC_ARCHIVE_FILE, "stats.gfs");
+      cf.set(ConfigurationProperties.STATISTIC_SAMPLING_ENABLED, "true");
 //      cf.setPdxPersistent(true);
       Cache cache = getCache(cf);
+//      cache.loadCacheXml(getClass().getResourceAsStream("PartitionedRegionQueryDUnitTest.xml"));
       PartitionAttributesFactory paf = new PartitionAttributesFactory();
       paf.setTotalNumBuckets(10);
       cache.createRegionFactory(RegionShortcut.PARTITION)
@@ -178,10 +182,10 @@ public class PartitionedRegionQueryDUnitTest extends JUnit4CacheTestCase {
     vm1.invoke(createPR);
 //    vm2.invoke(createPR);
 
-    vm0.invoke(() -> {
-      Cache cache = getCache();
-      cache.getQueryService().createHashIndex("msasset", "a.assetId", "/region a");
-    });
+//    vm0.invoke(() -> {
+//      Cache cache = getCache();
+//      cache.getQueryService().createHashIndex("msasset", "a.assetId", "/region a");
+//    });
 
 
     // Do Puts
@@ -206,6 +210,8 @@ public class PartitionedRegionQueryDUnitTest extends JUnit4CacheTestCase {
           "<trace> select assetId,document from /region where document='B' limit 1000")
           .execute();
 
+      //Let the stats get written
+      Thread.sleep(1500);
       assertEquals(3, results.size());
       final Index index = qs.getIndex(getCache().getRegion("region"), "ContractDocumentIndex");
       assertEquals(1, index.getStatistics().getTotalUses());
