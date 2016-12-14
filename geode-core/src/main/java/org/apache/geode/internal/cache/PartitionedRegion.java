@@ -8757,7 +8757,7 @@ public class PartitionedRegion extends LocalRegion
     // Third step is to send the message to remote nodes
     // Locally originated create index request.
     // Send create request to other PR nodes.
-    throwException =
+    throwException |=
         sendCreateIndexesMessage(remotelyOriginated, indexDefinitions, indexes, exceptionsMap);
 
     // If exception is throw in any of the above steps

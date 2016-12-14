@@ -14,6 +14,14 @@
  */
 package org.apache.geode.internal.cache;
 
+import org.apache.geode.cache.CacheFactory;
+import org.apache.geode.cache.EvictionAction;
+import org.apache.geode.cache.EvictionAttributes;
+import org.apache.geode.cache.query.Struct;
+import org.apache.geode.pdx.PdxReader;
+import org.apache.geode.pdx.PdxSerializable;
+import org.apache.geode.pdx.PdxWriter;
+import org.apache.geode.test.dunit.SerializableRunnableIF;
 import org.junit.experimental.categories.Category;
 import org.junit.Test;
 
@@ -31,6 +39,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.CacheException;
@@ -79,9 +88,6 @@ import org.apache.geode.test.dunit.VM;
 @Category(DistributedTest.class)
 public class PartitionedRegionQueryDUnitTest extends JUnit4CacheTestCase {
 
-  /**
-   * @param name
-   */
   public PartitionedRegionQueryDUnitTest() {
     super();
     // TODO Auto-generated constructor stub
@@ -146,6 +152,63 @@ public class PartitionedRegionQueryDUnitTest extends JUnit4CacheTestCase {
         }
 
       }
+    });
+  }
+
+  @Test
+  public void testHashIndex() {
+    Host host = Host.getHost(0);
+    VM vm0 = host.getVM(0);
+    VM vm1 = host.getVM(-1);
+    VM vm2 = host.getVM(2);
+
+    SerializableRunnableIF createPR = () -> {
+      CacheFactory cf = new CacheFactory();
+//      cf.setPdxPersistent(true);
+      Cache cache = getCache(cf);
+      PartitionAttributesFactory paf = new PartitionAttributesFactory();
+      paf.setTotalNumBuckets(10);
+      cache.createRegionFactory(RegionShortcut.PARTITION)
+          .setPartitionAttributes(paf.create())
+          .setDiskSynchronous(false)
+//          .setEvictionAttributes(EvictionAttributes.createLRUEntryAttributes(1, EvictionAction.OVERFLOW_TO_DISK))
+          .create("region");
+    };
+    vm0.invoke(createPR);
+    vm1.invoke(createPR);
+//    vm2.invoke(createPR);
+
+    vm0.invoke(() -> {
+      Cache cache = getCache();
+      cache.getQueryService().createHashIndex("msasset", "a.assetId", "/region a");
+    });
+
+
+    // Do Puts
+    vm0.invoke(() -> {
+      Cache cache = getCache();
+      Region region = cache.getRegion("region");
+      region.put(0, new TestAsset(0, "B"));
+      region.put(10, new TestAsset(1, "B"));
+      region.put(1, new TestAsset(1, "B"));
+      IntStream.range(11, 100).forEach(i -> region.put(i, new TestAsset(i, Integer.toString(i))));
+    });
+
+    vm0.invoke(() -> {
+      Cache cache = getCache();
+      cache.getQueryService().createHashIndex("ContractDocumentIndex", "document", "/region");
+    });
+
+
+    vm0.invoke(() -> {
+      QueryService qs = getCache().getQueryService();
+      SelectResults<Struct> results = (SelectResults) qs.newQuery(
+          "<trace> select assetId,document from /region where document='B' limit 1000")
+          .execute();
+
+      assertEquals(3, results.size());
+      final Index index = qs.getIndex(getCache().getRegion("region"), "ContractDocumentIndex");
+      assertEquals(1, index.getStatistics().getTotalUses());
     });
   }
 
@@ -1091,7 +1154,40 @@ public class PartitionedRegionQueryDUnitTest extends JUnit4CacheTestCase {
 
   }
 
-  private class NestedKeywordObject implements Serializable {
+  public static class TestAsset implements PdxSerializable {
+    public int assetId;
+    public String document;
+
+    public TestAsset() throws NoSuchMethodException {
+      new Exception("DAN DEBUG, failing").printStackTrace();
+      throw new NoSuchMethodException("Bogus");
+
+    }
+
+    public TestAsset(final int assetId, final String document) {
+      this.assetId = assetId;
+      this.document = document;
+    }
+
+    @Override
+    public void toData(final PdxWriter writer) {
+      writer.writeString("document", document);
+      writer.writeInt("assetId", assetId);
+    }
+
+    @Override
+    public void fromData(final PdxReader reader) {
+      this.document = reader.readString("document");
+      this.assetId = reader.readInt("assetId");
+    }
+
+    public String getTheDocument() {
+      return this.document;
+    }
+
+  }
+
+  public class NestedKeywordObject implements Serializable {
 
     public Object date;
     public Object nonKeyword;
