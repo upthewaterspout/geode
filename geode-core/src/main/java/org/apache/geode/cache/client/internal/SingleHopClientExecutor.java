@@ -58,6 +58,9 @@ public class SingleHopClientExecutor {
 
     public Thread newThread(final Runnable r) {
       Thread result = new Thread(r, "Function Execution Thread-" + threadNum.incrementAndGet());
+      result.setUncaughtExceptionHandler((thread, exception) -> {
+        logger.error("Unexpected exception from thread " + thread, exception);
+      });
       result.setDaemon(true);
       return result;
     }

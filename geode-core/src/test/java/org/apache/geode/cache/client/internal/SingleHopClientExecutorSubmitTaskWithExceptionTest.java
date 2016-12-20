@@ -14,9 +14,6 @@
  */
 package org.apache.geode.cache.client.internal;
 
-import static org.apache.geode.internal.Assert.assertTrue;
-
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import com.jayway.awaitility.Awaitility;
@@ -24,7 +21,7 @@ import com.jayway.awaitility.Awaitility;
 import org.apache.geode.test.junit.categories.UnitTest;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.SystemErrRule;
+import org.junit.contrib.java.lang.system.SystemOutRule;
 import org.junit.experimental.categories.Category;
 
 /**
@@ -35,7 +32,7 @@ import org.junit.experimental.categories.Category;
 public class SingleHopClientExecutorSubmitTaskWithExceptionTest {
 
   @Rule
-  public SystemErrRule systemErrRule = new SystemErrRule().enableLog();
+  public SystemOutRule systemOutRule = new SystemOutRule().enableLog();
 
   /**
    * Refer: GEODE-2109 This test verifies that any exception thrown from forked thread is logged
@@ -57,10 +54,8 @@ public class SingleHopClientExecutorSubmitTaskWithExceptionTest {
      * Sometimes need to wait for more than sec as thread execution takes time.
      */
     Awaitility.await("Waiting for exception").atMost(60l, TimeUnit.SECONDS).until(() -> {
-      systemErrRule.getLog().contains(erroMsg);
+      systemOutRule.getLog().contains(erroMsg);
     });
-
-    assertTrue(systemErrRule.getLog().contains(erroMsg));
   }
 
 }
