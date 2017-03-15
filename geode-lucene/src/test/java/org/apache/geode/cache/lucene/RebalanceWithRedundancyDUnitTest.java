@@ -23,22 +23,14 @@ import java.util.stream.IntStream;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.CacheClosedException;
-import org.apache.geode.cache.CacheListener;
-import org.apache.geode.cache.EntryEvent;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.lucene.test.IndexRegionSpy;
 import org.apache.geode.cache.lucene.test.IndexRepositorySpy;
 import org.apache.geode.cache.lucene.test.LuceneTestUtilities;
-import org.apache.geode.cache.util.CacheListenerAdapter;
 import org.apache.geode.distributed.DistributedMember;
-import org.apache.geode.distributed.internal.DistributionManager;
-import org.apache.geode.distributed.internal.DistributionMessage;
-import org.apache.geode.distributed.internal.DistributionMessageObserver;
 import org.apache.geode.internal.cache.InitialImageOperation;
 import org.apache.geode.internal.cache.InitialImageOperation.GIITestHook;
 import org.apache.geode.internal.cache.InitialImageOperation.GIITestHookType;
-import org.apache.geode.internal.cache.partitioned.PutMessage;
-import org.apache.geode.test.dunit.SerializableRunnable;
 import org.apache.geode.test.dunit.SerializableRunnableIF;
 import org.apache.geode.test.junit.categories.DistributedTest;
 
@@ -85,79 +77,6 @@ public class RebalanceWithRedundancyDUnitTest extends LuceneQueriesAccessorBase 
     addCallbackToMovePrimary(dataStore1, member2);
 
     putEntriesAndValidateResultsWithRedundancy(regionTestType);
-  }
-
-  @Test
-  public void returnCorrectResultsWhenPutIsRetriedAfterDestroy () throws InterruptedException {
-    RegionTestableType regionTestType = RegionTestableType.PARTITION_REDUNDANT;
-    final DistributedMember member2 =
-        dataStore2.invoke(() -> getCache().getDistributedSystem().getDistributedMember());
-    SerializableRunnableIF createIndex = () -> {
-      LuceneService luceneService = LuceneServiceProvider.get(getCache());
-      luceneService.createIndexFactory().setFields("text").create(INDEX_NAME, REGION_NAME);
-    };
-
-
-    dataStore1.invoke(() -> initDataStore(createIndex, regionTestType));
-    accessor.invoke(() -> initAccessor(createIndex, regionTestType));
-    accessor.invoke(() -> {
-      final Cache cache = getCache();
-      Region<Object, Object> region = cache.getRegion(REGION_NAME);
-      region.put(0, new TestObject("create a bucket"));
-    });
-    dataStore2.invoke(() -> initDataStore(createIndex, regionTestType));
-
-    dataStore1.invoke(new SerializableRunnable() {
-      @Override
-      public void run() throws Exception {
-        final Cache cache = getCache();
-        Region<Object, Object> region = cache.getRegion(REGION_NAME);
-        region.getAttributesMutator().addCacheListener(new CacheListenerAdapter<Object, Object>() {
-          @Override
-          public void afterUpdate(final EntryEvent<Object, Object> event) {
-            closeCache();
-            System.err.println("DAN DEBUG Closed the cache!");
-          }
-        });
-      }
-    });
-
-    dataStore2.invoke(new SerializableRunnable() {
-      @Override
-      public void run() throws Exception {
-        final Cache cache = getCache();
-        Region<Object, Object> region = cache.getRegion(REGION_NAME);
-        DistributionMessageObserver.setInstance(new DistributionMessageObserver() {
-          @Override
-          public void beforeProcessMessage(final DistributionManager dm,
-                                           final DistributionMessage message) {
-            if(message instanceof PutMessage) {
-              region.destroy(0);
-              System.err.println("DAN DEBUG destroyed the entry!");
-            }
-          }
-        });
-      }
-    });
-
-    accessor.invoke(() -> {
-      final Cache cache = getCache();
-      Region<Object, Object> region = cache.getRegion(REGION_NAME);
-      System.err.println("DAN DEBUG, putting entry");
-      region.put(0, new TestObject("hello world"));
-    });
-
-
-    assertTrue(waitForFlushBeforeExecuteTextSearch(dataStore2, 60000));
-
-    dataStore1.invoke(() -> assertFalse(hasCache()));
-    dataStore2.invoke(() -> {
-      final Cache cache = getCache();
-      Region<Object, Object> region = cache.getRegion(REGION_NAME);
-      assertNull(region.get(0));
-    });
-
-    executeTextSearch(accessor, "world", "text", 0);
   }
 
   @Test
