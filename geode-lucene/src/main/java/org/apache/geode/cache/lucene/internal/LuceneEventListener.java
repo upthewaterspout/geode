@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.geode.cache.EntryDestroyedException;
 import org.apache.geode.cache.Region.Entry;
 import org.apache.geode.internal.cache.wan.parallel.ParallelGatewaySenderQueue;
 import org.apache.logging.log4j.Logger;
@@ -89,7 +90,13 @@ public class LuceneEventListener implements AsyncEventListener {
         IndexRepository repository = repositoryManager.getRepository(region, key, callbackArgument);
 
         final Entry entry = region.getEntry(key);
-        Object value = entry == null ? null : entry.getValue();
+        Object value;
+        try {
+          value = entry == null ? null : entry.getValue();
+        } catch (EntryDestroyedException e) {
+          value = null;
+        }
+
         if (value != null) {
           repository.update(key, value);
         } else {
