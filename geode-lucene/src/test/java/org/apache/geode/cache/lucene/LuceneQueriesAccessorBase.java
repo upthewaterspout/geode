@@ -37,6 +37,7 @@ import org.apache.geode.internal.cache.InitialImageOperation;
 import org.apache.geode.internal.cache.PartitionedRegion;
 import org.apache.geode.internal.cache.partitioned.BecomePrimaryBucketMessage;
 import org.apache.geode.internal.cache.partitioned.BecomePrimaryBucketMessage.BecomePrimaryBucketResponse;
+import org.apache.geode.internal.cache.wan.PointOfInterest;
 import org.apache.geode.test.dunit.Host;
 import org.apache.geode.test.dunit.VM;
 
@@ -144,7 +145,7 @@ public class LuceneQueriesAccessorBase extends LuceneDUnitTest {
     PartitionRegionHelper.moveBucketByKey(region, source, destination, key);
   }
 
-  private void movePrimary(final DistributedMember destination, final Object key) {
+  protected void movePrimary(final DistributedMember destination, final Object key) {
     PartitionedRegion region = (PartitionedRegion) getCache().getRegion(REGION_NAME);
 
     BecomePrimaryBucketResponse response =
@@ -159,6 +160,7 @@ public class LuceneQueriesAccessorBase extends LuceneDUnitTest {
       IndexRepositorySpy.remove();
       InitialImageOperation.resetAllGIITestHooks();
       LuceneIndexFactorySpy.remove();
+      PointOfInterest.clear();
     });
   }
 

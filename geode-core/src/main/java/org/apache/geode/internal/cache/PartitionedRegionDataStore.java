@@ -2581,8 +2581,8 @@ public class PartitionedRegionDataStore implements HasCachePerfStats {
    * <i>Test Method</i> Return the list of all the primary bucket ids in this data store.
    * 
    */
-  public final List getLocalPrimaryBucketsListTestOnly() {
-    final List primaryBucketList = new ArrayList();
+  public final List<Integer> getLocalPrimaryBucketsListTestOnly() {
+    final List<Integer> primaryBucketList = new ArrayList();
     visitBuckets(new BucketVisitor() {
       @Override
       public void visit(Integer bucketId, Region r) {

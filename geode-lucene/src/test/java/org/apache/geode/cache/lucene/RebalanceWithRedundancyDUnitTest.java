@@ -32,6 +32,8 @@ import org.apache.geode.internal.cache.InitialImageOperation;
 import org.apache.geode.internal.cache.InitialImageOperation.GIITestHook;
 import org.apache.geode.internal.cache.InitialImageOperation.GIITestHookType;
 import org.apache.geode.internal.cache.PartitionedRegion;
+import org.apache.geode.internal.cache.wan.PointOfInterest;
+import org.apache.geode.internal.cache.wan.PointOfInterest.WAN;
 import org.apache.geode.test.dunit.SerializableRunnableIF;
 import org.apache.geode.test.junit.categories.DistributedTest;
 
@@ -78,6 +80,34 @@ public class RebalanceWithRedundancyDUnitTest extends LuceneQueriesAccessorBase 
     addCallbackToMovePrimary(dataStore1, member2);
 
     putEntriesAndValidateResultsWithRedundancy(regionTestType);
+  }
+
+  protected Object[] getListOfPointsOfInterest() {
+    return WAN.values();
+  }
+
+  @Test
+  public void returnCorrectResultsWhenMovePrimaryHappensWhileBuildingBatch() throws InterruptedException {
+    final DistributedMember member1 =
+        dataStore1.invoke(() -> getCache().getDistributedSystem().getDistributedMember());
+    final DistributedMember member2 =
+        dataStore2.invoke(() -> getCache().getDistributedSystem().getDistributedMember());
+    dataStore1.invoke(() -> {
+      PointOfInterest.spy(WAN.PEEKED, () -> {
+        PartitionedRegion region = (PartitionedRegion) getCache().getRegion(REGION_NAME);
+        region.getLocalPrimaryBucketsListTestOnly().forEach(bucketId -> movePrimary(member2, bucketId));
+      });
+    });
+
+    dataStore2.invoke(() -> {
+      PointOfInterest.spy(WAN.PEEKED, () -> {
+        dataStore1.invoke(() -> PointOfInterest.clear());
+        PartitionedRegion region = (PartitionedRegion) getCache().getRegion(REGION_NAME);
+        region.getLocalPrimaryBucketsListTestOnly().forEach(bucketId -> movePrimary(member1, bucketId));
+      });
+    });
+
+    putEntriesAndValidateResultsWithRedundancy(RegionTestableType.PARTITION_REDUNDANT);
   }
 
   @Test

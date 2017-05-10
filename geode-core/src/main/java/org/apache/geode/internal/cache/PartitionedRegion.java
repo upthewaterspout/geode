@@ -8201,7 +8201,7 @@ public class PartitionedRegion extends LocalRegion
    * data Store.
    * 
    */
-  public List getLocalPrimaryBucketsListTestOnly() {
+  public List<Integer> getLocalPrimaryBucketsListTestOnly() {
     List localPrimaryList = null;
     if (this.dataStore != null) {
       localPrimaryList = this.dataStore.getLocalPrimaryBucketsListTestOnly();

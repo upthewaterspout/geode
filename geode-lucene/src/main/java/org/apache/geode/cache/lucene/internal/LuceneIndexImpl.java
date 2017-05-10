@@ -174,7 +174,7 @@ public abstract class LuceneIndexImpl implements InternalLuceneIndex {
       factory.setParallel(false); // TODO: not sure if serial AEQ working or not
     }
     factory.setMaximumQueueMemory(1000);
-    factory.setDispatcherThreads(10);
+    factory.setDispatcherThreads(1);
     factory.setIsMetaQueue(true);
     if (attributes.getDataPolicy().withPersistence()) {
       factory.setPersistent(true);

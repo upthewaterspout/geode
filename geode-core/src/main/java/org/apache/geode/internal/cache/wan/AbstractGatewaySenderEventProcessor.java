@@ -23,6 +23,7 @@ import org.apache.geode.cache.wan.GatewayQueueEvent;
 import org.apache.geode.cache.wan.GatewaySender;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.internal.cache.*;
+import org.apache.geode.internal.cache.wan.PointOfInterest.WAN;
 import org.apache.geode.internal.cache.wan.parallel.ConcurrentParallelGatewaySenderQueue;
 import org.apache.geode.internal.cache.wan.parallel.ParallelGatewaySenderQueue;
 import org.apache.geode.internal.cache.wan.serial.SerialGatewaySenderQueue;
@@ -436,6 +437,7 @@ public abstract class AbstractGatewaySenderEventProcessor extends Thread {
             }
 
 
+            PointOfInterest.visit(WAN.RESET_PEEKED);
             {
               // Below code was added to consider the case of queue region is
               // destroyed due to userPRs localdestroy or destroy operation.
@@ -460,6 +462,7 @@ public abstract class AbstractGatewaySenderEventProcessor extends Thread {
                */
             }
             events = this.queue.peek(this.batchSize, batchTimeInterval);
+            PointOfInterest.visit(WAN.PEEKED);
           } catch (InterruptedException e) {
             interrupted = true;
             this.sender.getCancelCriterion().checkCancelInProgress(e);
@@ -524,6 +527,8 @@ public abstract class AbstractGatewaySenderEventProcessor extends Thread {
               }
             }
           }
+
+          PointOfInterest.visit(WAN.FILTERED);
           /*
            * if (filteredList.isEmpty()) { eventQueueRemove(events.size()); continue; }
            */
@@ -575,6 +580,7 @@ public abstract class AbstractGatewaySenderEventProcessor extends Thread {
               this.batchIdToPDXEventsMap.put(getBatchId(), pdxEventsToBeDispatched);
             }
           }
+          PointOfInterest.visit(WAN.ADDED_TO_BATCHID_MAP);
 
           eventsToBeDispatched.addAll(filteredList);
 
@@ -591,6 +597,7 @@ public abstract class AbstractGatewaySenderEventProcessor extends Thread {
           }
 
           boolean success = this.dispatcher.dispatchBatch(conflatedEventsToBeDispatched, false);
+          PointOfInterest.visit(WAN.DISPATCHED);
           if (success) {
             if (isDebugEnabled) {
               logger.debug(
