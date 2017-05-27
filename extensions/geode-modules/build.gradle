@@ -27,9 +27,13 @@ dependencies {
   compile 'org.apache.tomcat:juli:' + project.'tomcat6.version'
 
   testCompile 'org.apache.bcel:bcel:' + project.'bcel.version'
-  testCompile 'org.httpunit:httpunit:' + project.'httpunit.version'
+  testCompile ('org.httpunit:httpunit:' + project.'httpunit.version') {
+    exclude group: 'xerces'
+  }
   testRuntime 'org.apache.tomcat:coyote:' + project.'tomcat6.version'
 
   testCompile project(path: ':geode-junit')
   testCompile files(project(':geode-core').sourceSets.test.output)
+  testCompile group: 'org.codehaus.cargo', name: 'cargo-core-uberjar', version: '1.6.3'
+  testCompile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.3'
 }
