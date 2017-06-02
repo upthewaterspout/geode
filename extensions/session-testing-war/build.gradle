@@ -1,0 +1,9 @@
+apply plugin: 'war'
+
+dependencies {
+    provided 'javax.servlet:javax.servlet-api:' + project.'javax.servlet-api.version'
+}
+
+war {
+    version = ''
+}
