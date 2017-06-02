@@ -5,19 +5,15 @@ import static org.junit.Assert.assertNotNull;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
-import org.codehaus.cargo.container.ContainerType;
-import org.codehaus.cargo.container.InstalledLocalContainer;
-import org.codehaus.cargo.container.configuration.ConfigurationType;
-import org.codehaus.cargo.container.configuration.LocalConfiguration;
-import org.codehaus.cargo.container.deployable.WAR;
-import org.codehaus.cargo.container.property.GeneralPropertySet;
-import org.codehaus.cargo.container.property.LoggingLevel;
-import org.codehaus.cargo.generic.DefaultContainerFactory;
-import org.codehaus.cargo.generic.configuration.DefaultConfigurationFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,51 +69,51 @@ public class CargoTest
     return warModuleDir.getAbsolutePath() + "/session-testing-war/build/libs/session-testing-war.war";
   }
 
-  @Before
-  public void startContainers() throws Exception
-  {
-//    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT8);
-//    manager.addContainer(tomcat);
-
-//    // Create the Cargo Container instance wrapping our physical container
-//    LocalConfiguration configuration = (LocalConfiguration) new DefaultConfigurationFactory().createConfiguration(
-//        tomcat.getContainerId(), ContainerType.INSTALLED, ConfigurationType.STANDALONE);
-//    configuration.setProperty(GeneralPropertySet.LOGGING, LoggingLevel.LOW.getLevel());
+//  @Before
+//  public void startContainers() throws Exception
+//  {
+////    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT8);
+////    manager.addContainer(tomcat);
 //
-//    // Statically deploy WAR file for servlet
-//    String WARPath = getPathToTestWAR();
-//    WAR war = new WAR(WARPath);
-//    war.setContext("");
-//    configuration.addDeployable(war);
-//    System.out.println("Deployed WAR file found at " + WARPath);
+////    // Create the Cargo Container instance wrapping our physical container
+////    LocalConfiguration configuration = (LocalConfiguration) new DefaultConfigurationFactory().createConfiguration(
+////        tomcat.getContainerId(), ContainerType.INSTALLED, ConfigurationType.STANDALONE);
+////    configuration.setProperty(GeneralPropertySet.LOGGING, LoggingLevel.LOW.getLevel());
+////
+////    // Statically deploy WAR file for servlet
+////    String WARPath = getPathToTestWAR();
+////    WAR war = new WAR(WARPath);
+////    war.setContext("");
+////    configuration.addDeployable(war);
+////    System.out.println("Deployed WAR file found at " + WARPath);
+////
+////    // Create the container, set it's home dir to where it was installed, and set the its output log
+////    container =
+////        (InstalledLocalContainer) (new DefaultContainerFactory()).createContainer(
+////            tomcat.getContainerId(), ContainerType.INSTALLED, configuration);
+////
+////    container.setHome(tomcat.getInstallPath());
+////    container.setOutput(LOG_FILE_PATH);
+////    System.out.println("Sending log file output to " + LOG_FILE_PATH);
+////
+////    System.out.println("Container has been setup");
 //
-//    // Create the container, set it's home dir to where it was installed, and set the its output log
-//    container =
-//        (InstalledLocalContainer) (new DefaultContainerFactory()).createContainer(
-//            tomcat.getContainerId(), ContainerType.INSTALLED, configuration);
+//    // Start setting up URL for testing the container
+////    reqURIBuild.setScheme("http");
+////    reqURIBuild.setHost("localhost:8080");
+////
+////    // Start the container (server)
+////    manager.startAllContainers();
+////    System.out.println("Started container");
+//  }
 //
-//    container.setHome(tomcat.getInstallPath());
-//    container.setOutput(LOG_FILE_PATH);
-//    System.out.println("Sending log file output to " + LOG_FILE_PATH);
-//
-//    System.out.println("Container has been setup");
-
-    // Start setting up URL for testing the container
-//    reqURIBuild.setScheme("http");
-//    reqURIBuild.setHost("localhost:8080");
-//
-//    // Start the container (server)
-//    manager.startAllContainers();
-//    System.out.println("Started container");
-  }
-
-  @After
-  public void stopContainers() throws Exception
-  {
-    // Stop the container (server)
-//    manager.stopAllContainers();
-//    System.out.println("Stopped container");
-  }
+//  @After
+//  public void stopContainers() throws Exception
+//  {
+//    // Stop the container (server)
+////    manager.stopAllContainers();
+////    System.out.println("Stopped container");
+//  }
 
   @Test
   public void testServlet() throws Exception
@@ -145,7 +141,7 @@ public class CargoTest
 
     for (int i = 0; i < manager.numContainers(); i++)
     {
-      System.out.println("\nTesting " + manager.getContainerDescription(i) + " located on port " + manager.getContainerPort(i));
+      System.out.println("\nTesting " + manager.getContainerDescription(i));
 
       URIBuilder reqURIBuild = new URIBuilder();
       reqURIBuild.setScheme("http");
@@ -161,6 +157,65 @@ public class CargoTest
 
       assertEquals("JSESSIONID", resp.getFirstHeader("Set-Cookie").getElements()[0].getName());
     }
+
+    manager.stopAllContainers();
+  }
+
+  @Test
+  public void failover() throws Exception
+  {
+    String key = "value_testSessionPersists";
+    String value = "Foo";
+
+    URIBuilder reqURIBuild = new URIBuilder();
+    reqURIBuild.setScheme("http");
+
+    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    manager.addContainer(tomcat);
+    manager.addContainer(tomcat);
+
+    manager.startAllContainers();
+
+    //Set
+    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
+
+    reqURIBuild.clearParameters();
+    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
+    reqURIBuild.setParameter("param", key);
+    reqURIBuild.setParameter("value", value);
+    reqURI = reqURIBuild.build();
+
+    req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
+    String cookieString = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
+
+    System.out.println("SET");
+    System.out.println(req);
+    System.out.println(resp);
+
+    //Get
+    reqURIBuild.setHost("localhost:" + manager.getContainerPort(1));
+
+    reqURIBuild.clearParameters();
+    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
+    reqURIBuild.setParameter("param", key);
+    reqURI = reqURIBuild.build();
+
+    BasicCookieStore cookieStore = new BasicCookieStore();
+    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString );
+    cookie.setDomain(reqURI.getHost());
+    cookie.setPath("/");
+    cookieStore.addCookie(cookie);
+    HttpContext context = new BasicHttpContext();
+    context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
+    req = new HttpGet(reqURI);
+//    req.removeHeaders("Cookie");
+//    req.setHeader("Cookie", "JSESSIONID=" + cookie);
+    resp = httpclient.execute(req, context);
+
+    System.out.println("GET");
+    System.out.println(req);
+    System.out.println(resp);
 
     manager.stopAllContainers();
   }
