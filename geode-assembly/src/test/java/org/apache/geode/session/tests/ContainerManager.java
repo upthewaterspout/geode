@@ -1,5 +1,7 @@
 package org.apache.geode.session.tests;
 
+import org.apache.geode.internal.AvailablePort;
+import org.apache.geode.internal.AvailablePortHelper;
 import org.codehaus.cargo.container.ContainerType;
 import org.codehaus.cargo.container.InstalledLocalContainer;
 import org.codehaus.cargo.container.configuration.ConfigurationType;
@@ -15,6 +17,7 @@ import org.codehaus.cargo.generic.configuration.DefaultConfigurationFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.ServiceLoader;
 import java.util.stream.IntStream;
 
 /**
@@ -64,7 +67,7 @@ public class ContainerManager
     return warModuleDir.getAbsolutePath() + "/session-testing-war/build/libs/session-testing-war.war";
   }
 
-  public InstalledLocalContainer addContainer(ContainerInstall install, int index) throws Exception
+  public InstalledLocalContainer addContainer(ContainerInstall install, int index) throws IOException
   {
     // Create the Cargo Container instance wrapping our physical container
     LocalConfiguration configuration = (LocalConfiguration) new DefaultConfigurationFactory().createConfiguration(
@@ -73,11 +76,17 @@ public class ContainerManager
     configuration.setProperty(GeneralPropertySet.PORT_OFFSET, Integer.toString(index));
     configuration.applyPortOffset();
 
+    FileConfig contextConfigFile = new FileConfig();
+    contextConfigFile.setToDir("conf");
+    contextConfigFile.setFile(install.getInstallPath() + "/conf/context.xml");
+    configuration.setConfigFileProperty(contextConfigFile);
 
+//    FileConfig contextConfigFile = new FileConfig();
+//    contextConfigFile.setToDir("conf/Catalina/localhost");
+//    contextConfigFile.setFile(install.getInstallPath() + "/conf/context.xml");
+//    contextConfigFile.setToFile("context.xml.default");
 
-//    FileConfig fconfg = new FileConfig();
-
-//    configuration.setConfigFileProperty();
+//    configuration.setProperty(GeneralPropertySet.JVMARGS, "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=" + (7700 + index));
 
     // Statically deploy WAR file for servlet
     String WARPath = getPathToTestWAR();
@@ -102,12 +111,12 @@ public class ContainerManager
     return container;
   }
 
-  public InstalledLocalContainer addContainer(ContainerInstall install) throws Exception
+  public InstalledLocalContainer addContainer(ContainerInstall install) throws IOException
   {
     return addContainer(install, containers.size());
   }
 
-  public InstalledLocalContainer editContainer(ContainerInstall install, int index) throws Exception
+  public InstalledLocalContainer editContainer(ContainerInstall install, int index) throws IOException
   {
     stopContainer(index);
     return addContainer(install, index);
@@ -138,14 +147,7 @@ public class ContainerManager
   }
   public void stopContainer(int index)
   {
-//    try {
-      getContainer(index).stop();
-//    } catch (Exception e)
-//    {
-//      System.out.println(e);
-//      for (InstalledLocalContainer container : containers)
-//        System.out.println("Container: " + container.getState());
-//    }
+    getContainer(index).stop();
     System.out.println("Stopped container" + index + " " + getContainerDescription(index));
   }
   public void startContainers(int[] indexes)

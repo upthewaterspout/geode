@@ -3,6 +3,8 @@ package org.apache.geode.session.tests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import org.apache.geode.test.dunit.DUnitEnv;
+import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
@@ -25,7 +27,7 @@ import java.net.URI;
 /**
  * Created by danuta on 5/26/17.
  */
-public class CargoTest
+public class CargoTest extends JUnit4CacheTestCase
 {
 //  private static final String LOG_FILE_PATH = "/tmp/logs/cargo.log";
 //  InstalledLocalContainer container = null;
@@ -133,7 +135,7 @@ public class CargoTest
   @Test
   public void testMultipleContainers() throws Exception
   {
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT8);
     manager.addContainer(tomcat);
     manager.addContainer(tomcat);
 
@@ -171,12 +173,15 @@ public class CargoTest
     reqURIBuild.setScheme("http");
 
     TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    String locatorString = DUnitEnv.get().getLocatorString();
+
+    tomcat.setLocators(locatorString);
     manager.addContainer(tomcat);
     manager.addContainer(tomcat);
 
     manager.startAllContainers();
 
-    //Set
+    // Set
     reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
 
     reqURIBuild.clearParameters();
@@ -193,24 +198,22 @@ public class CargoTest
     System.out.println(req);
     System.out.println(resp);
 
-    //Get
+    // Get
     reqURIBuild.setHost("localhost:" + manager.getContainerPort(1));
 
     reqURIBuild.clearParameters();
     reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
     reqURIBuild.setParameter("param", key);
     reqURI = reqURIBuild.build();
+    req = new HttpGet(reqURI);
 
     BasicCookieStore cookieStore = new BasicCookieStore();
-    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString );
+    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString);
     cookie.setDomain(reqURI.getHost());
     cookie.setPath("/");
     cookieStore.addCookie(cookie);
     HttpContext context = new BasicHttpContext();
     context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
-    req = new HttpGet(reqURI);
-//    req.removeHeaders("Cookie");
-//    req.setHeader("Cookie", "JSESSIONID=" + cookie);
     resp = httpclient.execute(req, context);
 
     System.out.println("GET");
@@ -218,6 +221,7 @@ public class CargoTest
     System.out.println(resp);
 
     manager.stopAllContainers();
+    assertEquals(value, EntityUtils.toString(resp.getEntity()));
   }
 
   @Test

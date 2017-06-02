@@ -30,7 +30,7 @@ import javax.xml.transform.stream.StreamResult;
  */
 public class TomcatInstall extends ContainerInstall
 {
-  private static final String[] tomcatRequiredJars = { "antlr", "commons-lang", "fastutil", "geode-core", "geode-modules", "javax.transaction-api", "jgroups", "log4j-api", "log4j-core", "log4j-jul", "shiro-core", "slf4j-api", "slf4j-jdk14" };
+  private static final String[] tomcatRequiredJars = { "antlr", "commons-lang", "fastutil", "geode-core", "geode-modules", "geode-modules-tomcat7", "geode-modules-tomcat8", "javax.transaction-api", "jgroups", "log4j-api", "log4j-core", "log4j-jul", "shiro-core", "slf4j-api", "slf4j-jdk14" };
 
   private static final String GEODE_BUILD_HOME= System.getenv("GEODE_HOME");
 
@@ -51,7 +51,7 @@ public class TomcatInstall extends ContainerInstall
         case TOMCAT6:
           return "http://apache.mirrors.lucidnetworks.net/tomcat/tomcat-6/v6.0.53/bin/apache-tomcat-6.0.53.zip";
         case TOMCAT7:
-          return "http://repo1.maven.org/maven2/org/apache/tomcat/tomcat/7.0.68/tomcat-7.0.68.zip";
+          return "http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.73/bin/apache-tomcat-7.0.73.zip";//http://repo1.maven.org/maven2/org/apache/tomcat/tomcat/7.0.68/tomcat-7.0.68.zip";
         case TOMCAT8:
           return "http://mirrors.ibiblio.org/apache/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.zip";
         case TOMCAT9:
@@ -155,7 +155,7 @@ public class TomcatInstall extends ContainerInstall
     updateXMLFiles();
   }
 
-  private void installGeodeSessions(String tomcatInstallPath, String geodeBuildHome) throws Exception
+  private void installGeodeSessions(String tomcatInstallPath, String geodeBuildHome) throws IOException
   {
     String extraJarsDir = geodeBuildHome + "/lib/";
     String modulesDir = geodeBuildHome + "/tools/Modules/";
@@ -197,7 +197,7 @@ public class TomcatInstall extends ContainerInstall
     copyTomcatGeodeReqFiles(tomcatInstallPath + "/lib/", tomcatModulePath, extraJarsDir);
   }
 
-  private void copyTomcatGeodeReqFiles(String tomcatLibPath, String tomcatModulePath, String extraJarsPath) throws Exception
+  private void copyTomcatGeodeReqFiles(String tomcatLibPath, String tomcatModulePath, String extraJarsPath) throws IOException
   {
     ArrayList<File> requiredFiles = new ArrayList<>();
 
@@ -310,9 +310,9 @@ public class TomcatInstall extends ContainerInstall
 
   private void updateXMLFiles(String locators) throws Exception
   {
-
     editXMLFile(INSTALL_PATH + "/conf/server.xml", config.getXMLTag(),"Listener", "Server", config.getXMLAttributes(locators));
     editXMLFile(INSTALL_PATH + "/conf/context.xml", config.getXMLTag(),"Manager", "Context", version.getXMLAttributes());
+//    editXMLFile( + "/conf/context.xml", config.getXMLTag(),"Manager", "Context", version.getXMLAttributes());
   }
 
   private void updateXMLFiles() throws Exception
@@ -329,11 +329,6 @@ public class TomcatInstall extends ContainerInstall
   public void setLocators(String locators) throws Exception
   {
     updateXMLFiles(locators);
-  }
-
-  public TomcatConfig getConfig()
-  {
-    return config;
   }
 
   public TomcatVersion getVersion()
