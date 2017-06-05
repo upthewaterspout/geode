@@ -117,6 +117,12 @@ public class ContainerManager
     return addContainer(install, containers.size());
   }
 
+  public void addContainers(int numContainers, ContainerInstall install) throws IOException
+  {
+    for (int i = 0; i < numContainers; i++)
+      addContainer(install);
+  }
+
   public InstalledLocalContainer editContainer(ContainerInstall install, int index) throws IOException
   {
     stopContainer(index);

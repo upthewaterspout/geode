@@ -6,52 +6,42 @@ import static org.junit.Assert.assertNotNull;
 import org.apache.geode.test.dunit.DUnitEnv;
 import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.cookie.BasicClientCookie;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
+import org.awaitility.Awaitility;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.net.URI;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by danuta on 5/26/17.
  */
 public class CargoTest extends JUnit4CacheTestCase
 {
-//  private static final String LOG_FILE_PATH = "/tmp/logs/cargo.log";
-//  InstalledLocalContainer container = null;
-//  ContainerManager manager = new ContainerManager();
+  static TomcatInstall tomcat7;
 
-  URIBuilder reqURIBuild = new URIBuilder();
-  CloseableHttpClient httpclient = HttpClients.createDefault();
+  Client client;
+  ContainerManager manager;
 
-  URI reqURI;
-  HttpGet req;
   CloseableHttpResponse resp;
+
+  @BeforeClass
+  public static void setupTomcatInstall() throws Exception
+  {
+    tomcat7 = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    tomcat7.setLocators(DUnitEnv.get().getLocatorString());
+  }
 
   private void containersShouldBeCreatingIndividualSessions(ContainerManager manager) throws Exception
   {
-    reqURIBuild = new URIBuilder();
-    reqURIBuild.setScheme("http");
-
-    httpclient = HttpClients.createDefault();
-
     for (int i = 0; i < manager.numContainers(); i++)
     {
-      reqURIBuild.setHost("localhost:" + manager.getContainerPort(i));
-      reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-      reqURIBuild.setParameter("param", "null");
-      reqURI = reqURIBuild.build();
-
-      req = new HttpGet(reqURI);
-      resp = httpclient.execute(req);
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(null);
 
       assertEquals("JSESSIONID", resp.getFirstHeader("Set-Cookie").getElements()[0].getName());
     }
@@ -59,42 +49,16 @@ public class CargoTest extends JUnit4CacheTestCase
 
   private void containersShouldReplicateSessions(ContainerManager manager) throws Exception
   {
-    reqURIBuild = new URIBuilder();
-    reqURIBuild.setScheme("http");
-
     if (manager.numContainers() < 2)
       throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
 
-    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
-    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-    reqURIBuild.setParameter("param", "null");
-
-    httpclient = HttpClients.createDefault();
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    String cookieString = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
-    BasicCookieStore cookieStore = new BasicCookieStore();
-    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString);
-    HttpContext context = new BasicHttpContext();
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    resp = client.get(null);
 
     for (int i = 0; i < manager.numContainers(); i++)
     {
-      reqURIBuild.clearParameters();
-      reqURIBuild.setHost("localhost:" + manager.getContainerPort(i));
-      reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-      reqURIBuild.setParameter("param", "null");
-
-      reqURI = reqURIBuild.build();
-      req = new HttpGet(reqURI);
-
-      cookie.setDomain(reqURI.getHost());
-      cookie.setPath("/");
-      cookieStore.addCookie(cookie);
-      context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
-      resp = httpclient.execute(req, context);
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(null);
 
       assertEquals(resp.getFirstHeader("Set-Cookie"), null);
     }
@@ -105,41 +69,16 @@ public class CargoTest extends JUnit4CacheTestCase
     String key = "value_testSessionPersists";
     String value = "Foo";
 
-    reqURIBuild = new URIBuilder();
-    reqURIBuild.setScheme("http");
-
     if (manager.numContainers() < 2)
       throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
 
-    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
-    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURIBuild.setParameter("value", value);
-    reqURI = reqURIBuild.build();
-
-    httpclient = HttpClients.createDefault();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    String cookieString = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
-    BasicCookieStore cookieStore = new BasicCookieStore();
-    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString);
-    HttpContext context = new BasicHttpContext();
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    resp = client.set(key, value);
 
     for (int i = 0; i < manager.numContainers(); i++)
     {
-      reqURIBuild.setHost("localhost:" + manager.getContainerPort(i));
-      reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-      reqURIBuild.setParameter("param", key);
-      reqURI = reqURIBuild.build();
-      req = new HttpGet(reqURI);
-
-      cookie.setDomain(reqURI.getHost());
-      cookie.setPath("/");
-      cookieStore.addCookie(cookie);
-      context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
-      resp = httpclient.execute(req, context);
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
 
       assertEquals(value, EntityUtils.toString(resp.getEntity()));
     }
@@ -150,140 +89,80 @@ public class CargoTest extends JUnit4CacheTestCase
     String key = "value_testSessionPersists";
     String value = "Foo";
 
-    reqURIBuild = new URIBuilder();
-    reqURIBuild.setScheme("http");
-
     if (manager.numContainers() < 2)
       throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
 
-    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
-    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURIBuild.setParameter("value", value);
-    reqURI = reqURIBuild.build();
-
-    httpclient = HttpClients.createDefault();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    String cookieString = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
-    BasicCookieStore cookieStore = new BasicCookieStore();
-    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString);
-    HttpContext context = new BasicHttpContext();
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    resp = client.set(key, value);
 
     manager.stopContainer(0);
 
     for (int i = 1; i < manager.numContainers(); i++)
     {
-      reqURIBuild.setHost("localhost:" + manager.getContainerPort(i));
-      reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-      reqURIBuild.setParameter("param", key);
-      reqURI = reqURIBuild.build();
-      req = new HttpGet(reqURI);
-
-      cookie.setDomain(reqURI.getHost());
-      cookie.setPath("/");
-      cookieStore.addCookie(cookie);
-      context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
-      resp = httpclient.execute(req, context);
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
 
       assertEquals(value, EntityUtils.toString(resp.getEntity()));
     }
   }
 
-  private void containerInvalidationShouldRemoveValueAccess(ContainerManager manager) throws Exception
+  private void containerInvalidationShouldRemoveValueAccessForAllContainers(ContainerManager manager) throws Exception
   {
     String key = "value_testInvalidate";
     String value = "Foo";
 
-    reqURIBuild = new URIBuilder();
-    reqURIBuild.setScheme("http");
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    resp = client.set(key, value);
+    resp = client.invalidate();
 
-    if (manager.numContainers() != 1)
-      System.out.println("WARNING: More containers than needed, this test only needs 1 container.");
+    for (int i = 0; i < manager.numContainers(); i++)
+    {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
 
-    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
-    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURIBuild.setParameter("value", value);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.INVALIDATE.name());
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    assertEquals("", EntityUtils.toString(resp.getEntity()));
+      assertEquals("", EntityUtils.toString(resp.getEntity()));
+    }
   }
 
-  private void containerShouldExpireInSetTimeframe(ContainerManager manager) throws Exception
+  private void containerShouldExpireInSetTimeframeForAllContainers(ContainerManager manager) throws Exception
   {
     String key = "value_testSessionExpiration";
     String value = "Foo";
 
-    reqURIBuild = new URIBuilder();
-    reqURIBuild.setScheme("http");
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    resp = client.set(key, value);
+    resp = client.setMaxInactive(1);
 
-    if (manager.numContainers() != 1)
-      System.out.println("WARNING: More containers than needed, this test only needs 1 container.");
+    Thread.sleep(10000);
 
-    // Set an attribute
-    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURIBuild.setParameter("value", value);
-    reqURI = reqURIBuild.build();
+    for (int i = 0; i < manager.numContainers(); i++) {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
 
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
+      assertEquals("", EntityUtils.toString(resp.getEntity()));
+    }
+  }
 
-    // Set the session timeout of this one session.
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.SET_MAX_INACTIVE.name());
-    reqURIBuild.setParameter("value", "1");
-    reqURI = reqURIBuild.build();
+  @Before
+  public void setup()
+  {
+    client = new Client();
+    manager = new ContainerManager();
+  }
 
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    // Wait until the session should expire
-    Thread.sleep(2000);
-
-    // Do a request, which should cause the session to be expired
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    assertEquals("", EntityUtils.toString(resp.getEntity()));
+  @After
+  public void stop()
+  {
+    manager.stopAllActiveContainers();
   }
 
   @Test
   public void twoTomcatContainersShouldBeCreatingIndividualSessions() throws Exception
   {
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
     ContainerManager manager = new ContainerManager();
+    tomcat7.setLocators("");
 
-    manager.addContainer(tomcat);
-    manager.addContainer(tomcat);
+    manager.addContainers(2, tomcat7);
 
     manager.startAllInactiveContainers();
     containersShouldBeCreatingIndividualSessions(manager);
@@ -293,12 +172,8 @@ public class CargoTest extends JUnit4CacheTestCase
   @Test
   public void twoTomcatContainersShouldReplicateCookies() throws Exception
   {
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
-    tomcat.setLocators(DUnitEnv.get().getLocatorString());
-
     ContainerManager manager = new ContainerManager();
-    manager.addContainer(tomcat);
-    manager.addContainer(tomcat);
+    manager.addContainers(2, tomcat7);
 
     manager.startAllInactiveContainers();
     containersShouldReplicateSessions(manager);
@@ -308,13 +183,8 @@ public class CargoTest extends JUnit4CacheTestCase
   @Test
   public void threeTomcatContainersShouldHavePersistentSessionData() throws Exception
   {
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
-    tomcat.setLocators(DUnitEnv.get().getLocatorString());
-
     ContainerManager manager = new ContainerManager();
-    manager.addContainer(tomcat);
-    manager.addContainer(tomcat);
-    manager.addContainer(tomcat);
+    manager.addContainers(3, tomcat7);
 
     manager.startAllInactiveContainers();
     containersShouldHavePersistentSessionData(manager);
@@ -324,13 +194,8 @@ public class CargoTest extends JUnit4CacheTestCase
   @Test
   public void containerFailureShouldStillAllowTwoOtherContainersToAccessSessionData() throws Exception
   {
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
-    tomcat.setLocators(DUnitEnv.get().getLocatorString());
-
     ContainerManager manager = new ContainerManager();
-    manager.addContainer(tomcat);
-    manager.addContainer(tomcat);
-    manager.addContainer(tomcat);
+    manager.addContainers(3, tomcat7);
 
     manager.startAllInactiveContainers();
     containerFailureShouldStillAllowOtherContainersDataAccess(manager);
@@ -340,195 +205,23 @@ public class CargoTest extends JUnit4CacheTestCase
   @Test
   public void invalidateShouldNotAllowContainerToAccessKeyValue() throws Exception
   {
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
-    tomcat.setLocators(DUnitEnv.get().getLocatorString());
-
     ContainerManager manager = new ContainerManager();
-    manager.addContainer(tomcat);
+    manager.addContainers(2, tomcat7);
 
     manager.startAllInactiveContainers();
-    containerInvalidationShouldRemoveValueAccess(manager);
+    containerInvalidationShouldRemoveValueAccessForAllContainers(manager);
     manager.stopAllActiveContainers();
   }
 
   @Test
   public void sessionShouldExpireInSetTimePeriod() throws Exception
   {
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
-    tomcat.setLocators(DUnitEnv.get().getLocatorString());
-
     ContainerManager manager = new ContainerManager();
-    manager.addContainer(tomcat);
+    manager.addContainers(2, tomcat7);
 
     manager.startAllInactiveContainers();
-    containerShouldExpireInSetTimeframe(manager);
+    containerShouldExpireInSetTimeframeForAllContainers(manager);
     manager.stopAllActiveContainers();
-  }
-
-  @Test
-  public void testSanity() throws Exception {
-    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-    reqURIBuild.setParameter("param", "null");
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-//    HeaderElementIterator it = new BasicHeaderElementIterator(
-//        response.headerIterator("Set-Cookie"));
-//
-//    while (it.hasNext()) {
-//      HeaderElement elem = it.nextElement();
-//      System.out.println(elem.getName() + " = " + elem.getValue());
-//      NameValuePair[] params = elem.getParameters();
-//      for (int i = 0; i < params.length; i++) {
-//        System.out.println(" " + params[i]);
-//      }
-//    }
-
-//    System.out.println(response);
-//    System.out.println(response.toString());
-//    System.out.println("Entity: ");
-//    System.out.println(EntityUtils.toString(response.getEntity()));
-//    System.out.println("Status line: " + response.getStatusLine());
-//    for (Header h : response.getAllHeaders())
-//      System.out.println(h.getName() + " = " + h.getValue());
-//    System.out.println(response.getAllHeaders());
-//    System.out.println(response.getFirstHeader("Set-Cookie").getValue().split("=")[0]);
-//    for (HeaderElement e : response.getFirstHeader("Set-Cookie").name)
-//    {
-//      System.out.println(e.getParameterCount());
-//    }
-//    System.out.println("Cookie");
-//    for (HeaderElement e : response.getFirstHeader("Set-Cookie").getElements())
-//      System.out.println(e.getName() + " = " + e.getValue());
-
-    assertEquals("JSESSIONID", resp.getFirstHeader("Set-Cookie").getElements()[0].getName());
-  }
-
-  /**
-   * Check that our session persists. The values we pass in as query params are used to set
-   * attributes on the session.
-   */
-  @Test
-  public void testSessionPersists() throws Exception {
-    String key = "value_testSessionPersists";
-    String value = "Foo";
-
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURIBuild.setParameter("value", value);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    String sessionId = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
-    assertNotNull("No apparent session cookie", sessionId);
-
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-//    for (Header h : response.getAllHeaders())
-//    {
-//      System.out.println(h.getName());
-//      HeaderElementIterator it = new BasicHeaderElementIterator(
-//          response.headerIterator(h.getName()));
-//
-//      while (it.hasNext()) {
-//        HeaderElement elem = it.nextElement();
-//        System.out.println(elem.getName() + " = " + elem.getValue());
-//        NameValuePair[] params = elem.getParameters();
-//        for (int i = 0; i < params.length; i++) {
-//          System.out.println(" " + params[i]);
-//        }
-//      }
-//    }
-
-    assertEquals(value, EntityUtils.toString(resp.getEntity()));
-  }
-
-  /**
-   * Test that invalidating a session makes it's attributes inaccessible.
-   */
-  @Test
-  public void testInvalidate() throws Exception {
-    String key = "value_testInvalidate";
-    String value = "Foo";
-
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURIBuild.setParameter("value", value);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.INVALIDATE.name());
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    assertEquals("", EntityUtils.toString(resp.getEntity()));
-  }
-
-  /**
-   * Test expiration of a session by the tomcat container, rather than gemfire expiration
-   */
-  @Test
-  public void testSessionExpirationByContainer() throws Exception {
-    String key = "value_testSessionExpiration";
-    String value = "Foo";
-
-    // Set an attribute
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURIBuild.setParameter("value", value);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    // Set the session timeout of this one session.
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.SET_MAX_INACTIVE.name());
-    reqURIBuild.setParameter("value", "1");
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    // Wait until the session should expire
-    Thread.sleep(2000);
-
-    // Do a request, which should cause the session to be expired
-    reqURIBuild.clearParameters();
-    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
-    reqURIBuild.setParameter("param", key);
-    reqURI = reqURIBuild.build();
-
-    req = new HttpGet(reqURI);
-    resp = httpclient.execute(req);
-
-    assertEquals("", EntityUtils.toString(resp.getEntity()));
   }
 
 //  /**
