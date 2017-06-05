@@ -16,12 +16,8 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 
 /**
@@ -31,7 +27,7 @@ public class CargoTest extends JUnit4CacheTestCase
 {
 //  private static final String LOG_FILE_PATH = "/tmp/logs/cargo.log";
 //  InstalledLocalContainer container = null;
-  ContainerManager manager = new ContainerManager();
+//  ContainerManager manager = new ContainerManager();
 
   URIBuilder reqURIBuild = new URIBuilder();
   CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -40,150 +36,213 @@ public class CargoTest extends JUnit4CacheTestCase
   HttpGet req;
   CloseableHttpResponse resp;
 
-  public String getPathToTestWAR() throws IOException
+  private void containersShouldBeCreatingIndividualSessions(ContainerManager manager) throws Exception
   {
-    // Start out searching directory above current
-    String curPath = "../";
+    reqURIBuild = new URIBuilder();
+    reqURIBuild.setScheme("http");
 
-    // Looking for extensions folder
-    final String warModuleDirName = "extensions";
-    File warModuleDir = null;
-
-    // While directory searching for is not found
-    while (warModuleDir == null)
-    {
-      // Try to find the find the directory in the current directory
-      File[] files = new File(curPath).listFiles();
-      for (File file : files)
-      {
-        if (file.isDirectory() && file.getName().equals(warModuleDirName))
-        {
-          warModuleDir = file;
-          break;
-        }
-      }
-
-      // Keep moving up until you find it
-      curPath += "../";
-    }
-
-    // Return path to extensions plus hardcoded path from there to the WAR
-    return warModuleDir.getAbsolutePath() + "/session-testing-war/build/libs/session-testing-war.war";
-  }
-
-//  @Before
-//  public void startContainers() throws Exception
-//  {
-////    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT8);
-////    manager.addContainer(tomcat);
-//
-////    // Create the Cargo Container instance wrapping our physical container
-////    LocalConfiguration configuration = (LocalConfiguration) new DefaultConfigurationFactory().createConfiguration(
-////        tomcat.getContainerId(), ContainerType.INSTALLED, ConfigurationType.STANDALONE);
-////    configuration.setProperty(GeneralPropertySet.LOGGING, LoggingLevel.LOW.getLevel());
-////
-////    // Statically deploy WAR file for servlet
-////    String WARPath = getPathToTestWAR();
-////    WAR war = new WAR(WARPath);
-////    war.setContext("");
-////    configuration.addDeployable(war);
-////    System.out.println("Deployed WAR file found at " + WARPath);
-////
-////    // Create the container, set it's home dir to where it was installed, and set the its output log
-////    container =
-////        (InstalledLocalContainer) (new DefaultContainerFactory()).createContainer(
-////            tomcat.getContainerId(), ContainerType.INSTALLED, configuration);
-////
-////    container.setHome(tomcat.getInstallPath());
-////    container.setOutput(LOG_FILE_PATH);
-////    System.out.println("Sending log file output to " + LOG_FILE_PATH);
-////
-////    System.out.println("Container has been setup");
-//
-//    // Start setting up URL for testing the container
-////    reqURIBuild.setScheme("http");
-////    reqURIBuild.setHost("localhost:8080");
-////
-////    // Start the container (server)
-////    manager.startAllContainers();
-////    System.out.println("Started container");
-//  }
-//
-//  @After
-//  public void stopContainers() throws Exception
-//  {
-//    // Stop the container (server)
-////    manager.stopAllContainers();
-////    System.out.println("Stopped container");
-//  }
-
-  @Test
-  public void testServlet() throws Exception
-  {
-    System.out.println("Started and waiting. Go test...");
-  }
-
-  @Test
-  public void testCargo() throws Exception
-  {
-    resp = httpclient.execute(new HttpGet(String.format("http://localhost:%d/awesome", 8080)));
-
-    System.out.println(resp.toString());
-    System.out.println(EntityUtils.toString(resp.getEntity()));
-  }
-
-  @Test
-  public void testMultipleContainers() throws Exception
-  {
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT8);
-    manager.addContainer(tomcat);
-    manager.addContainer(tomcat);
-
-    manager.startAllContainers();
+    httpclient = HttpClients.createDefault();
 
     for (int i = 0; i < manager.numContainers(); i++)
     {
-      System.out.println("\nTesting " + manager.getContainerDescription(i));
+      reqURIBuild.setHost("localhost:" + manager.getContainerPort(i));
+      reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
+      reqURIBuild.setParameter("param", "null");
+      reqURI = reqURIBuild.build();
 
-      URIBuilder reqURIBuild = new URIBuilder();
-      reqURIBuild.setScheme("http");
+      req = new HttpGet(reqURI);
+      resp = httpclient.execute(req);
+
+      assertEquals("JSESSIONID", resp.getFirstHeader("Set-Cookie").getElements()[0].getName());
+    }
+  }
+
+  private void containersShouldReplicateSessions(ContainerManager manager) throws Exception
+  {
+    reqURIBuild = new URIBuilder();
+    reqURIBuild.setScheme("http");
+
+    if (manager.numContainers() < 2)
+      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
+
+    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
+    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
+    reqURIBuild.setParameter("param", "null");
+
+    httpclient = HttpClients.createDefault();
+    reqURI = reqURIBuild.build();
+
+    req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
+
+    String cookieString = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
+    BasicCookieStore cookieStore = new BasicCookieStore();
+    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString);
+    HttpContext context = new BasicHttpContext();
+
+    for (int i = 0; i < manager.numContainers(); i++)
+    {
+      reqURIBuild.clearParameters();
       reqURIBuild.setHost("localhost:" + manager.getContainerPort(i));
       reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
       reqURIBuild.setParameter("param", "null");
 
-      CloseableHttpClient httpclient = HttpClients.createDefault();
-      URI reqURI = reqURIBuild.build();
+      reqURI = reqURIBuild.build();
+      req = new HttpGet(reqURI);
 
-      HttpGet req = new HttpGet(reqURI);
-      CloseableHttpResponse resp = httpclient.execute(req);
+      cookie.setDomain(reqURI.getHost());
+      cookie.setPath("/");
+      cookieStore.addCookie(cookie);
+      context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
+      resp = httpclient.execute(req, context);
 
-      assertEquals("JSESSIONID", resp.getFirstHeader("Set-Cookie").getElements()[0].getName());
+      assertEquals(resp.getFirstHeader("Set-Cookie"), null);
     }
-
-    manager.stopAllContainers();
   }
 
-  @Test
-  public void failover() throws Exception
+  private void containersShouldHavePersistentSessionData(ContainerManager manager) throws Exception
   {
     String key = "value_testSessionPersists";
     String value = "Foo";
 
-    URIBuilder reqURIBuild = new URIBuilder();
+    reqURIBuild = new URIBuilder();
     reqURIBuild.setScheme("http");
 
-    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
-    String locatorString = DUnitEnv.get().getLocatorString();
+    if (manager.numContainers() < 2)
+      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
 
-    tomcat.setLocators(locatorString);
-    manager.addContainer(tomcat);
-    manager.addContainer(tomcat);
-
-    manager.startAllContainers();
-
-    // Set
     reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
+    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
+    reqURIBuild.setParameter("param", key);
+    reqURIBuild.setParameter("value", value);
+    reqURI = reqURIBuild.build();
 
+    httpclient = HttpClients.createDefault();
+
+    req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
+
+    String cookieString = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
+    BasicCookieStore cookieStore = new BasicCookieStore();
+    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString);
+    HttpContext context = new BasicHttpContext();
+
+    for (int i = 0; i < manager.numContainers(); i++)
+    {
+      reqURIBuild.setHost("localhost:" + manager.getContainerPort(i));
+      reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
+      reqURIBuild.setParameter("param", key);
+      reqURI = reqURIBuild.build();
+      req = new HttpGet(reqURI);
+
+      cookie.setDomain(reqURI.getHost());
+      cookie.setPath("/");
+      cookieStore.addCookie(cookie);
+      context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
+      resp = httpclient.execute(req, context);
+
+      assertEquals(value, EntityUtils.toString(resp.getEntity()));
+    }
+  }
+
+  private void containerFailureShouldStillAllowOtherContainersDataAccess(ContainerManager manager) throws Exception
+  {
+    String key = "value_testSessionPersists";
+    String value = "Foo";
+
+    reqURIBuild = new URIBuilder();
+    reqURIBuild.setScheme("http");
+
+    if (manager.numContainers() < 2)
+      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
+
+    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
+    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
+    reqURIBuild.setParameter("param", key);
+    reqURIBuild.setParameter("value", value);
+    reqURI = reqURIBuild.build();
+
+    httpclient = HttpClients.createDefault();
+
+    req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
+
+    String cookieString = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
+    BasicCookieStore cookieStore = new BasicCookieStore();
+    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString);
+    HttpContext context = new BasicHttpContext();
+
+    manager.stopContainer(0);
+
+    for (int i = 1; i < manager.numContainers(); i++)
+    {
+      reqURIBuild.setHost("localhost:" + manager.getContainerPort(i));
+      reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
+      reqURIBuild.setParameter("param", key);
+      reqURI = reqURIBuild.build();
+      req = new HttpGet(reqURI);
+
+      cookie.setDomain(reqURI.getHost());
+      cookie.setPath("/");
+      cookieStore.addCookie(cookie);
+      context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
+      resp = httpclient.execute(req, context);
+
+      assertEquals(value, EntityUtils.toString(resp.getEntity()));
+    }
+  }
+
+  private void containerInvalidationShouldRemoveValueAccess(ContainerManager manager) throws Exception
+  {
+    String key = "value_testInvalidate";
+    String value = "Foo";
+
+    reqURIBuild = new URIBuilder();
+    reqURIBuild.setScheme("http");
+
+    if (manager.numContainers() != 1)
+      System.out.println("WARNING: More containers than needed, this test only needs 1 container.");
+
+    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
+    reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
+    reqURIBuild.setParameter("param", key);
+    reqURIBuild.setParameter("value", value);
+    reqURI = reqURIBuild.build();
+
+    req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
+
+    reqURIBuild.clearParameters();
+    reqURIBuild.setParameter("cmd", QueryCommand.INVALIDATE.name());
+    reqURI = reqURIBuild.build();
+
+    req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
+
+    reqURIBuild.clearParameters();
+    reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
+    reqURIBuild.setParameter("param", key);
+    reqURI = reqURIBuild.build();
+
+    req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
+
+    assertEquals("", EntityUtils.toString(resp.getEntity()));
+  }
+
+  private void containerShouldExpireInSetTimeframe(ContainerManager manager) throws Exception
+  {
+    String key = "value_testSessionExpiration";
+    String value = "Foo";
+
+    reqURIBuild = new URIBuilder();
+    reqURIBuild.setScheme("http");
+
+    if (manager.numContainers() != 1)
+      System.out.println("WARNING: More containers than needed, this test only needs 1 container.");
+
+    // Set an attribute
+    reqURIBuild.setHost("localhost:" + manager.getContainerPort(0));
     reqURIBuild.clearParameters();
     reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
     reqURIBuild.setParameter("param", key);
@@ -192,36 +251,118 @@ public class CargoTest extends JUnit4CacheTestCase
 
     req = new HttpGet(reqURI);
     resp = httpclient.execute(req);
-    String cookieString = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
 
-    System.out.println("SET");
-    System.out.println(req);
-    System.out.println(resp);
+    // Set the session timeout of this one session.
+    reqURIBuild.clearParameters();
+    reqURIBuild.setParameter("cmd", QueryCommand.SET_MAX_INACTIVE.name());
+    reqURIBuild.setParameter("value", "1");
+    reqURI = reqURIBuild.build();
 
-    // Get
-    reqURIBuild.setHost("localhost:" + manager.getContainerPort(1));
+    req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
 
+    // Wait until the session should expire
+    Thread.sleep(2000);
+
+    // Do a request, which should cause the session to be expired
     reqURIBuild.clearParameters();
     reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
     reqURIBuild.setParameter("param", key);
     reqURI = reqURIBuild.build();
+
     req = new HttpGet(reqURI);
+    resp = httpclient.execute(req);
 
-    BasicCookieStore cookieStore = new BasicCookieStore();
-    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", cookieString);
-    cookie.setDomain(reqURI.getHost());
-    cookie.setPath("/");
-    cookieStore.addCookie(cookie);
-    HttpContext context = new BasicHttpContext();
-    context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
-    resp = httpclient.execute(req, context);
+    assertEquals("", EntityUtils.toString(resp.getEntity()));
+  }
 
-    System.out.println("GET");
-    System.out.println(req);
-    System.out.println(resp);
+  @Test
+  public void twoTomcatContainersShouldBeCreatingIndividualSessions() throws Exception
+  {
+    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    ContainerManager manager = new ContainerManager();
 
-    manager.stopAllContainers();
-    assertEquals(value, EntityUtils.toString(resp.getEntity()));
+    manager.addContainer(tomcat);
+    manager.addContainer(tomcat);
+
+    manager.startAllInactiveContainers();
+    containersShouldBeCreatingIndividualSessions(manager);
+    manager.stopAllActiveContainers();
+  }
+
+  @Test
+  public void twoTomcatContainersShouldReplicateCookies() throws Exception
+  {
+    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    tomcat.setLocators(DUnitEnv.get().getLocatorString());
+
+    ContainerManager manager = new ContainerManager();
+    manager.addContainer(tomcat);
+    manager.addContainer(tomcat);
+
+    manager.startAllInactiveContainers();
+    containersShouldReplicateSessions(manager);
+    manager.stopAllActiveContainers();
+  }
+
+  @Test
+  public void threeTomcatContainersShouldHavePersistentSessionData() throws Exception
+  {
+    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    tomcat.setLocators(DUnitEnv.get().getLocatorString());
+
+    ContainerManager manager = new ContainerManager();
+    manager.addContainer(tomcat);
+    manager.addContainer(tomcat);
+    manager.addContainer(tomcat);
+
+    manager.startAllInactiveContainers();
+    containersShouldHavePersistentSessionData(manager);
+    manager.stopAllActiveContainers();
+  }
+
+  @Test
+  public void containerFailureShouldStillAllowTwoOtherContainersToAccessSessionData() throws Exception
+  {
+    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    tomcat.setLocators(DUnitEnv.get().getLocatorString());
+
+    ContainerManager manager = new ContainerManager();
+    manager.addContainer(tomcat);
+    manager.addContainer(tomcat);
+    manager.addContainer(tomcat);
+
+    manager.startAllInactiveContainers();
+    containerFailureShouldStillAllowOtherContainersDataAccess(manager);
+    manager.stopAllActiveContainers();
+  }
+
+  @Test
+  public void invalidateShouldNotAllowContainerToAccessKeyValue() throws Exception
+  {
+    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    tomcat.setLocators(DUnitEnv.get().getLocatorString());
+
+    ContainerManager manager = new ContainerManager();
+    manager.addContainer(tomcat);
+
+    manager.startAllInactiveContainers();
+    containerInvalidationShouldRemoveValueAccess(manager);
+    manager.stopAllActiveContainers();
+  }
+
+  @Test
+  public void sessionShouldExpireInSetTimePeriod() throws Exception
+  {
+    TomcatInstall tomcat = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    tomcat.setLocators(DUnitEnv.get().getLocatorString());
+
+    ContainerManager manager = new ContainerManager();
+    manager.addContainer(tomcat);
+
+    manager.startAllInactiveContainers();
+    containerShouldExpireInSetTimeframe(manager);
+    manager.stopAllActiveContainers();
   }
 
   @Test

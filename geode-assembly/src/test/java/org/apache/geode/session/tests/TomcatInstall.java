@@ -11,12 +11,15 @@ import org.w3c.dom.NodeList;
 
 import java.awt.Container;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -78,10 +81,35 @@ public class TomcatInstall extends ContainerInstall
       }
     }
 
+    public String jarSkipPropertyName()
+    {
+      switch (this)
+      {
+        case TOMCAT6:
+          return null;
+        case TOMCAT7:
+          return "tomcat.util.scan.DefaultJarScanner.jarsToSkip";
+        case TOMCAT8:
+        case TOMCAT9:
+          return "tomcat.util.scan.StandardJarScanFilter.jarsToSkip";
+        default:
+          throw new IllegalArgumentException("Illegal tomcat version option");
+      }
+    }
+
     public HashMap<String, String> getXMLAttributes()
     {
       HashMap<String, String> attributes = new HashMap<>();
-      attributes.put("className", "org.apache.geode.modules.session.catalina.Tomcat" + this.toInteger() + "DeltaSessionManager");
+      int sessionManagerNum;
+      switch (this)
+      {
+        case TOMCAT9:
+          sessionManagerNum = 8;
+          break;
+        default:
+          sessionManagerNum = this.toInteger();
+      }
+      attributes.put("className", "org.apache.geode.modules.session.catalina.Tomcat" + sessionManagerNum + "DeltaSessionManager");
       return attributes;
     }
   }
@@ -153,6 +181,8 @@ public class TomcatInstall extends ContainerInstall
 
     // Add the needed XML tags
     updateXMLFiles();
+    // Add required jars copied to jar skips so container startup is faster
+    updateProperties();
   }
 
   private void installGeodeSessions(String tomcatInstallPath, String geodeBuildHome) throws IOException
@@ -258,6 +288,22 @@ public class TomcatInstall extends ContainerInstall
     }
   }
 
+  private void editPropertyFile(String filePath, String propertyName, String propertyValue, boolean append) throws Exception
+  {
+    FileInputStream input = new FileInputStream(filePath);
+    Properties properties = new Properties();
+    properties.load(input);
+
+    String val;
+    if (append)
+      val = properties.getProperty(propertyName) + propertyValue;
+    else
+      val = propertyValue;
+
+    properties.setProperty(propertyName, val);
+    properties.store(new FileOutputStream(filePath), null);
+  }
+
   private void editXMLFile(String XMLPath, String tagId, String tagName, String parentTagName, HashMap<String, String> attributes) throws Exception
   {
     // Get XML file to edit
@@ -306,6 +352,15 @@ public class TomcatInstall extends ContainerInstall
     transformer.transform(source, result);
 
     System.out.println("Modified tomcat XML file " + XMLPath);
+  }
+
+  private void updateProperties() throws Exception
+  {
+    String jarsToSkip = "";
+    for (String jarName : tomcatRequiredJars)
+      jarsToSkip += "," + jarName + "*.jar";
+
+    editPropertyFile(INSTALL_PATH + "/conf/catalina.properties", version.jarSkipPropertyName(), jarsToSkip, true);
   }
 
   private void updateXMLFiles(String locators) throws Exception

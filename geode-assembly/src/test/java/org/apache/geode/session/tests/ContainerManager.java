@@ -1,9 +1,11 @@
 package org.apache.geode.session.tests;
 
-import org.apache.geode.internal.AvailablePort;
-import org.apache.geode.internal.AvailablePortHelper;
+import com.google.common.collect.Collections2;
+
+import org.assertj.core.util.Lists;
 import org.codehaus.cargo.container.ContainerType;
 import org.codehaus.cargo.container.InstalledLocalContainer;
+import org.codehaus.cargo.container.State;
 import org.codehaus.cargo.container.configuration.ConfigurationType;
 import org.codehaus.cargo.container.configuration.FileConfig;
 import org.codehaus.cargo.container.configuration.LocalConfiguration;
@@ -16,8 +18,9 @@ import org.codehaus.cargo.generic.configuration.DefaultConfigurationFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.ServiceLoader;
+import java.util.Collections;
 import java.util.stream.IntStream;
 
 /**
@@ -76,17 +79,15 @@ public class ContainerManager
     configuration.setProperty(GeneralPropertySet.PORT_OFFSET, Integer.toString(index));
     configuration.applyPortOffset();
 
+    // Copy context.xml file for actual server to get DeltaSessionManager as manager
     FileConfig contextConfigFile = new FileConfig();
     contextConfigFile.setToDir("conf");
     contextConfigFile.setFile(install.getInstallPath() + "/conf/context.xml");
     configuration.setConfigFileProperty(contextConfigFile);
 
-//    FileConfig contextConfigFile = new FileConfig();
-//    contextConfigFile.setToDir("conf/Catalina/localhost");
-//    contextConfigFile.setFile(install.getInstallPath() + "/conf/context.xml");
-//    contextConfigFile.setToFile("context.xml.default");
 
 //    configuration.setProperty(GeneralPropertySet.JVMARGS, "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=" + (7700 + index));
+//    configuration.setProperty(GeneralPropertySet.JVMARGS, "-Dtomcat.util.scan.DefaultJarScanner.jarsToSkip=* -Dorg.apache.catalina.startup.ContextConfig.jarsToSkip=* -Dorg.apache.catalina.startup.TldConfig.jarsToSkip=*");
 
     // Statically deploy WAR file for servlet
     String WARPath = getPathToTestWAR();
@@ -134,6 +135,46 @@ public class ContainerManager
     return containers.size();
   }
 
+  public ArrayList<Integer> getContainerIndexesWithState(String state)
+  {
+    ArrayList<Integer> indexes = new ArrayList<>();
+    for (int i = 0; i < numContainers(); i++)
+    {
+      if (state.equals(State.STARTED.toString()) || state.equals(State.STOPPED.toString()) || state.equals(State.STARTED.toString()) || state.equals(State.STOPPING.toString()) || state.equals(State.UNKNOWN.toString())) {
+        if (getContainer(i).getState().toString().equals(state))
+          indexes.add(i);
+      }
+      else
+        throw new IllegalArgumentException("State must be one of the 5 specified cargo state strings (stopped, started, starting, stopping, or unknown). Given: " + state);
+    }
+    return indexes;
+  }
+
+  public ArrayList<InstalledLocalContainer> getContainersWithState(String state)
+  {
+    ArrayList<InstalledLocalContainer> statedContainers = new ArrayList<>();
+    for (int index : getContainerIndexesWithState(state))
+      statedContainers.add(getContainer(index));
+    return statedContainers;
+  }
+
+  public ArrayList<Integer> getInactiveContainerIndexes()
+  {
+    ArrayList<Integer> indexes = getContainerIndexesWithState(State.STOPPED.toString());
+    indexes.addAll(getContainerIndexesWithState(State.UNKNOWN.toString()));
+    return indexes;
+  }
+
+  public ArrayList<InstalledLocalContainer> getInactiveContainers()
+  {
+    ArrayList<InstalledLocalContainer> inactiveContainers = getContainersWithState(State.STOPPED.toString());
+    inactiveContainers.addAll(getContainersWithState(State.UNKNOWN.toString()));
+    return inactiveContainers;
+  }
+
+  public ArrayList<Integer> getActiveContainerIndexes() { return getContainerIndexesWithState(State.STARTED.toString()); }
+  public ArrayList<InstalledLocalContainer> getActiveContainers() { return getContainersWithState(State.STARTED.toString()); }
+
   public InstalledLocalContainer getContainer(int index)
   {
     return containers.get(index);
@@ -142,15 +183,30 @@ public class ContainerManager
   public String getContainerDescription(int index) { return getContainerInstall(index).getContainerDescription() + ":" + getContainerPort(index); }
   public void startContainer(int index)
   {
-    getContainer(index).start();
-    System.out.println("Started container" + index + " " + getContainerDescription(index));
+    InstalledLocalContainer container = getContainer(index);
+    if (!container.getState().isStarted()) {
+      container.start();
+      System.out.println("Started container" + index + " " + getContainerDescription(index));
+    }
+    else
+      throw new IllegalArgumentException("Cannot start container" + index + " " + getContainerDescription(index) + " it has currently " + container.getState());
   }
   public void stopContainer(int index)
   {
-    getContainer(index).stop();
-    System.out.println("Stopped container" + index + " " + getContainerDescription(index));
+    InstalledLocalContainer container = getContainer(index);
+    if (container.getState().isStarted()) {
+      container.stop();
+      System.out.println("Stopped container" + index + " " + getContainerDescription(index));
+    }
+    else
+      throw new IllegalArgumentException("Cannot stop container" + index + " " + getContainerDescription(index) + " it is currently " + container.getState());
   }
   public void startContainers(int[] indexes)
+  {
+    for (int index : indexes)
+      startContainer(index);
+  }
+  public void startContainers(ArrayList<Integer> indexes)
   {
     for (int index : indexes)
       startContainer(index);
@@ -160,13 +216,18 @@ public class ContainerManager
     for (int index : indexes)
       stopContainer(index);
   }
-  public void startAllContainers()
+  public void stopContainers(ArrayList<Integer> indexes)
   {
-    startContainers(IntStream.range(0, containers.size()).toArray());
+    for (int index : indexes)
+      stopContainer(index);
   }
-  public void stopAllContainers()
+  public void startAllInactiveContainers()
   {
-    stopContainers(IntStream.range(0, containers.size()).toArray());
+    startContainers(getInactiveContainerIndexes());
+  }
+  public void stopAllActiveContainers()
+  {
+    stopContainers(getActiveContainerIndexes());
   }
 
   public void removeContainer(int index)
