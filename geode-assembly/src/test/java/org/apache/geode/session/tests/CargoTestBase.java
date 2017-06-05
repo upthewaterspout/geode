@@ -17,33 +17,27 @@ package org.apache.geode.session.tests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import org.apache.geode.test.dunit.DUnitEnv;
 import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
 import org.apache.geode.test.junit.categories.DistributedTest;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 @Category(DistributedTest.class)
-public class CargoTest extends JUnit4CacheTestCase
+public abstract class CargoTestBase extends JUnit4CacheTestCase
 {
-  static TomcatInstall tomcat7;
 
   Client client;
   ContainerManager manager;
 
   CloseableHttpResponse resp;
+  
+  public abstract ContainerInstall getInstall();
 
-  @BeforeClass
-  public static void setupTomcatInstall() throws Exception
-  {
-    tomcat7 = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT6);
-    tomcat7.setLocators(DUnitEnv.get().getLocatorString());
-  }
+  
 
   private void containersShouldBeCreatingIndividualSessions(ContainerManager manager) throws Exception
   {
@@ -169,9 +163,9 @@ public class CargoTest extends JUnit4CacheTestCase
   public void twoTomcatContainersShouldBeCreatingIndividualSessions() throws Exception
   {
     ContainerManager manager = new ContainerManager();
-    tomcat7.setLocators("");
+    getInstall().setLocators("");
 
-    manager.addContainers(2, tomcat7);
+    manager.addContainers(2, getInstall());
 
     manager.startAllInactiveContainers();
     containersShouldBeCreatingIndividualSessions(manager);
@@ -182,7 +176,7 @@ public class CargoTest extends JUnit4CacheTestCase
   public void twoTomcatContainersShouldReplicateCookies() throws Exception
   {
     ContainerManager manager = new ContainerManager();
-    manager.addContainers(3, tomcat7);
+    manager.addContainers(3, getInstall());
 
     manager.startAllInactiveContainers();
     containersShouldReplicateSessions(manager);
@@ -193,7 +187,7 @@ public class CargoTest extends JUnit4CacheTestCase
   public void threeTomcatContainersShouldHavePersistentSessionData() throws Exception
   {
     ContainerManager manager = new ContainerManager();
-    manager.addContainers(3, tomcat7);
+    manager.addContainers(3, getInstall());
 
     manager.startAllInactiveContainers();
     containersShouldHavePersistentSessionData(manager);
@@ -204,7 +198,7 @@ public class CargoTest extends JUnit4CacheTestCase
   public void containerFailureShouldStillAllowTwoOtherContainersToAccessSessionData() throws Exception
   {
     ContainerManager manager = new ContainerManager();
-    manager.addContainers(3, tomcat7);
+    manager.addContainers(3, getInstall());
 
     manager.startAllInactiveContainers();
     failureShouldStillAllowOtherContainersDataAccess(manager);
@@ -215,7 +209,7 @@ public class CargoTest extends JUnit4CacheTestCase
   public void invalidateShouldNotAllowContainerToAccessKeyValue() throws Exception
   {
     ContainerManager manager = new ContainerManager();
-    manager.addContainers(2, tomcat7);
+    manager.addContainers(2, getInstall());
 
     manager.startAllInactiveContainers();
     invalidationShouldRemoveValueAccessForAllContainers(manager);
@@ -226,7 +220,7 @@ public class CargoTest extends JUnit4CacheTestCase
   public void sessionShouldExpireInSetTimePeriod() throws Exception
   {
     ContainerManager manager = new ContainerManager();
-    manager.addContainers(2, tomcat7);
+    manager.addContainers(2, getInstall());
 
     manager.startAllInactiveContainers();
     containersShouldExpireInSetTimeframe(manager);

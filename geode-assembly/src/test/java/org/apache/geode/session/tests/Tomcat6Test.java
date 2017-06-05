@@ -14,11 +14,20 @@
  */
 package org.apache.geode.session.tests;
 
-public abstract class ContainerInstall
-{
-  public abstract String getContainerId();
-  public abstract String getInstallPath();
-  public abstract String getContainerDescription();
+import org.apache.geode.test.dunit.DUnitEnv;
+import org.junit.BeforeClass;
 
-  public abstract void setLocators(String locators) throws Exception;
+public class Tomcat6Test extends CargoTestBase {
+  private static ContainerInstall install;
+
+  @BeforeClass
+  public static void setupTomcatInstall() throws Exception
+  {
+    install =  new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT6);
+    install.setLocators(DUnitEnv.get().getLocatorString());
+  }
+  @Override
+  public ContainerInstall getInstall() {
+    return install;
+  }
 }
