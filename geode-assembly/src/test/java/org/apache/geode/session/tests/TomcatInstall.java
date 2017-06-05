@@ -1,3 +1,17 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license
+ * agreements. See the NOTICE file distributed with this work for additional information regarding
+ * copyright ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License. You may obtain a
+ * copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package org.apache.geode.session.tests;
 
 import org.apache.commons.io.FilenameUtils;
@@ -28,9 +42,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-/**
- * Created by danuta on 6/1/17.
- */
 public class TomcatInstall extends ContainerInstall
 {
   private static final String[] tomcatRequiredJars = { "antlr", "commons-lang", "fastutil", "geode-core", "geode-modules", "geode-modules-tomcat7", "geode-modules-tomcat8", "javax.transaction-api", "jgroups", "log4j-api", "log4j-core", "log4j-jul", "shiro-core", "slf4j-api", "slf4j-jdk14" };
@@ -52,13 +63,13 @@ public class TomcatInstall extends ContainerInstall
       switch (this)
       {
         case TOMCAT6:
-          return "http://apache.mirrors.lucidnetworks.net/tomcat/tomcat-6/v6.0.53/bin/apache-tomcat-6.0.53.zip";
+          return "http://archive.apache.org/dist/tomcat/tomcat-6/v6.0.37/bin/apache-tomcat-6.0.37.zip";
         case TOMCAT7:
-          return "http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.73/bin/apache-tomcat-7.0.73.zip";//http://repo1.maven.org/maven2/org/apache/tomcat/tomcat/7.0.68/tomcat-7.0.68.zip";
+          return "http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.73/bin/apache-tomcat-7.0.73.zip";
         case TOMCAT8:
-          return "http://mirrors.ibiblio.org/apache/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.zip";
+          return "http://archive.apache.org/dist/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.zip";
         case TOMCAT9:
-          return "http://download.nextag.com/apache/tomcat/tomcat-9/v9.0.0.M21/bin/apache-tomcat-9.0.0.M21.zip";
+          return "http://archive.apache.org/dist/tomcat/tomcat-9/v9.0.0.M21/bin/apache-tomcat-9.0.0.M21.zip";
         default:
           throw new IllegalArgumentException("Illegal tomcat version option");
       }
@@ -182,7 +193,9 @@ public class TomcatInstall extends ContainerInstall
     // Add the needed XML tags
     updateXMLFiles();
     // Add required jars copied to jar skips so container startup is faster
-    updateProperties();
+    if (version.jarSkipPropertyName() != null) {
+      updateProperties();
+    }
   }
 
   private void installGeodeSessions(String tomcatInstallPath, String geodeBuildHome) throws IOException

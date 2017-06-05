@@ -23,9 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.stream.IntStream;
 
-/**
- * Created by danuta on 6/1/17.
- */
 public class ContainerManager
 {
   private static final String PLAIN_LOG_FILE = "/tmp/logs/container";

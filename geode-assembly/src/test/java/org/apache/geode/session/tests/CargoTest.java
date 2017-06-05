@@ -1,25 +1,34 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license
+ * agreements. See the NOTICE file distributed with this work for additional information regarding
+ * copyright ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License. You may obtain a
+ * copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package org.apache.geode.session.tests;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import org.apache.geode.test.dunit.DUnitEnv;
 import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
+import org.apache.geode.test.junit.categories.DistributedTest;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
-import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.concurrent.TimeUnit;
-
-/**
- * Created by danuta on 5/26/17.
- */
+@Category(DistributedTest.class)
 public class CargoTest extends JUnit4CacheTestCase
 {
   static TomcatInstall tomcat7;
@@ -32,7 +41,7 @@ public class CargoTest extends JUnit4CacheTestCase
   @BeforeClass
   public static void setupTomcatInstall() throws Exception
   {
-    tomcat7 = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    tomcat7 = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT6);
     tomcat7.setLocators(DUnitEnv.get().getLocatorString());
   }
 
@@ -55,12 +64,12 @@ public class CargoTest extends JUnit4CacheTestCase
     client.setPort(Integer.parseInt(manager.getContainerPort(0)));
     resp = client.get(null);
 
-    for (int i = 0; i < manager.numContainers(); i++)
+    for (int i = 1; i < manager.numContainers(); i++)
     {
       client.setPort(Integer.parseInt(manager.getContainerPort(i)));
       resp = client.get(null);
 
-      assertEquals(resp.getFirstHeader("Set-Cookie"), null);
+      assertNull(resp.getFirstHeader("Set-Cookie"));
     }
   }
 
@@ -84,7 +93,7 @@ public class CargoTest extends JUnit4CacheTestCase
     }
   }
 
-  private void containerFailureShouldStillAllowOtherContainersDataAccess(ContainerManager manager) throws Exception
+  private void failureShouldStillAllowOtherContainersDataAccess(ContainerManager manager) throws Exception
   {
     String key = "value_testSessionPersists";
     String value = "Foo";
@@ -106,7 +115,7 @@ public class CargoTest extends JUnit4CacheTestCase
     }
   }
 
-  private void containerInvalidationShouldRemoveValueAccessForAllContainers(ContainerManager manager) throws Exception
+  private void invalidationShouldRemoveValueAccessForAllContainers(ContainerManager manager) throws Exception
   {
     String key = "value_testInvalidate";
     String value = "Foo";
@@ -124,7 +133,7 @@ public class CargoTest extends JUnit4CacheTestCase
     }
   }
 
-  private void containerShouldExpireInSetTimeframeForAllContainers(ContainerManager manager) throws Exception
+  private void containersShouldExpireInSetTimeframe(ContainerManager manager) throws Exception
   {
     String key = "value_testSessionExpiration";
     String value = "Foo";
@@ -173,7 +182,7 @@ public class CargoTest extends JUnit4CacheTestCase
   public void twoTomcatContainersShouldReplicateCookies() throws Exception
   {
     ContainerManager manager = new ContainerManager();
-    manager.addContainers(2, tomcat7);
+    manager.addContainers(3, tomcat7);
 
     manager.startAllInactiveContainers();
     containersShouldReplicateSessions(manager);
@@ -198,7 +207,7 @@ public class CargoTest extends JUnit4CacheTestCase
     manager.addContainers(3, tomcat7);
 
     manager.startAllInactiveContainers();
-    containerFailureShouldStillAllowOtherContainersDataAccess(manager);
+    failureShouldStillAllowOtherContainersDataAccess(manager);
     manager.stopAllActiveContainers();
   }
 
@@ -209,7 +218,7 @@ public class CargoTest extends JUnit4CacheTestCase
     manager.addContainers(2, tomcat7);
 
     manager.startAllInactiveContainers();
-    containerInvalidationShouldRemoveValueAccessForAllContainers(manager);
+    invalidationShouldRemoveValueAccessForAllContainers(manager);
     manager.stopAllActiveContainers();
   }
 
@@ -220,7 +229,7 @@ public class CargoTest extends JUnit4CacheTestCase
     manager.addContainers(2, tomcat7);
 
     manager.startAllInactiveContainers();
-    containerShouldExpireInSetTimeframeForAllContainers(manager);
+    containersShouldExpireInSetTimeframe(manager);
     manager.stopAllActiveContainers();
   }
 
