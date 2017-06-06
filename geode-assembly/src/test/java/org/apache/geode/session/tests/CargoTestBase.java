@@ -15,16 +15,22 @@
 package org.apache.geode.session.tests;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
 import org.apache.geode.test.junit.categories.DistributedTest;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.HashSet;
+import java.util.Set;
 
 @Category(DistributedTest.class)
 public abstract class CargoTestBase extends JUnit4CacheTestCase
@@ -32,119 +38,8 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase
 
   Client client;
   ContainerManager manager;
-
-  CloseableHttpResponse resp;
   
   public abstract ContainerInstall getInstall();
-
-  
-
-  private void containersShouldBeCreatingIndividualSessions(ContainerManager manager) throws Exception
-  {
-    for (int i = 0; i < manager.numContainers(); i++)
-    {
-      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
-      resp = client.get(null);
-
-      assertEquals("JSESSIONID", resp.getFirstHeader("Set-Cookie").getElements()[0].getName());
-    }
-  }
-
-  private void containersShouldReplicateSessions(ContainerManager manager) throws Exception
-  {
-    if (manager.numContainers() < 2)
-      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
-
-    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
-    resp = client.get(null);
-
-    for (int i = 1; i < manager.numContainers(); i++)
-    {
-      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
-      resp = client.get(null);
-
-      assertNull(resp.getFirstHeader("Set-Cookie"));
-    }
-  }
-
-  private void containersShouldHavePersistentSessionData(ContainerManager manager) throws Exception
-  {
-    String key = "value_testSessionPersists";
-    String value = "Foo";
-
-    if (manager.numContainers() < 2)
-      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
-
-    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
-    resp = client.set(key, value);
-
-    for (int i = 0; i < manager.numContainers(); i++)
-    {
-      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
-      resp = client.get(key);
-
-      assertEquals(value, EntityUtils.toString(resp.getEntity()));
-    }
-  }
-
-  private void failureShouldStillAllowOtherContainersDataAccess(ContainerManager manager) throws Exception
-  {
-    String key = "value_testSessionPersists";
-    String value = "Foo";
-
-    if (manager.numContainers() < 2)
-      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
-
-    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
-    resp = client.set(key, value);
-
-    manager.stopContainer(0);
-
-    for (int i = 1; i < manager.numContainers(); i++)
-    {
-      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
-      resp = client.get(key);
-
-      assertEquals(value, EntityUtils.toString(resp.getEntity()));
-    }
-  }
-
-  private void invalidationShouldRemoveValueAccessForAllContainers(ContainerManager manager) throws Exception
-  {
-    String key = "value_testInvalidate";
-    String value = "Foo";
-
-    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
-    resp = client.set(key, value);
-    resp = client.invalidate();
-
-    for (int i = 0; i < manager.numContainers(); i++)
-    {
-      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
-      resp = client.get(key);
-
-      assertEquals("", EntityUtils.toString(resp.getEntity()));
-    }
-  }
-
-  private void containersShouldExpireInSetTimeframe(ContainerManager manager) throws Exception
-  {
-    String key = "value_testSessionExpiration";
-    String value = "Foo";
-
-    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
-    resp = client.set(key, value);
-    resp = client.setMaxInactive(1);
-
-    Thread.sleep(10000);
-
-    for (int i = 0; i < manager.numContainers(); i++) {
-      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
-      resp = client.get(key);
-
-      assertEquals("", EntityUtils.toString(resp.getEntity()));
-    }
-  }
 
   @Before
   public void setup()
@@ -159,103 +54,216 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase
     manager.stopAllActiveContainers();
   }
 
+  private void containersShouldBeCreatingIndividualSessions() throws URISyntaxException, IOException
+  {
+    Set<String> seenCookies = new HashSet<String>();
+    for (int i = 0; i < manager.numContainers(); i++)
+    {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      Client.Response resp = client.get(null);
+
+      assertNotNull(resp.getSetCookieHeader());
+      //Verify that each container returned a different cookie
+      assertTrue(seenCookies.add(resp.getSetCookieHeader()));
+
+    }
+  }
+
+  private void containersShouldReplicateSessions() throws IOException, URISyntaxException
+  {
+    if (manager.numContainers() < 2)
+      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
+
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    Client.Response resp = client.get(null);
+
+    for (int i = 1; i < manager.numContainers(); i++)
+    {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(null);
+
+      assertNull(resp.getSetCookieHeader());
+    }
+  }
+
+  private void containersShouldHavePersistentSessionData() throws IOException, URISyntaxException
+  {
+    String key = "value_testSessionPersists";
+    String value = "Foo";
+
+    if (manager.numContainers() < 2)
+      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
+
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    Client.Response resp = client.set(key, value);
+
+    for (int i = 0; i < manager.numContainers(); i++)
+    {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
+
+      assertEquals(value, resp.getResponse());
+    }
+  }
+
+  private void failureShouldStillAllowOtherContainersDataAccess() throws IOException, URISyntaxException
+  {
+    String key = "value_testSessionPersists";
+    String value = "Foo";
+
+    if (manager.numContainers() < 2)
+      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
+
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    Client.Response resp = client.set(key, value);
+
+    manager.stopContainer(0);
+
+    for (int i = 1; i < manager.numContainers(); i++)
+    {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
+
+      assertEquals(value, resp.getResponse());
+    }
+  }
+
+  private void invalidationShouldRemoveValueAccessForAllContainers() throws IOException, URISyntaxException
+  {
+    String key = "value_testInvalidate";
+    String value = "Foo";
+
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    client.set(key, value);
+    client.invalidate();
+
+    for (int i = 0; i < manager.numContainers(); i++)
+    {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      Client.Response resp = client.get(key);
+
+      assertEquals("", resp.getResponse());
+    }
+  }
+
+  private void containersShouldExpireInSetTimeframe() throws IOException, URISyntaxException, InterruptedException
+  {
+    String key = "value_testSessionExpiration";
+    String value = "Foo";
+
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    client.set(key, value);
+    client.setMaxInactive(1);
+
+    Thread.sleep(5000);
+
+    for (int i = 0; i < manager.numContainers(); i++) {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      Client.Response resp = client.get(key);
+
+      assertEquals("", resp.getResponse());
+    }
+  }
+
+  private void containersShouldShareSessionExpirationReset() throws URISyntaxException, IOException, InterruptedException
+  {
+    int timeToExp = 5;
+    String key = "value_testSessionExpiration";
+    String value = "Foo";
+
+    if (manager.numContainers() < 2)
+      throw new IllegalArgumentException("Bad ContainerManager, must have 2 or more containers for this test");
+
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    Client.Response resp = client.set(key, value);
+    resp = client.setMaxInactive(timeToExp);
+
+
+    long startTime = System.currentTimeMillis();
+    long curTime = System.currentTimeMillis();
+    // Run for 10 seconds
+    while (curTime - startTime < timeToExp * 2000) {
+      resp = client.get(key);
+      curTime = System.currentTimeMillis();
+    }
+
+    for (int i = 0; i < manager.numContainers(); i++) {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
+
+      assertEquals(value, resp.getResponse());
+    }
+  }
+
   @Test
   public void twoTomcatContainersShouldBeCreatingIndividualSessions() throws Exception
   {
-    ContainerManager manager = new ContainerManager();
     getInstall().setLocators("");
 
     manager.addContainers(2, getInstall());
 
     manager.startAllInactiveContainers();
-    containersShouldBeCreatingIndividualSessions(manager);
+    containersShouldBeCreatingIndividualSessions();
     manager.stopAllActiveContainers();
   }
 
   @Test
-  public void twoTomcatContainersShouldReplicateCookies() throws Exception
+  public void twoTomcatContainersShouldReplicateCookies() throws IOException, URISyntaxException
   {
-    ContainerManager manager = new ContainerManager();
     manager.addContainers(3, getInstall());
 
     manager.startAllInactiveContainers();
-    containersShouldReplicateSessions(manager);
+    containersShouldReplicateSessions();
     manager.stopAllActiveContainers();
   }
 
   @Test
-  public void threeTomcatContainersShouldHavePersistentSessionData() throws Exception
+  public void threeTomcatContainersShouldHavePersistentSessionData() throws IOException, URISyntaxException
   {
-    ContainerManager manager = new ContainerManager();
     manager.addContainers(3, getInstall());
 
     manager.startAllInactiveContainers();
-    containersShouldHavePersistentSessionData(manager);
+    containersShouldHavePersistentSessionData();
     manager.stopAllActiveContainers();
   }
 
   @Test
-  public void containerFailureShouldStillAllowTwoOtherContainersToAccessSessionData() throws Exception
+  public void containerFailureShouldStillAllowTwoOtherContainersToAccessSessionData() throws IOException, URISyntaxException
   {
-    ContainerManager manager = new ContainerManager();
     manager.addContainers(3, getInstall());
 
     manager.startAllInactiveContainers();
-    failureShouldStillAllowOtherContainersDataAccess(manager);
+    failureShouldStillAllowOtherContainersDataAccess();
     manager.stopAllActiveContainers();
   }
 
   @Test
-  public void invalidateShouldNotAllowContainerToAccessKeyValue() throws Exception
+  public void invalidateShouldNotAllowContainerToAccessKeyValue() throws IOException, URISyntaxException
   {
-    ContainerManager manager = new ContainerManager();
     manager.addContainers(2, getInstall());
 
     manager.startAllInactiveContainers();
-    invalidationShouldRemoveValueAccessForAllContainers(manager);
+    invalidationShouldRemoveValueAccessForAllContainers();
     manager.stopAllActiveContainers();
   }
 
   @Test
-  public void sessionShouldExpireInSetTimePeriod() throws Exception
+  public void sessionShouldExpireInSetTimePeriod() throws IOException, URISyntaxException, InterruptedException
   {
-    ContainerManager manager = new ContainerManager();
     manager.addContainers(2, getInstall());
 
     manager.startAllInactiveContainers();
-    containersShouldExpireInSetTimeframe(manager);
+    containersShouldExpireInSetTimeframe();
     manager.stopAllActiveContainers();
   }
 
-//  /**
-//   * Test callback functionality. This is here really just as an example. Callbacks are useful to
-//   * implement per test actions which can be defined within the actual test method instead of in a
-//   * separate servlet class.
-//   */
-//  @Test
-//  public void testCallback() throws Exception {
-//    final String helloWorld = "Hello World";
-//    Callback c = new Callback() {
-//
-//      @Override
-//      public void call(HttpServletRequest request, HttpServletResponse response)
-//          throws IOException {
-//        PrintWriter out = response.getWriter();
-//        out.write(helloWorld);
-//      }
-//    };
-//    servlet.getServletContext().setAttribute("callback", c);
-//
-//    Runtime rt = Runtime.getRuntime();
-//    Process pr = rt.exec("jar cvf /path/to/your/project/your-file.war");
-//
-//    WebConversation wc = new WebConversation();
-//    WebRequest req = new GetMethodWebRequest(String.format("http://localhost:%d/test", port));
-//
-//    req.setParameter("cmd", QueryCommand.CALLBACK.name());
-//    req.setParameter("param", "callback");
-//    WebResponse response = wc.getResponse(req);
-//
-//    assertEquals(helloWorld, response.getText());
-//  }
+  @Test
+  public void sessionExpirationShouldResetAcrossAllContainers() throws IOException, URISyntaxException, InterruptedException
+  {
+    manager.addContainers(3, getInstall());
+
+    manager.startAllInactiveContainers();
+    containersShouldShareSessionExpirationReset();
+    manager.stopAllActiveContainers();
+  }
 }

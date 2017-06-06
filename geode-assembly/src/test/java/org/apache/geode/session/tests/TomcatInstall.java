@@ -16,6 +16,9 @@ package org.apache.geode.session.tests;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.geode.management.internal.configuration.utils.ZipUtils;
+import org.codehaus.cargo.container.configuration.FileConfig;
+import org.codehaus.cargo.container.configuration.LocalConfiguration;
+import org.codehaus.cargo.container.deployable.WAR;
 import org.codehaus.cargo.container.installer.Installer;
 import org.codehaus.cargo.container.installer.ZipURLInstaller;
 import org.w3c.dom.Document;
@@ -51,45 +54,28 @@ public class TomcatInstall extends ContainerInstall
   private TomcatConfig config;
   private final TomcatVersion version;
 
-  private final String INSTALL_PATH;
-  private static final String DEFAULT_INSTALL_DIR = "/tmp/cargo_containers/";
+  public enum TomcatVersion {
+    TOMCAT6(6, "http://archive.apache.org/dist/tomcat/tomcat-6/v6.0.37/bin/apache-tomcat-6.0.37.zip"),
+    TOMCAT7(7, "http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.73/bin/apache-tomcat-7.0.73.zip"),
+    TOMCAT8(8, "http://archive.apache.org/dist/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.zip"),
+    TOMCAT9(9, "http://archive.apache.org/dist/tomcat/tomcat-9/v9.0.0.M21/bin/apache-tomcat-9.0.0.M21.zip");
 
-  public enum TomcatVersion
-  {
-    TOMCAT6, TOMCAT7, TOMCAT8, TOMCAT9;
+    private final int version;
+    private final String downloadURL;
+
+    TomcatVersion(int version, String downloadURL) {
+      this.version = version;
+      this.downloadURL = downloadURL;
+    }
 
     public String downloadURL()
     {
-      switch (this)
-      {
-        case TOMCAT6:
-          return "http://archive.apache.org/dist/tomcat/tomcat-6/v6.0.37/bin/apache-tomcat-6.0.37.zip";
-        case TOMCAT7:
-          return "http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.73/bin/apache-tomcat-7.0.73.zip";
-        case TOMCAT8:
-          return "http://archive.apache.org/dist/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.zip";
-        case TOMCAT9:
-          return "http://archive.apache.org/dist/tomcat/tomcat-9/v9.0.0.M21/bin/apache-tomcat-9.0.0.M21.zip";
-        default:
-          throw new IllegalArgumentException("Illegal tomcat version option");
-      }
+      return downloadURL;
     }
 
     public int toInteger()
     {
-      switch (this)
-      {
-        case TOMCAT6:
-          return 6;
-        case TOMCAT7:
-          return 7;
-        case TOMCAT8:
-          return 8;
-        case TOMCAT9:
-          return 9;
-        default:
-          throw new IllegalArgumentException("Illegal tomcat version option");
-      }
+      return version;
     }
 
     public String jarSkipPropertyName()
@@ -177,18 +163,12 @@ public class TomcatInstall extends ContainerInstall
 
   private TomcatInstall(TomcatVersion version, TomcatConfig config, String installDir) throws Exception
   {
+    super(installDir, version.downloadURL());
+
     this.config = config;
     this.version = version;
 
-    System.out.println("Installing tomcat from URL " + version.downloadURL());
-    // Optional step to install the container from a URL pointing to its distribution
-    Installer installer = new ZipURLInstaller(
-        new URL(version.downloadURL()), "/tmp/downloads", installDir);
-    installer.install();
-    System.out.println("Installed tomcat into " + installDir);
-
-    INSTALL_PATH = installer.getHome();
-    installGeodeSessions(INSTALL_PATH, GEODE_BUILD_HOME);
+    installGeodeSessions(getInstallPath(), GEODE_BUILD_HOME);
 
     // Add the needed XML tags
     updateXMLFiles();
@@ -373,14 +353,13 @@ public class TomcatInstall extends ContainerInstall
     for (String jarName : tomcatRequiredJars)
       jarsToSkip += "," + jarName + "*.jar";
 
-    editPropertyFile(INSTALL_PATH + "/conf/catalina.properties", version.jarSkipPropertyName(), jarsToSkip, true);
+    editPropertyFile(getInstallPath() + "/conf/catalina.properties", version.jarSkipPropertyName(), jarsToSkip, true);
   }
 
   private void updateXMLFiles(String locators) throws Exception
   {
-    editXMLFile(INSTALL_PATH + "/conf/server.xml", config.getXMLTag(),"Listener", "Server", config.getXMLAttributes(locators));
-    editXMLFile(INSTALL_PATH + "/conf/context.xml", config.getXMLTag(),"Manager", "Context", version.getXMLAttributes());
-//    editXMLFile( + "/conf/context.xml", config.getXMLTag(),"Manager", "Context", version.getXMLAttributes());
+    editXMLFile(getInstallPath() + "/conf/server.xml", config.getXMLTag(),"Listener", "Server", config.getXMLAttributes(locators));
+    editXMLFile(getInstallPath() + "/conf/context.xml", config.getXMLTag(),"Manager", "Context", version.getXMLAttributes());
   }
 
   private void updateXMLFiles() throws Exception
@@ -394,6 +373,7 @@ public class TomcatInstall extends ContainerInstall
     updateXMLFiles();
   }
 
+  @Override
   public void setLocators(String locators) throws Exception
   {
     updateXMLFiles(locators);
@@ -411,14 +391,49 @@ public class TomcatInstall extends ContainerInstall
   }
 
   @Override
-  public String getInstallPath()
-  {
-    return INSTALL_PATH;
-  }
-
-  @Override
   public String getContainerDescription()
   {
     return version.name() + "_" + config.name();
+  }
+
+  @Override
+  public void modifyConfiguration(LocalConfiguration configuration) {
+    // Copy context.xml file for actual server to get DeltaSessionManager as manager
+    FileConfig contextConfigFile = new FileConfig();
+    contextConfigFile.setToDir("conf");
+    contextConfigFile.setFile(getInstallPath() + "/conf/context.xml");
+    configuration.setConfigFileProperty(contextConfigFile);
+  }
+
+  @Override
+  public WAR getDeployableWAR()
+  {
+    // Start out searching directory above current
+    String curPath = "../";
+
+    // Looking for extensions folder
+    final String warModuleDirName = "extensions";
+    File warModuleDir = null;
+
+    // While directory searching for is not found
+    while (warModuleDir == null)
+    {
+      // Try to find the find the directory in the current directory
+      File[] files = new File(curPath).listFiles();
+      for (File file : files)
+      {
+        if (file.isDirectory() && file.getName().equals(warModuleDirName))
+        {
+          warModuleDir = file;
+          break;
+        }
+      }
+
+      // Keep moving up until you find it
+      curPath += "../";
+    }
+
+    // Return path to extensions plus hardcoded path from there to the WAR
+    return new WAR(warModuleDir.getAbsolutePath() + "/session-testing-war/build/libs/session-testing-war.war");
   }
 }

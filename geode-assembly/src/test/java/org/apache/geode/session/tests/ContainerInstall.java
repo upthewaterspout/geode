@@ -14,11 +14,45 @@
  */
 package org.apache.geode.session.tests;
 
+import org.codehaus.cargo.container.configuration.LocalConfiguration;
+import org.codehaus.cargo.container.deployable.WAR;
+import org.codehaus.cargo.container.installer.Installer;
+import org.codehaus.cargo.container.installer.ZipURLInstaller;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
 public abstract class ContainerInstall
 {
+  private final String INSTALL_PATH;
+  public static final String DEFAULT_INSTALL_DIR = "/tmp/cargo_containers/";
+
+  public ContainerInstall(String installDir, String downloadURL) throws MalformedURLException
+  {
+    System.out.println("Installing container from URL " + downloadURL);
+    // Optional step to install the container from a URL pointing to its distribution
+    Installer installer = new ZipURLInstaller(
+        new URL(downloadURL), "/tmp/downloads", installDir);
+    installer.install();
+    INSTALL_PATH = installer.getHome();
+    System.out.println("Installed container into " + getInstallPath());
+  }
+
+  public String getInstallPath()
+  {
+    return INSTALL_PATH;
+  }
   public abstract String getContainerId();
-  public abstract String getInstallPath();
   public abstract String getContainerDescription();
+  public abstract WAR getDeployableWAR();
 
   public abstract void setLocators(String locators) throws Exception;
+
+  /**
+   * Update the configuration of a container before it is launched,
+   * if necessary.
+   */
+  public void modifyConfiguration(LocalConfiguration configuration) {
+
+  }
 }

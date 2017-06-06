@@ -14,6 +14,8 @@
  */
 package org.apache.geode.session.tests;
 
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
@@ -24,6 +26,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -44,7 +47,6 @@ public class Client
     reqURIBuild.setScheme("http");
 
     httpclient = HttpClients.createDefault();
-
     context = new BasicHttpContext();
 
     cookie = null;
@@ -65,7 +67,7 @@ public class Client
     reqURIBuild.clearParameters();
   }
 
-  private CloseableHttpResponse doRequest(HttpGet req) throws IOException
+  private Response doRequest(HttpGet req) throws IOException
   {
     if (cookie != null) {
       BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", this.cookie);
@@ -80,12 +82,24 @@ public class Client
 
     CloseableHttpResponse resp = httpclient.execute(req, context);
     if (this.cookie == null)
-      this.cookie = resp.getFirstHeader("Set-Cookie").getElements()[0].getValue();
+      this.cookie = getCookieHeader(resp);
 
-    return resp;
+    Response response = new Response(getCookieHeader(resp), EntityUtils.toString(resp.getEntity()));
+    resp.close();
+    return response;
   }
 
-  public CloseableHttpResponse get(String key) throws IOException, URISyntaxException
+  private String getCookieHeader(CloseableHttpResponse resp) {
+    Header firstHeader = resp.getFirstHeader("Set-Cookie");
+
+    if(firstHeader == null) {
+      return null;
+    }
+    HeaderElement[] elements = firstHeader.getElements();
+    return elements[0].getValue();
+  }
+
+  public Response get(String key) throws IOException, URISyntaxException
   {
     resetURI();
     reqURIBuild.setParameter("cmd", QueryCommand.GET.name());
@@ -94,7 +108,7 @@ public class Client
     return doRequest(new HttpGet(reqURIBuild.build()));
   }
 
-  public CloseableHttpResponse set(String key, String value) throws IOException, URISyntaxException
+  public Response set(String key, String value) throws IOException, URISyntaxException
   {
     resetURI();
     reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
@@ -104,7 +118,7 @@ public class Client
     return doRequest(new HttpGet(reqURIBuild.build()));
   }
 
-  public CloseableHttpResponse invalidate() throws IOException, URISyntaxException
+  public Response invalidate() throws IOException, URISyntaxException
   {
     resetURI();
     reqURIBuild.setParameter("cmd", QueryCommand.INVALIDATE.name());
@@ -113,12 +127,31 @@ public class Client
     return doRequest(new HttpGet(reqURIBuild.build()));
   }
 
-  public CloseableHttpResponse setMaxInactive(int time) throws IOException, URISyntaxException
+  public Response setMaxInactive(int time) throws IOException, URISyntaxException
   {
     resetURI();
     reqURIBuild.setParameter("cmd", QueryCommand.SET_MAX_INACTIVE.name());
     reqURIBuild.setParameter("value", Integer.toString(time));
 
     return doRequest(new HttpGet(reqURIBuild.build()));
+  }
+
+
+  public class Response {
+    private final String sessionCookie;
+    private final String response;
+
+    public Response(String sessionCookie, String response) {
+      this.sessionCookie = sessionCookie;
+      this.response = response;
+    }
+
+    public String getSetCookieHeader() {
+      return sessionCookie;
+    }
+
+    public String getResponse() {
+      return response;
+    }
   }
 }
