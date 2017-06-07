@@ -127,11 +127,11 @@ public class TomcatInstall extends ContainerInstall {
     public HashMap<String, String> getXMLAttributes(String locators) throws IOException {
       HashMap<String, String> attributes = new HashMap<>();
       attributes.put("className", getXMLClassName());
-      if (this.equals(PEER_TO_PEER)) {
+      if (this == PEER_TO_PEER) {
         attributes.put("locators", locators);
         attributes.put("cache-xml-file", findAndExtractModule(GEODE_BUILD_HOME, "tomcat")+ "/conf/cache-peer.xml");
       }
-      else if (this.equals(CLIENT_SERVER))
+      else if (this == CLIENT_SERVER)
       {
         attributes.put("cache-xml-file", findAndExtractModule(GEODE_BUILD_HOME, "tomcat")+ "/conf/cache-client.xml");
       }
@@ -139,7 +139,6 @@ public class TomcatInstall extends ContainerInstall {
       {
         throw new IllegalArgumentException("Illegal tomcat config option");
       }
-
 
       return attributes;
     }

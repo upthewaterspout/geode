@@ -170,9 +170,10 @@ public abstract class ContainerInstall {
           // Check node for id attribute
           if (idAttr != null && idAttr.getTextContent().equals(tagId)) {
             NamedNodeMap nodeAttrs = node.getAttributes();
+
             // Remove previous attributes
-            for (int j = 0; j < nodeAttrs.getLength(); j++) {
-              nodeAttrs.removeNamedItem(nodeAttrs.item(j).getNodeName());
+            while (nodeAttrs.getLength() > 0) {
+              nodeAttrs.removeNamedItem(nodeAttrs.item(0).getNodeName());
             }
 
             ((Element) node).setAttribute("id", tagId);
