@@ -16,9 +16,6 @@ package org.apache.geode.session.tests;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
 import org.apache.geode.test.junit.categories.DistributedTest;
@@ -29,8 +26,6 @@ import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashSet;
-import java.util.Set;
 
 @Category(DistributedTest.class)
 public abstract class CargoTestBase extends JUnit4CacheTestCase {

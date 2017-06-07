@@ -15,7 +15,6 @@
 package org.apache.geode.session.tests;
 
 import org.apache.http.Header;
-import org.apache.http.HeaderElement;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
