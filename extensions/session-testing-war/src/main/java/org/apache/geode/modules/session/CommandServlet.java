@@ -71,6 +71,10 @@ public class CommandServlet extends HttpServlet {
           out.write(val);
         }
         break;
+      case REMOVE:
+        session = request.getSession();
+        session.removeAttribute(param);
+        break;
       case INVALIDATE:
         session = request.getSession();
         session.invalidate();

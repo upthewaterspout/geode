@@ -99,7 +99,7 @@ public abstract class ContainerInstall {
         + "/session-testing-war/build/libs/session-testing-war.war";
   }
 
-  protected String findAndExtractModule(String geodeBuildHome, String moduleName)
+  protected static String findAndExtractModule(String geodeBuildHome, String moduleName)
       throws IOException {
     String modulePath = null;
     String modulesDir = geodeBuildHome + "/tools/Modules/";
@@ -136,23 +136,23 @@ public abstract class ContainerInstall {
     return modulePath;
   }
 
-  protected void editXMLFile(String XMLPath, String tagId, String tagName, String parentTagName, HashMap<String, String> attributes)
-      throws Exception {
+  protected void editXMLFile(String XMLPath, String tagId, String tagName, String parentTagName,
+      HashMap<String, String> attributes) throws Exception {
     editXMLFile(XMLPath, tagId, tagName, parentTagName, attributes, false);
   }
 
-  protected void editXMLFile(String XMLPath, String tagName, String parentTagName, HashMap<String, String> attributes)
-      throws Exception {
+  protected void editXMLFile(String XMLPath, String tagName, String parentTagName,
+      HashMap<String, String> attributes) throws Exception {
     editXMLFile(XMLPath, null, tagName, parentTagName, attributes, false);
   }
 
-  protected void editXMLFile(String XMLPath, String tagName, String parentTagName, HashMap<String, String> attributes, boolean writeOnSimilarAttributeNames)
-      throws Exception {
+  protected void editXMLFile(String XMLPath, String tagName, String parentTagName,
+      HashMap<String, String> attributes, boolean writeOnSimilarAttributeNames) throws Exception {
     editXMLFile(XMLPath, null, tagName, parentTagName, attributes, writeOnSimilarAttributeNames);
   }
 
   protected void editXMLFile(String XMLPath, String tagId, String tagName, String parentTagName,
-    HashMap<String, String> attributes, boolean writeOnSimilarAttributeNames) throws Exception {
+      HashMap<String, String> attributes, boolean writeOnSimilarAttributeNames) throws Exception {
     // Get XML file to edit
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -165,35 +165,49 @@ public abstract class ContainerInstall {
     if (nodes != null) {
       for (int i = 0; i < nodes.getLength(); i++) {
         Node node = nodes.item(i);
-        if (tagId != null)
-        {
+        if (tagId != null) {
           Node idAttr = node.getAttributes().getNamedItem("id");
           // Check node for id attribute
           if (idAttr != null && idAttr.getTextContent().equals(tagId)) {
-            for (String key : attributes.keySet())
-              node.getAttributes().getNamedItem(key).setTextContent(attributes.get(key));
+            NamedNodeMap nodeAttrs = node.getAttributes();
+            // Remove previous attributes
+            for (int j = 0; j < nodeAttrs.getLength(); j++) {
+              nodeAttrs.removeNamedItem(nodeAttrs.item(j).getNodeName());
+            }
+
+            ((Element) node).setAttribute("id", tagId);
+            // Set to new attributes
+            for (String key : attributes.keySet()) {
+              ((Element) node).setAttribute(key, attributes.get(key));
+//              node.getAttributes().getNamedItem(key).setTextContent(attributes.get(key));
+            }
 
             hasTag = true;
             break;
           }
-        }
-        else if (writeOnSimilarAttributeNames)
-        {
+        } else if (writeOnSimilarAttributeNames) {
           NamedNodeMap nodeAttrs = node.getAttributes();
           boolean updateNode = true;
 
-          for (String key : attributes.keySet())
-          {
-            Node attr = nodeAttrs.getNamedItem(key);
-            if (attr == null)
-            {
+          // Check to make sure has all attribute fields
+          for (String key : attributes.keySet()) {
+            if (nodeAttrs.getNamedItem(key) == null) {
               updateNode = false;
               break;
             }
           }
+//          // Check to make sure does not have more than attribute fields
+//          for (int j = 0; j < nodeAttrs.getLength(); j++)
+//          {
+//            if (attributes.get(nodeAttrs.item(j)) == null)
+//            {
+//              updateNode = false;
+//              break;
+//            }
+//          }
 
-          if (updateNode)
-          {
+          // Update node attributes
+          if (updateNode) {
             for (String key : attributes.keySet())
               node.getAttributes().getNamedItem(key).setTextContent(attributes.get(key));
 

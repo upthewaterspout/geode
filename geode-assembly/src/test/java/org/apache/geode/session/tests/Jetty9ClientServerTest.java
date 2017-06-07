@@ -22,7 +22,8 @@ public class Jetty9ClientServerTest extends CargoClientServerTest {
 
   @BeforeClass
   public static void setupJettyInstall() throws Exception {
-    install = new GenericAppServerInstall(GenericAppServerInstall.Server.JETTY9, GenericAppServerInstall.CacheType.CLIENT_SERVER);
+    install = new GenericAppServerInstall(GenericAppServerInstall.Server.JETTY9,
+        GenericAppServerInstall.CacheType.CLIENT_SERVER);
     install.setLocator(DUnitEnv.get().getLocatorAddress(), DUnitEnv.get().getLocatorPort());
   }
 

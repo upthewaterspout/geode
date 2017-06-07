@@ -124,20 +124,24 @@ public class TomcatInstall extends ContainerInstall {
       }
     }
 
-    public HashMap<String, String> getXMLAttributes(String locators) {
+    public HashMap<String, String> getXMLAttributes(String locators) throws IOException {
       HashMap<String, String> attributes = new HashMap<>();
       attributes.put("className", getXMLClassName());
-      if (this.equals(PEER_TO_PEER))
+      if (this.equals(PEER_TO_PEER)) {
         attributes.put("locators", locators);
-      else if (locators != null && !locators.equals(""))
-        throw new IllegalArgumentException(
-            "Illegal tomcat config option. Client Servers do not take locators");
+        attributes.put("cache-xml-file", findAndExtractModule(GEODE_BUILD_HOME, "tomcat")+ "/conf/cache-peer.xml");
+      }
+      else if (this.equals(CLIENT_SERVER))
+      {
+        attributes.put("cache-xml-file", findAndExtractModule(GEODE_BUILD_HOME, "tomcat")+ "/conf/cache-client.xml");
+      }
+      else
+      {
+        throw new IllegalArgumentException("Illegal tomcat config option");
+      }
+
 
       return attributes;
-    }
-
-    public String getXMLTag() {
-      return "Tomcat";
     }
   }
 
@@ -263,57 +267,6 @@ public class TomcatInstall extends ContainerInstall {
     properties.store(new FileOutputStream(filePath), null);
   }
 
-  // private void editXMLFile(String XMLPath, String tagId, String tagName, String parentTagName,
-  // HashMap<String, String> attributes) throws Exception
-  // {
-  // // Get XML file to edit
-  // DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-  // DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-  // Document doc = docBuilder.parse(XMLPath);
-  //
-  // boolean hasTag = false;
-  // NodeList nodes = doc.getElementsByTagName(tagName);
-  //
-  // // If tags with name were found search to find tag with proper tagId and update its fields
-  // if (nodes != null) {
-  // for (int i = 0; i < nodes.getLength(); i++) {
-  // Node node = nodes.item(i);
-  // Node idAttr = node.getAttributes().getNamedItem("id");
-  // // Check node for id attribute
-  // if (idAttr != null && idAttr.getTextContent().equals(tagId)) {
-  // for (String key : attributes.keySet())
-  // node.getAttributes().getNamedItem(key).setTextContent(attributes.get(key));
-  //
-  // hasTag = true;
-  // break;
-  // }
-  // }
-  // }
-  //
-  // if (!hasTag)
-  // {
-  // Element e = doc.createElement(tagName);
-  // // Set id attribute
-  // e.setAttribute("id", tagId);
-  // // Set other attributes
-  // for (String key : attributes.keySet())
-  // e.setAttribute(key, attributes.get(key));
-  //
-  // //WordUtils.capitalize(FilenameUtils.getBaseName(XMLPath))
-  // // Add it as a child of the tag for the file
-  // doc.getElementsByTagName(parentTagName).item(0).appendChild(e);
-  // }
-  //
-  // // Write updated XML file
-  // TransformerFactory transformerFactory = TransformerFactory.newInstance();
-  // Transformer transformer = transformerFactory.newTransformer();
-  // DOMSource source = new DOMSource(doc);
-  // StreamResult result = new StreamResult(new File(XMLPath));
-  // transformer.transform(source, result);
-  //
-  // System.out.println("Modified container XML file " + XMLPath);
-  // }
-
   private void updateProperties() throws Exception {
     String jarsToSkip = "";
     for (String jarName : tomcatRequiredJars)
@@ -323,15 +276,24 @@ public class TomcatInstall extends ContainerInstall {
         jarsToSkip, true);
   }
 
-  private void updateXMLFiles(String locators) throws Exception {
-    editXMLFile(getInstallPath() + "/conf/server.xml", config.getXMLTag(), "Listener", "Server",
-        config.getXMLAttributes(locators));
-    editXMLFile(getInstallPath() + "/conf/context.xml", config.getXMLTag(), "Manager", "Context",
+  private void updateXMLFiles(String address, int port) throws Exception {
+    editXMLFile(getInstallPath() + "/conf/server.xml", "Tomcat", "Listener", "Server",
+        config.getXMLAttributes(address + "[" + port + "]"));
+    editXMLFile(getInstallPath() + "/conf/context.xml", "Tomcat", "Manager", "Context",
         version.getXMLAttributes());
+
+    if (config == TomcatConfig.CLIENT_SERVER)
+    {
+      HashMap<String, String> attributes = new HashMap<>();
+      attributes.put("host", address);
+      attributes.put("port", Integer.toString(port));
+
+      editXMLFile(findAndExtractModule(GEODE_BUILD_HOME, "tomcat") + "/conf/cache-client.xml", "locator", "pool", attributes, true);
+    }
   }
 
   private void updateXMLFiles() throws Exception {
-    updateXMLFiles("");
+    updateXMLFiles("localhost", 10344);
   }
 
   public void setConfiguration(TomcatConfig config) throws Exception {
@@ -341,7 +303,7 @@ public class TomcatInstall extends ContainerInstall {
 
   @Override
   public void setLocator(String address, int port) throws Exception {
-    updateXMLFiles(address + "[" + port + "]");
+    updateXMLFiles(address, port);
   }
 
   public TomcatVersion getVersion() {

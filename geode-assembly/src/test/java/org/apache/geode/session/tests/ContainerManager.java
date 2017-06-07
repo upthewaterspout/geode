@@ -42,8 +42,8 @@ public class ContainerManager {
 
     install.modifyConfiguration(configuration);
 
-    // configuration.setProperty(GeneralPropertySet.JVMARGS,
-    // "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=" + (7700 + index));
+//     configuration.setProperty(GeneralPropertySet.JVMARGS,
+//     "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=" + (7700 + index));
     // configuration.setProperty(GeneralPropertySet.JVMARGS,
     // "-Dtomcat.util.scan.DefaultJarScanner.jarsToSkip=*
     // -Dorg.apache.catalina.startup.ContextConfig.jarsToSkip=*

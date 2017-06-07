@@ -152,7 +152,7 @@ public class GenericAppServerInstall extends ContainerInstall {
       attributes.put("port", Integer.toString(port));
 
       editXMLFile(findAndExtractModule(GEODE_BUILD_HOME, "appserver") + "/conf/"
-          + cacheType.getXMLTypeFile(),"locator", "pool", attributes, true);
+          + cacheType.getXMLTypeFile(), "locator", "pool", attributes, true);
     }
   }
 

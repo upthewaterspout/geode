@@ -25,6 +25,8 @@ public enum QueryCommand {
 
   GET,
 
+  REMOVE,
+
   INVALIDATE,
 
   CALLBACK,

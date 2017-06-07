@@ -15,7 +15,7 @@
 package org.apache.geode.session.tests;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
 import org.apache.geode.test.junit.categories.DistributedTest;
@@ -46,30 +46,30 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
     manager.stopAllActiveContainers();
   }
 
-//  private void containersShouldBeCreatingIndividualSessions()
-//      throws URISyntaxException, IOException {
-//    Set<String> seenCookies = new HashSet<String>();
-//    for (int i = 0; i < manager.numContainers(); i++) {
-//      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
-//      Client.Response resp = client.get(null);
-//
-//      assertNotNull(resp.getSessionCookie());
-//      // Verify that each container returned a different cookie
-//      assertTrue(seenCookies.add(resp.getSessionCookie()));
-//    }
-//  }
+  // private void containersShouldBeCreatingIndividualSessions()
+  // throws URISyntaxException, IOException {
+  // Set<String> seenCookies = new HashSet<String>();
+  // for (int i = 0; i < manager.numContainers(); i++) {
+  // client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+  // Client.Response resp = client.get(null);
+  //
+  // assertNotNull(resp.getSessionCookie());
+  // // Verify that each container returned a different cookie
+  // assertTrue(seenCookies.add(resp.getSessionCookie()));
+  // }
+  // }
 
-//   @Test
-//   public void twoTomcatContainersShouldBeCreatingIndividualSessions() throws Exception
-//   {
-//     getInstall().setLocator(null, -1);
-//
-//     manager.addContainers(2, getInstall());
-//
-//     manager.startAllInactiveContainers();
-//     containersShouldBeCreatingIndividualSessions();
-//     manager.stopAllActiveContainers();
-//   }
+  // @Test
+  // public void twoTomcatContainersShouldBeCreatingIndividualSessions() throws Exception
+  // {
+  // getInstall().setLocator(null, -1);
+  //
+  // manager.addContainers(2, getInstall());
+  //
+  // manager.startAllInactiveContainers();
+  // containersShouldBeCreatingIndividualSessions();
+  // manager.stopAllActiveContainers();
+  // }
 
   private void containersShouldReplicateSession() throws IOException, URISyntaxException {
     if (manager.numContainers() < 2)
@@ -216,7 +216,6 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
       client.setPort(Integer.parseInt(manager.getContainerPort(i)));
       resp = client.get(key);
 
-      assertNotEquals("Sessions are still replicating when they shouldn't be", cookie, resp.getSessionCookie());
       assertEquals("", resp.getResponse());
     }
   }
@@ -243,14 +242,15 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     client.setPort(Integer.parseInt(manager.getContainerPort(0)));
     Client.Response resp = client.set(key, value);
-    resp = client.setMaxInactive(timeToExp);
+    String cookie = resp.getSessionCookie();
 
+    client.setMaxInactive(timeToExp);
 
     long startTime = System.currentTimeMillis();
     long curTime = System.currentTimeMillis();
-    // Run for 10 seconds
+    // Run for 2 times the set expiration time
     while (curTime - startTime < timeToExp * 2000) {
-      resp = client.get(key);
+      client.get(key);
       curTime = System.currentTimeMillis();
     }
 
@@ -258,6 +258,7 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
       client.setPort(Integer.parseInt(manager.getContainerPort(i)));
       resp = client.get(key);
 
+      assertEquals(cookie, resp.getSessionCookie());
       assertEquals(value, resp.getResponse());
     }
   }
@@ -269,6 +270,48 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     manager.startAllInactiveContainers();
     containersShouldShareSessionExpirationReset();
+    manager.stopAllActiveContainers();
+  }
+
+  private void containersShouldShareDataRemovals() throws IOException, URISyntaxException
+  {
+    String key = "value_testSessionRemove";
+    String value = "Foo";
+
+    if (manager.numContainers() < 2)
+      throw new IllegalArgumentException(
+          "Bad ContainerManager, must have 2 or more containers for this test");
+
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
+    Client.Response resp = client.set(key, value);
+    String cookie = resp.getSessionCookie();
+
+    for (int i = 0; i < manager.numContainers(); i++) {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
+
+      assertEquals(cookie, resp.getSessionCookie());
+      assertEquals(value, resp.getResponse());
+    }
+
+    client.remove(key);
+
+    for (int i = 0; i < manager.numContainers(); i++) {
+      client.setPort(Integer.parseInt(manager.getContainerPort(i)));
+      resp = client.get(key);
+
+      assertEquals(cookie, resp.getSessionCookie());
+      assertEquals("", resp.getResponse());
+    }
+  }
+
+  @Test
+  public void removingDataShouldRemoveDataAcrossAllContainers()
+      throws IOException, URISyntaxException {
+    manager.addContainers(2, getInstall());
+
+    manager.startAllInactiveContainers();
+    containersShouldShareDataRemovals();
     manager.stopAllActiveContainers();
   }
 }

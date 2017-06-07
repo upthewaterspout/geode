@@ -14,6 +14,7 @@
  */
 package org.apache.geode.session.tests;
 
+import org.apache.geode.modules.session.QueryCommand;
 import org.apache.http.Header;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -76,15 +77,22 @@ public class Client {
     }
 
     CloseableHttpResponse resp = httpclient.execute(req, context);
-    if (storeRespCookie)
-      this.cookie = getCookieHeader(resp);
+
+    boolean isNew = true;
+    String reqCookie = getCookieHeader(resp);
+    if (reqCookie == null) {
+      isNew = false;
+      reqCookie = this.cookie;
+    } else if (storeRespCookie) {
+      this.cookie = reqCookie;
+    }
 
     StatusLine status = resp.getStatusLine();
-    if(status.getStatusCode() != 200) {
+    if (status.getStatusCode() != 200) {
       throw new IOException("Http request failed. " + status);
     }
 
-    Response response = new Response(getCookieHeader(resp), EntityUtils.toString(resp.getEntity()));
+    Response response = new Response(reqCookie, EntityUtils.toString(resp.getEntity()), isNew);
     resp.close();
     return response;
   }
@@ -93,7 +101,7 @@ public class Client {
     Header lastHeader = resp.getLastHeader("Set-Cookie");
 
     if (lastHeader == null) {
-      return this.cookie;
+      return null;
     }
     return lastHeader.getElements()[0].getValue();
   }
@@ -114,11 +122,25 @@ public class Client {
     return set(key, value, true);
   }
 
-  public Response set(String key, String value, boolean storeRespCookie) throws IOException, URISyntaxException {
+  public Response set(String key, String value, boolean storeRespCookie)
+      throws IOException, URISyntaxException {
     resetURI();
     reqURIBuild.setParameter("cmd", QueryCommand.SET.name());
     reqURIBuild.setParameter("param", key);
     reqURIBuild.setParameter("value", value);
+
+    return doRequest(new HttpGet(reqURIBuild.build()), storeRespCookie);
+  }
+
+  public Response remove(String key) throws IOException, URISyntaxException {
+    return remove(key, true);
+  }
+
+  public Response remove(String key, boolean storeRespCookie) throws URISyntaxException,
+      IOException {
+    resetURI();
+    reqURIBuild.setParameter("cmd", QueryCommand.REMOVE.name());
+    reqURIBuild.setParameter("param", key);
 
     return doRequest(new HttpGet(reqURIBuild.build()), storeRespCookie);
   }
@@ -139,7 +161,8 @@ public class Client {
     return setMaxInactive(time, true);
   }
 
-  public Response setMaxInactive(int time, boolean storeRespCookie) throws IOException, URISyntaxException {
+  public Response setMaxInactive(int time, boolean storeRespCookie)
+      throws IOException, URISyntaxException {
     resetURI();
     reqURIBuild.setParameter("cmd", QueryCommand.SET_MAX_INACTIVE.name());
     reqURIBuild.setParameter("value", Integer.toString(time));
@@ -150,10 +173,12 @@ public class Client {
   public class Response {
     private final String sessionCookie;
     private final String response;
+    private final boolean isNew;
 
-    public Response(String sessionCookie, String response) {
+    public Response(String sessionCookie, String response, boolean isNew) {
       this.sessionCookie = sessionCookie;
       this.response = response;
+      this.isNew = isNew;
     }
 
     public String getSessionCookie() {
@@ -164,12 +189,14 @@ public class Client {
       return response;
     }
 
+    public boolean isNew() {
+      return isNew;
+    }
+
     @Override
     public String toString() {
-      return "Response{" +
-          "sessionCookie='" + sessionCookie + '\'' +
-          ", response='" + response + '\'' +
-          '}';
+      return "Response{" + "sessionCookie='" + sessionCookie + '\'' + ", response='" + response
+          + '\'' + '}';
     }
   }
 }
