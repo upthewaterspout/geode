@@ -21,11 +21,11 @@ public class Tomcat7Test extends CargoTestBase {
   private static ContainerInstall install;
 
   @BeforeClass
-  public static void setupTomcatInstall() throws Exception
-  {
-    install =  new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
-    install.setLocators(DUnitEnv.get().getLocatorString());
+  public static void setupTomcatInstall() throws Exception {
+    install = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7);
+    install.setLocator(DUnitEnv.get().getLocatorAddress(), DUnitEnv.get().getLocatorPort());
   }
+
   @Override
   public ContainerInstall getInstall() {
     return install;

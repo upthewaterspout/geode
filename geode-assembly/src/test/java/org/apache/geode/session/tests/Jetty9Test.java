@@ -21,10 +21,9 @@ public class Jetty9Test extends CargoTestBase {
   private static ContainerInstall install;
 
   @BeforeClass
-  public static void setupTomcatInstall() throws Exception
-  {
+  public static void setupJettyInstall() throws Exception {
     install = new GenericAppServerInstall(GenericAppServerInstall.Server.JETTY9);
-    install.setLocators(DUnitEnv.get().getLocatorString());
+    install.setLocator(DUnitEnv.get().getLocatorAddress(), DUnitEnv.get().getLocatorPort());
   }
 
   @Override

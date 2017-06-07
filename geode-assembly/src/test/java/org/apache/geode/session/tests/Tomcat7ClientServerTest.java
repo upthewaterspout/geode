@@ -14,16 +14,14 @@
  */
 package org.apache.geode.session.tests;
 
-import org.apache.geode.test.dunit.DUnitEnv;
 import org.junit.BeforeClass;
 
-public class Tomcat6Test extends CargoTestBase {
+public class Tomcat7ClientServerTest extends CargoClientServerTest {
   private static ContainerInstall install;
 
   @BeforeClass
   public static void setupTomcatInstall() throws Exception {
-    install = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT6);
-    install.setLocator(DUnitEnv.get().getLocatorAddress(), DUnitEnv.get().getLocatorPort());
+    install = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT7, TomcatInstall.TomcatConfig.CLIENT_SERVER);
   }
 
   @Override

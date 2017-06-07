@@ -21,10 +21,9 @@ public class Tomcat8Test extends CargoTestBase {
   private static ContainerInstall install;
 
   @BeforeClass
-  public static void setupTomcatInstall() throws Exception
-  {
+  public static void setupTomcatInstall() throws Exception {
     install = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT8);
-    install.setLocators(DUnitEnv.get().getLocatorString());
+    install.setLocator(DUnitEnv.get().getLocatorAddress(), DUnitEnv.get().getLocatorPort());
   }
 
   @Override

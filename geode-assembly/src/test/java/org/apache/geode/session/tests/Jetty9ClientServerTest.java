@@ -17,12 +17,12 @@ package org.apache.geode.session.tests;
 import org.apache.geode.test.dunit.DUnitEnv;
 import org.junit.BeforeClass;
 
-public class Tomcat6Test extends CargoTestBase {
+public class Jetty9ClientServerTest extends CargoClientServerTest {
   private static ContainerInstall install;
 
   @BeforeClass
-  public static void setupTomcatInstall() throws Exception {
-    install = new TomcatInstall(TomcatInstall.TomcatVersion.TOMCAT6);
+  public static void setupJettyInstall() throws Exception {
+    install = new GenericAppServerInstall(GenericAppServerInstall.Server.JETTY9, GenericAppServerInstall.CacheType.CLIENT_SERVER);
     install.setLocator(DUnitEnv.get().getLocatorAddress(), DUnitEnv.get().getLocatorPort());
   }
 

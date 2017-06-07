@@ -45,20 +45,24 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-public class TomcatInstall extends ContainerInstall
-{
-  private static final String[] tomcatRequiredJars = { "antlr", "commons-lang", "fastutil", "geode-core", "geode-modules", "geode-modules-tomcat7", "geode-modules-tomcat8", "javax.transaction-api", "jgroups", "log4j-api", "log4j-core", "log4j-jul", "shiro-core", "slf4j-api", "slf4j-jdk14" };
-
-  private static final String GEODE_BUILD_HOME= System.getenv("GEODE_HOME");
+public class TomcatInstall extends ContainerInstall {
+  private static final String[] tomcatRequiredJars =
+      {"antlr", "commons-lang", "fastutil", "geode-core", "geode-modules", "geode-modules-tomcat7",
+          "geode-modules-tomcat8", "javax.transaction-api", "jgroups", "log4j-api", "log4j-core",
+          "log4j-jul", "shiro-core", "slf4j-api", "slf4j-jdk14"};
 
   private TomcatConfig config;
   private final TomcatVersion version;
 
   public enum TomcatVersion {
-    TOMCAT6(6, "http://archive.apache.org/dist/tomcat/tomcat-6/v6.0.37/bin/apache-tomcat-6.0.37.zip"),
-    TOMCAT7(7, "http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.73/bin/apache-tomcat-7.0.73.zip"),
-    TOMCAT8(8, "http://archive.apache.org/dist/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.zip"),
-    TOMCAT9(9, "http://archive.apache.org/dist/tomcat/tomcat-9/v9.0.0.M21/bin/apache-tomcat-9.0.0.M21.zip");
+    TOMCAT6(6,
+        "http://archive.apache.org/dist/tomcat/tomcat-6/v6.0.37/bin/apache-tomcat-6.0.37.zip"),
+    TOMCAT7(7,
+        "http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.73/bin/apache-tomcat-7.0.73.zip"),
+    TOMCAT8(8,
+        "http://archive.apache.org/dist/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.zip"),
+    TOMCAT9(9,
+        "http://archive.apache.org/dist/tomcat/tomcat-9/v9.0.0.M21/bin/apache-tomcat-9.0.0.M21.zip");
 
     private final int version;
     private final String downloadURL;
@@ -68,20 +72,16 @@ public class TomcatInstall extends ContainerInstall
       this.downloadURL = downloadURL;
     }
 
-    public String downloadURL()
-    {
+    public String downloadURL() {
       return downloadURL;
     }
 
-    public int toInteger()
-    {
+    public int toInteger() {
       return version;
     }
 
-    public String jarSkipPropertyName()
-    {
-      switch (this)
-      {
+    public String jarSkipPropertyName() {
+      switch (this) {
         case TOMCAT6:
           return null;
         case TOMCAT7:
@@ -94,31 +94,27 @@ public class TomcatInstall extends ContainerInstall
       }
     }
 
-    public HashMap<String, String> getXMLAttributes()
-    {
+    public HashMap<String, String> getXMLAttributes() {
       HashMap<String, String> attributes = new HashMap<>();
       int sessionManagerNum;
-      switch (this)
-      {
+      switch (this) {
         case TOMCAT9:
           sessionManagerNum = 8;
           break;
         default:
           sessionManagerNum = this.toInteger();
       }
-      attributes.put("className", "org.apache.geode.modules.session.catalina.Tomcat" + sessionManagerNum + "DeltaSessionManager");
+      attributes.put("className", "org.apache.geode.modules.session.catalina.Tomcat"
+          + sessionManagerNum + "DeltaSessionManager");
       return attributes;
     }
   }
 
-  public enum TomcatConfig
-  {
+  public enum TomcatConfig {
     PEER_TO_PEER, CLIENT_SERVER;
 
-    private String getXMLClassName()
-    {
-      switch (this)
-      {
+    private String getXMLClassName() {
+      switch (this) {
         case PEER_TO_PEER:
           return "org.apache.geode.modules.session.catalina.PeerToPeerCacheLifecycleListener";
         case CLIENT_SERVER:
@@ -128,41 +124,37 @@ public class TomcatInstall extends ContainerInstall
       }
     }
 
-    public HashMap<String, String> getXMLAttributes(String locators)
-    {
+    public HashMap<String, String> getXMLAttributes(String locators) {
       HashMap<String, String> attributes = new HashMap<>();
       attributes.put("className", getXMLClassName());
       if (this.equals(PEER_TO_PEER))
         attributes.put("locators", locators);
       else if (locators != null && !locators.equals(""))
-        throw new IllegalArgumentException("Illegal tomcat config option. Client Servers do not take locators");
+        throw new IllegalArgumentException(
+            "Illegal tomcat config option. Client Servers do not take locators");
 
       return attributes;
     }
 
-    public String getXMLTag()
-    {
+    public String getXMLTag() {
       return "Tomcat";
     }
   }
 
-  public TomcatInstall(TomcatVersion version) throws Exception
-  {
+  public TomcatInstall(TomcatVersion version) throws Exception {
     this(version, TomcatConfig.PEER_TO_PEER, DEFAULT_INSTALL_DIR);
   }
 
-  public TomcatInstall(TomcatVersion version, String installDir) throws Exception
-  {
+  public TomcatInstall(TomcatVersion version, String installDir) throws Exception {
     this(version, TomcatConfig.PEER_TO_PEER, installDir);
   }
 
-  public TomcatInstall(TomcatVersion version, TomcatConfig config) throws Exception
-  {
+  public TomcatInstall(TomcatVersion version, TomcatConfig config) throws Exception {
     this(version, config, DEFAULT_INSTALL_DIR);
   }
 
-  private TomcatInstall(TomcatVersion version, TomcatConfig config, String installDir) throws Exception
-  {
+  private TomcatInstall(TomcatVersion version, TomcatConfig config, String installDir)
+      throws Exception {
     super(installDir, version.downloadURL());
 
     this.config = config;
@@ -178,40 +170,13 @@ public class TomcatInstall extends ContainerInstall
     }
   }
 
-  private void installGeodeSessions(String tomcatInstallPath, String geodeBuildHome) throws IOException
-  {
+  private void installGeodeSessions(String tomcatInstallPath, String geodeBuildHome)
+      throws IOException {
     String extraJarsDir = geodeBuildHome + "/lib/";
-    String modulesDir = geodeBuildHome + "/tools/Modules/";
 
-    boolean archive = false;
-    String tomcatModulePath = null;
+    String moduleName = "tomcat";
 
-    System.out.println("Trying to access build dir " + modulesDir);
-    // Search directory for tomcat module folder/zip
-    for (File file : (new File(modulesDir)).listFiles()) {
-      if (file.getName().toLowerCase().contains("tomcat")) {
-        tomcatModulePath = file.getAbsolutePath();
-
-        archive = !file.isDirectory();
-        if (!archive)
-          break;
-      }
-    }
-
-    // Unzip if it is a zip file
-    if (archive) {
-      if (!FilenameUtils.getExtension(tomcatModulePath).equals("zip"))
-        throw new IOException("Bad tomcat module archive " + tomcatModulePath);
-
-      ZipUtils.unzip(tomcatModulePath, tomcatModulePath.substring(0, tomcatModulePath.length() - 4));
-      System.out.println("Unzipped " + tomcatModulePath + " into " + tomcatModulePath.substring(0, tomcatModulePath.length() - 4));
-
-      tomcatModulePath = tomcatModulePath.substring(0, tomcatModulePath.length() - 4);
-    }
-
-    // No module found within directory throw IOException
-    if (tomcatModulePath == null)
-      throw new IOException("No tomcat module found in " + modulesDir);
+    String tomcatModulePath = findAndExtractModule(geodeBuildHome, moduleName);
 
     System.out.println("Found tomcat module " + tomcatModulePath);
     System.out.println("Using extra jar directory " + extraJarsDir);
@@ -220,8 +185,8 @@ public class TomcatInstall extends ContainerInstall
     copyTomcatGeodeReqFiles(tomcatInstallPath + "/lib/", tomcatModulePath, extraJarsDir);
   }
 
-  private void copyTomcatGeodeReqFiles(String tomcatLibPath, String tomcatModulePath, String extraJarsPath) throws IOException
-  {
+  private void copyTomcatGeodeReqFiles(String tomcatLibPath, String tomcatModulePath,
+      String extraJarsPath) throws IOException {
     ArrayList<File> requiredFiles = new ArrayList<>();
 
     // List of required jars and form version regexps from them
@@ -239,8 +204,7 @@ public class TomcatInstall extends ContainerInstall
       } catch (NullPointerException e) {
         throw new IOException("No files found in tomcat lib directory " + tomcatLibPath);
       }
-    }
-    else
+    } else
       tomcatLib.mkdir();
 
     // Find all the required jars in the tomcatModulePath
@@ -255,7 +219,8 @@ public class TomcatInstall extends ContainerInstall
         }
       }
     } catch (NullPointerException e) {
-      throw new IOException("No files found in tomcat module directory " + tomcatModulePath + "/lib/");
+      throw new IOException(
+          "No files found in tomcat module directory " + tomcatModulePath + "/lib/");
     }
 
     // Find all the required jars in the extraJarsPath
@@ -274,15 +239,16 @@ public class TomcatInstall extends ContainerInstall
     }
 
     // Copy the required jars to the given tomcat lib folder
-    for (File file : requiredFiles)
-    {
-      Files.copy(file.toPath(), tomcatLib.toPath().resolve(file.toPath().getFileName()), StandardCopyOption.REPLACE_EXISTING);
-      System.out.println("Copied required jar from " + file.toPath() + " to " + (new File(tomcatLibPath)).toPath().resolve(file.toPath().getFileName()));
+    for (File file : requiredFiles) {
+      Files.copy(file.toPath(), tomcatLib.toPath().resolve(file.toPath().getFileName()),
+          StandardCopyOption.REPLACE_EXISTING);
+      System.out.println("Copied required jar from " + file.toPath() + " to "
+          + (new File(tomcatLibPath)).toPath().resolve(file.toPath().getFileName()));
     }
   }
 
-  private void editPropertyFile(String filePath, String propertyName, String propertyValue, boolean append) throws Exception
-  {
+  private void editPropertyFile(String filePath, String propertyName, String propertyValue,
+      boolean append) throws Exception {
     FileInputStream input = new FileInputStream(filePath);
     Properties properties = new Properties();
     properties.load(input);
@@ -297,102 +263,98 @@ public class TomcatInstall extends ContainerInstall
     properties.store(new FileOutputStream(filePath), null);
   }
 
-  private void editXMLFile(String XMLPath, String tagId, String tagName, String parentTagName, HashMap<String, String> attributes) throws Exception
-  {
-    // Get XML file to edit
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-    Document doc = docBuilder.parse(XMLPath);
+  // private void editXMLFile(String XMLPath, String tagId, String tagName, String parentTagName,
+  // HashMap<String, String> attributes) throws Exception
+  // {
+  // // Get XML file to edit
+  // DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+  // DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+  // Document doc = docBuilder.parse(XMLPath);
+  //
+  // boolean hasTag = false;
+  // NodeList nodes = doc.getElementsByTagName(tagName);
+  //
+  // // If tags with name were found search to find tag with proper tagId and update its fields
+  // if (nodes != null) {
+  // for (int i = 0; i < nodes.getLength(); i++) {
+  // Node node = nodes.item(i);
+  // Node idAttr = node.getAttributes().getNamedItem("id");
+  // // Check node for id attribute
+  // if (idAttr != null && idAttr.getTextContent().equals(tagId)) {
+  // for (String key : attributes.keySet())
+  // node.getAttributes().getNamedItem(key).setTextContent(attributes.get(key));
+  //
+  // hasTag = true;
+  // break;
+  // }
+  // }
+  // }
+  //
+  // if (!hasTag)
+  // {
+  // Element e = doc.createElement(tagName);
+  // // Set id attribute
+  // e.setAttribute("id", tagId);
+  // // Set other attributes
+  // for (String key : attributes.keySet())
+  // e.setAttribute(key, attributes.get(key));
+  //
+  // //WordUtils.capitalize(FilenameUtils.getBaseName(XMLPath))
+  // // Add it as a child of the tag for the file
+  // doc.getElementsByTagName(parentTagName).item(0).appendChild(e);
+  // }
+  //
+  // // Write updated XML file
+  // TransformerFactory transformerFactory = TransformerFactory.newInstance();
+  // Transformer transformer = transformerFactory.newTransformer();
+  // DOMSource source = new DOMSource(doc);
+  // StreamResult result = new StreamResult(new File(XMLPath));
+  // transformer.transform(source, result);
+  //
+  // System.out.println("Modified container XML file " + XMLPath);
+  // }
 
-    boolean hasTag = false;
-    NodeList nodes = doc.getElementsByTagName(tagName);
-
-    // If tags with name were found search to find tag with proper tagId and update its fields
-    if (nodes != null) {
-      for (int i = 0; i < nodes.getLength(); i++) {
-        Node node = nodes.item(i);
-        Node idAttr = node.getAttributes().getNamedItem("id");
-        // Check node for id attribute
-        if (idAttr != null && idAttr.getTextContent().equals(tagId)) {
-          for (String key : attributes.keySet())
-            node.getAttributes().getNamedItem(key).setTextContent(attributes.get(key));
-
-          hasTag = true;
-          break;
-        }
-      }
-    }
-
-    if (!hasTag)
-    {
-      Element e = doc.createElement(tagName);
-      // Set id attribute
-      e.setAttribute("id", tagId);
-      // Set other attributes
-      for (String key : attributes.keySet())
-        e.setAttribute(key, attributes.get(key));
-
-      //WordUtils.capitalize(FilenameUtils.getBaseName(XMLPath))
-      // Add it as a child of the tag for the file
-      doc.getElementsByTagName(parentTagName).item(0).appendChild(e);
-    }
-
-    // Write updated XML file
-    TransformerFactory transformerFactory = TransformerFactory.newInstance();
-    Transformer transformer = transformerFactory.newTransformer();
-    DOMSource source = new DOMSource(doc);
-    StreamResult result = new StreamResult(new File(XMLPath));
-    transformer.transform(source, result);
-
-    System.out.println("Modified tomcat XML file " + XMLPath);
-  }
-
-  private void updateProperties() throws Exception
-  {
+  private void updateProperties() throws Exception {
     String jarsToSkip = "";
     for (String jarName : tomcatRequiredJars)
       jarsToSkip += "," + jarName + "*.jar";
 
-    editPropertyFile(getInstallPath() + "/conf/catalina.properties", version.jarSkipPropertyName(), jarsToSkip, true);
+    editPropertyFile(getInstallPath() + "/conf/catalina.properties", version.jarSkipPropertyName(),
+        jarsToSkip, true);
   }
 
-  private void updateXMLFiles(String locators) throws Exception
-  {
-    editXMLFile(getInstallPath() + "/conf/server.xml", config.getXMLTag(),"Listener", "Server", config.getXMLAttributes(locators));
-    editXMLFile(getInstallPath() + "/conf/context.xml", config.getXMLTag(),"Manager", "Context", version.getXMLAttributes());
+  private void updateXMLFiles(String locators) throws Exception {
+    editXMLFile(getInstallPath() + "/conf/server.xml", config.getXMLTag(), "Listener", "Server",
+        config.getXMLAttributes(locators));
+    editXMLFile(getInstallPath() + "/conf/context.xml", config.getXMLTag(), "Manager", "Context",
+        version.getXMLAttributes());
   }
 
-  private void updateXMLFiles() throws Exception
-  {
+  private void updateXMLFiles() throws Exception {
     updateXMLFiles("");
   }
 
-  public void setConfiguration(TomcatConfig config) throws Exception
-  {
+  public void setConfiguration(TomcatConfig config) throws Exception {
     this.config = config;
     updateXMLFiles();
   }
 
   @Override
-  public void setLocators(String locators) throws Exception
-  {
-    updateXMLFiles(locators);
+  public void setLocator(String address, int port) throws Exception {
+    updateXMLFiles(address + "[" + port + "]");
   }
 
-  public TomcatVersion getVersion()
-  {
+  public TomcatVersion getVersion() {
     return version;
   }
 
   @Override
-  public String getContainerId()
-  {
+  public String getContainerId() {
     return "tomcat" + version.toInteger() + "x";
   }
 
   @Override
-  public String getContainerDescription()
-  {
+  public String getContainerDescription() {
     return version.name() + "_" + config.name();
   }
 
@@ -406,34 +368,9 @@ public class TomcatInstall extends ContainerInstall
   }
 
   @Override
-  public WAR getDeployableWAR()
-  {
-    // Start out searching directory above current
-    String curPath = "../";
+  public WAR getDeployableWAR() {
+    String war = findSessionTestingWar();
 
-    // Looking for extensions folder
-    final String warModuleDirName = "extensions";
-    File warModuleDir = null;
-
-    // While directory searching for is not found
-    while (warModuleDir == null)
-    {
-      // Try to find the find the directory in the current directory
-      File[] files = new File(curPath).listFiles();
-      for (File file : files)
-      {
-        if (file.isDirectory() && file.getName().equals(warModuleDirName))
-        {
-          warModuleDir = file;
-          break;
-        }
-      }
-
-      // Keep moving up until you find it
-      curPath += "../";
-    }
-
-    // Return path to extensions plus hardcoded path from there to the WAR
-    return new WAR(warModuleDir.getAbsolutePath() + "/session-testing-war/build/libs/session-testing-war.war");
+    return new WAR(war);
   }
 }
