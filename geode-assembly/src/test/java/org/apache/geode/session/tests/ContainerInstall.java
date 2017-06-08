@@ -43,6 +43,9 @@ public abstract class ContainerInstall {
   public static final String DEFAULT_INSTALL_DIR = "/tmp/cargo_containers/";
   public static final String GEODE_BUILD_HOME = System.getenv("GEODE_HOME");
 
+  public HashMap<String, String> cacheProperties;
+  public HashMap<String, String> systemProperties;
+
   public ContainerInstall(String installDir, String downloadURL) throws MalformedURLException {
     System.out.println("Installing container from URL " + downloadURL);
     // Optional step to install the container from a URL pointing to its distribution
@@ -50,6 +53,9 @@ public abstract class ContainerInstall {
     installer.install();
     INSTALL_PATH = installer.getHome();
     System.out.println("Installed container into " + getInstallPath());
+
+    cacheProperties = new HashMap<>();
+    systemProperties = new HashMap<>();
   }
 
   public String getInstallPath() {
@@ -60,9 +66,15 @@ public abstract class ContainerInstall {
 
   public abstract String getContainerDescription();
 
-  public abstract WAR getDeployableWAR();
-
   public abstract void setLocator(String address, int port) throws Exception;
+
+  public String setCacheProperty(String name, String value) {
+    return cacheProperties.put(name, value);
+  }
+
+  public String setSystemProperty(String name, String value) {
+    return systemProperties.put(name, value);
+  }
 
   /**
    * Update the configuration of a container before it is launched, if necessary.
@@ -97,6 +109,11 @@ public abstract class ContainerInstall {
     // Return path to extensions plus hardcoded path from there to the WAR
     return warModuleDir.getAbsolutePath()
         + "/session-testing-war/build/libs/session-testing-war.war";
+  }
+
+  public WAR getDeployableWAR()
+  {
+    return new WAR(findSessionTestingWar());
   }
 
   protected static String findAndExtractModule(String geodeBuildHome, String moduleName)
@@ -197,10 +214,10 @@ public abstract class ContainerInstall {
               break;
             }
           }
-//          // Check to make sure does not have more than attribute fields
+          // Check to make sure does not have more than attribute fields
 //          for (int j = 0; j < nodeAttrs.getLength(); j++)
 //          {
-//            if (attributes.get(nodeAttrs.item(j)) == null)
+//            if (attributes.get(nodeAttrs.item(j).getNodeName()) == null)
 //            {
 //              updateNode = false;
 //              break;

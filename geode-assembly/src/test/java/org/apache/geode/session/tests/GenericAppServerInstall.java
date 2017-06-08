@@ -30,7 +30,6 @@ public class GenericAppServerInstall extends ContainerInstall {
 
     private String downloadURL;
 
-
     Server(String downloadURL) {
       this.downloadURL = downloadURL;
     }
@@ -65,46 +64,43 @@ public class GenericAppServerInstall extends ContainerInstall {
   private CacheType cacheType;
   private Server server;
 
+  private final String appServerModulePath;
+
   public GenericAppServerInstall(Server server) throws IOException, InterruptedException {
-    this(DEFAULT_INSTALL_DIR, server, CacheType.PEER_TO_PEER);
+    this(server, CacheType.PEER_TO_PEER, DEFAULT_INSTALL_DIR);
+  }
+
+  public GenericAppServerInstall(Server server, String installDir)
+      throws IOException, InterruptedException {
+    this(server, CacheType.PEER_TO_PEER, installDir);
   }
 
   public GenericAppServerInstall(Server server, CacheType cacheType)
       throws IOException, InterruptedException {
-    this(DEFAULT_INSTALL_DIR, server, cacheType);
+    this(server, cacheType, DEFAULT_INSTALL_DIR);
   }
 
-  public GenericAppServerInstall(String installDir, Server server, CacheType cacheType)
+  public GenericAppServerInstall(Server server, CacheType cacheType, String installDir)
       throws IOException, InterruptedException {
     super(installDir, server.getDownloadURL());
     this.server = server;
     this.cacheType = cacheType;
+
+    appServerModulePath = findAndExtractModule(GEODE_BUILD_HOME, "appserver");
+    setSystemProperty("cache-xml-file", appServerModulePath + "/conf/" + cacheType.getXMLTypeFile());
+    setSystemProperty("enable_local_cache", "false");
 
     if (cacheType == CacheType.CLIENT_SERVER) {
       modifyWarFile();
     }
   }
 
-  private void modifyWarFile() throws IOException, InterruptedException {
-    modifyWarFile("", 0);
-  }
-
-  private void modifyWarFile(String locAddress, int locPort)
-      throws IOException, InterruptedException {
+  private List<String> buildCommand() throws IOException {
     String unmodifiedWar = findSessionTestingWar();
-
-    warFile = File.createTempFile("session-testing", ".war", new File("/tmp"));
-    warFile.deleteOnExit();
-
-    String appServerModulePath = findAndExtractModule(GEODE_BUILD_HOME, "appserver");
     String modifyWarScript = appServerModulePath + "/bin/modify_war";
     new File(modifyWarScript).setExecutable(true);
 
-    ProcessBuilder builder = new ProcessBuilder();
-    builder.environment().put("GEODE", GEODE_BUILD_HOME);
-    builder.inheritIO();
-
-    List<String> command = new ArrayList<String>();
+    List<String> command = new ArrayList<>();
     command.add(modifyWarScript);
     command.add("-w");
     command.add(unmodifiedWar);
@@ -112,16 +108,30 @@ public class GenericAppServerInstall extends ContainerInstall {
     command.add(cacheType.getCommandLineTypeString());
     command.add("-o");
     command.add(warFile.getAbsolutePath());
-    command.add("-p");
-    command.add("gemfire.property.cache-xml-file=" + appServerModulePath + "/conf/"
-        + cacheType.getXMLTypeFile());
-
-    if (cacheType == CacheType.PEER_TO_PEER) {
+    for (String property : cacheProperties.keySet())
+    {
       command.add("-p");
-      command.add("gemfire.property.locators=" + locAddress + "[" + locPort + "]");
+      command.add("gemfire.cache." + property + "=" + cacheProperties.get(property));
+    }
+    for (String property : systemProperties.keySet())
+    {
+      command.add("-p");
+      command.add("gemfire.property." + property + "=" + systemProperties.get(property));
     }
 
-    builder.command(command);
+    return command;
+  }
+
+  private void modifyWarFile()
+      throws IOException, InterruptedException {
+    warFile = File.createTempFile("session-testing", ".war", new File("/tmp"));
+    warFile.deleteOnExit();
+
+    ProcessBuilder builder = new ProcessBuilder();
+    builder.environment().put("GEODE", GEODE_BUILD_HOME);
+    builder.inheritIO();
+
+    builder.command(buildCommand());
     System.out.println("Running command: " + String.join(" ", builder.command()));
 
     Process process = builder.start();
@@ -144,14 +154,16 @@ public class GenericAppServerInstall extends ContainerInstall {
 
   @Override
   public void setLocator(String address, int port) throws Exception {
-    if (cacheType == CacheType.PEER_TO_PEER)
-      modifyWarFile(address, port);
+    if (cacheType == CacheType.PEER_TO_PEER) {
+      systemProperties.put("locators", address + "[" + port + "]");
+      modifyWarFile();
+    }
     else {
       HashMap<String, String> attributes = new HashMap<>();
       attributes.put("host", address);
       attributes.put("port", Integer.toString(port));
 
-      editXMLFile(findAndExtractModule(GEODE_BUILD_HOME, "appserver") + "/conf/"
+      editXMLFile(appServerModulePath + "/conf/"
           + cacheType.getXMLTypeFile(), "locator", "pool", attributes, true);
     }
   }

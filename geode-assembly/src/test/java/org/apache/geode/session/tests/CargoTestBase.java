@@ -294,6 +294,7 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
       assertEquals(value, resp.getResponse());
     }
 
+    client.setPort(Integer.parseInt(manager.getContainerPort(0)));
     client.remove(key);
 
     for (int i = 0; i < manager.numContainers(); i++) {

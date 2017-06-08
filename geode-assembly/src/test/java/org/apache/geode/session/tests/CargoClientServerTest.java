@@ -22,7 +22,7 @@ import org.junit.Before;
 
 public abstract class CargoClientServerTest extends CargoTestBase {
   @Before
-  public void startServers() {
+  public void startServers() throws InterruptedException {
     Host host = Host.getHost(0);
     VM vm0 = host.getVM(0);
     vm0.invoke(() -> {
@@ -31,5 +31,6 @@ public abstract class CargoClientServerTest extends CargoTestBase {
       server.setPort(0);
       server.start();
     });
+    Thread.sleep(5000);
   }
 }

@@ -77,8 +77,9 @@ dependencies {
   testCompile group: 'org.codehaus.cargo', name: 'cargo-core-uberjar', version: '1.6.3'
 
   testCompile project(':extensions/geode-modules')
-//  testCompile project(':extensions/geode-modules-tomcat8')
+  testCompile project(':extensions/geode-modules-tomcat8')
   testCompile project(':extensions/session-testing-war')
+  testCompile project(':extensions/geode-modules-session-internal')
 
   testRuntime files("${System.getProperty('java.home')}/../lib/tools.jar")
   testRuntime files("$buildDir/install/${distributions.main.baseName}/lib/geode-dependencies.jar")

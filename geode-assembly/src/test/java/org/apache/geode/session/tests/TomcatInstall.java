@@ -14,6 +14,7 @@
  */
 package org.apache.geode.session.tests;
 
+import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.geode.management.internal.configuration.utils.ZipUtils;
 import org.codehaus.cargo.container.configuration.FileConfig;
@@ -36,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
@@ -46,13 +48,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 public class TomcatInstall extends ContainerInstall {
-  private static final String[] tomcatRequiredJars =
-      {"antlr", "commons-lang", "fastutil", "geode-core", "geode-modules", "geode-modules-tomcat7",
-          "geode-modules-tomcat8", "javax.transaction-api", "jgroups", "log4j-api", "log4j-core",
-          "log4j-jul", "shiro-core", "slf4j-api", "slf4j-jdk14"};
-
-  private TomcatConfig config;
-  private final TomcatVersion version;
 
   public enum TomcatVersion {
     TOMCAT6(6,
@@ -94,8 +89,9 @@ public class TomcatInstall extends ContainerInstall {
       }
     }
 
-    public HashMap<String, String> getXMLAttributes() {
+    public HashMap<String, String> getRequiredXMLAttributes() {
       HashMap<String, String> attributes = new HashMap<>();
+
       int sessionManagerNum;
       switch (this) {
         case TOMCAT9:
@@ -111,38 +107,40 @@ public class TomcatInstall extends ContainerInstall {
   }
 
   public enum TomcatConfig {
-    PEER_TO_PEER, CLIENT_SERVER;
+    PEER_TO_PEER("org.apache.geode.modules.session.catalina.PeerToPeerCacheLifecycleListener", "cache-peer.xml"),
+    CLIENT_SERVER("org.apache.geode.modules.session.catalina.ClientServerCacheLifecycleListener", "cache-client.xml");
 
-    private String getXMLClassName() {
-      switch (this) {
-        case PEER_TO_PEER:
-          return "org.apache.geode.modules.session.catalina.PeerToPeerCacheLifecycleListener";
-        case CLIENT_SERVER:
-          return "org.apache.geode.modules.session.catalina.ClientServerCacheLifecycleListener";
-        default:
-          throw new IllegalArgumentException("Illegal tomcat config option");
-      }
+    private final String XMLClassName;
+    private final String XMLFile;
+
+    TomcatConfig(String XMLClassName, String XMLFile) {
+      this.XMLClassName = XMLClassName;
+      this.XMLFile = XMLFile;
     }
 
-    public HashMap<String, String> getXMLAttributes(String locators) throws IOException {
-      HashMap<String, String> attributes = new HashMap<>();
-      attributes.put("className", getXMLClassName());
-      if (this == PEER_TO_PEER) {
-        attributes.put("locators", locators);
-        attributes.put("cache-xml-file", findAndExtractModule(GEODE_BUILD_HOME, "tomcat")+ "/conf/cache-peer.xml");
-      }
-      else if (this == CLIENT_SERVER)
-      {
-        attributes.put("cache-xml-file", findAndExtractModule(GEODE_BUILD_HOME, "tomcat")+ "/conf/cache-client.xml");
-      }
-      else
-      {
-        throw new IllegalArgumentException("Illegal tomcat config option");
-      }
+    public String getXMLClassName() {
+      return XMLClassName;
+    }
 
+    public String getXMLFile() {
+      return XMLFile;
+    }
+
+    public HashMap<String, String> getRequiredXMLAttributes() throws IOException {
+      HashMap<String, String> attributes = new HashMap<>();
+      attributes.put("className", XMLClassName);
       return attributes;
     }
   }
+
+  private static final String[] tomcatRequiredJars =
+      {"antlr", "commons-lang", "fastutil", "geode-core", "geode-modules", "geode-modules-tomcat7",
+          "geode-modules-tomcat8", "javax.transaction-api", "jgroups", "log4j-api", "log4j-core",
+          "log4j-jul", "shiro-core", "slf4j-api", "slf4j-jdk14"};
+
+  private TomcatConfig config;
+  private final TomcatVersion version;
+  private final String tomcatModulePath;
 
   public TomcatInstall(TomcatVersion version) throws Exception {
     this(version, TomcatConfig.PEER_TO_PEER, DEFAULT_INSTALL_DIR);
@@ -158,12 +156,20 @@ public class TomcatInstall extends ContainerInstall {
 
   private TomcatInstall(TomcatVersion version, TomcatConfig config, String installDir)
       throws Exception {
+    // Does download and install from URL
     super(installDir, version.downloadURL());
 
     this.config = config;
     this.version = version;
 
-    installGeodeSessions(getInstallPath(), GEODE_BUILD_HOME);
+    // Get tomcat module path
+    tomcatModulePath = findAndExtractModule(GEODE_BUILD_HOME, "tomcat");
+    // Default properties
+    systemProperties.put("cache-xml-file", tomcatModulePath + "/conf/" + config.getXMLFile());
+    cacheProperties.put("enableLocalCache", "false");
+
+    // Install geode sessions into tomcat install
+    installGeodeSessions();
 
     // Add the needed XML tags
     updateXMLFiles();
@@ -173,23 +179,18 @@ public class TomcatInstall extends ContainerInstall {
     }
   }
 
-  private void installGeodeSessions(String tomcatInstallPath, String geodeBuildHome)
+  private void installGeodeSessions()
       throws IOException {
-    String extraJarsDir = geodeBuildHome + "/lib/";
-
-    String moduleName = "tomcat";
-
-    String tomcatModulePath = findAndExtractModule(geodeBuildHome, moduleName);
+    String extraJarsDir = GEODE_BUILD_HOME + "/lib/";
 
     System.out.println("Found tomcat module " + tomcatModulePath);
     System.out.println("Using extra jar directory " + extraJarsDir);
 
     // Copy the required jar files to the tomcat install
-    copyTomcatGeodeReqFiles(tomcatInstallPath + "/lib/", tomcatModulePath, extraJarsDir);
+    copyTomcatGeodeReqFiles(getInstallPath() + "/lib/", extraJarsDir);
   }
 
-  private void copyTomcatGeodeReqFiles(String tomcatLibPath, String tomcatModulePath,
-      String extraJarsPath) throws IOException {
+  private void copyTomcatGeodeReqFiles(String tomcatLibPath, String extraJarsPath) throws IOException {
     ArrayList<File> requiredFiles = new ArrayList<>();
 
     // List of required jars and form version regexps from them
@@ -207,8 +208,9 @@ public class TomcatInstall extends ContainerInstall {
       } catch (NullPointerException e) {
         throw new IOException("No files found in tomcat lib directory " + tomcatLibPath);
       }
-    } else
+    } else {
       tomcatLib.mkdir();
+    }
 
     // Find all the required jars in the tomcatModulePath
     try {
@@ -275,34 +277,47 @@ public class TomcatInstall extends ContainerInstall {
         jarsToSkip, true);
   }
 
-  private void updateXMLFiles(String address, int port) throws Exception {
-    editXMLFile(getInstallPath() + "/conf/server.xml", "Tomcat", "Listener", "Server",
-        config.getXMLAttributes(address + "[" + port + "]"));
-    editXMLFile(getInstallPath() + "/conf/context.xml", "Tomcat", "Manager", "Context",
-        version.getXMLAttributes());
+  private HashMap<String, String> buildServerXMLAttributes() throws IOException {
+    HashMap<String, String> attributes = config.getRequiredXMLAttributes();
 
+    for (String property : systemProperties.keySet())
+      attributes.put(property, systemProperties.get(property));
+
+    return attributes;
+  }
+
+  private HashMap<String, String> buildContextXMLAttributes()
+  {
+    HashMap<String, String> attributes = version.getRequiredXMLAttributes();
+
+    for (String property : cacheProperties.keySet())
+      attributes.put(property, cacheProperties.get(property));
+
+    return attributes;
+  }
+
+  private void updateXMLFiles() throws Exception {
+    editXMLFile(getInstallPath() + "/conf/server.xml", "Tomcat", "Listener", "Server",
+        buildServerXMLAttributes());
+    editXMLFile(getInstallPath() + "/conf/context.xml", "Tomcat", "Manager", "Context",
+        buildContextXMLAttributes());
+  }
+
+  @Override
+  public void setLocator(String address, int port) throws Exception {
     if (config == TomcatConfig.CLIENT_SERVER)
     {
       HashMap<String, String> attributes = new HashMap<>();
       attributes.put("host", address);
       attributes.put("port", Integer.toString(port));
 
-      editXMLFile(findAndExtractModule(GEODE_BUILD_HOME, "tomcat") + "/conf/cache-client.xml", "locator", "pool", attributes, true);
+      editXMLFile(tomcatModulePath + "/conf/" + config.getXMLFile(), "locator", "pool", attributes, true);
     }
-  }
+    else {
+      systemProperties.put("locators", address + "[" + port + "]");
+    }
 
-  private void updateXMLFiles() throws Exception {
-    updateXMLFiles("localhost", 10344);
-  }
-
-  public void setConfiguration(TomcatConfig config) throws Exception {
-    this.config = config;
     updateXMLFiles();
-  }
-
-  @Override
-  public void setLocator(String address, int port) throws Exception {
-    updateXMLFiles(address, port);
   }
 
   public TomcatVersion getVersion() {
@@ -326,12 +341,5 @@ public class TomcatInstall extends ContainerInstall {
     contextConfigFile.setToDir("conf");
     contextConfigFile.setFile(getInstallPath() + "/conf/context.xml");
     configuration.setConfigFileProperty(contextConfigFile);
-  }
-
-  @Override
-  public WAR getDeployableWAR() {
-    String war = findSessionTestingWar();
-
-    return new WAR(war);
   }
 }

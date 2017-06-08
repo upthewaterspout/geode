@@ -63,6 +63,7 @@ public class ContainerManager {
     container.setOutput(PLAIN_LOG_FILE + containers.size() + ".log");
     System.out.println("Sending log file output to " + PLAIN_LOG_FILE + containers.size() + ".log");
 
+
     containers.add(index, container);
     installs.add(index, install);
 
