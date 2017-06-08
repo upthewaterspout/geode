@@ -15,7 +15,6 @@
 package org.apache.geode.session.tests;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
 import org.apache.geode.test.junit.categories.DistributedTest;
@@ -46,31 +45,6 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
     manager.stopAllActiveContainers();
   }
 
-  // private void containersShouldBeCreatingIndividualSessions()
-  // throws URISyntaxException, IOException {
-  // Set<String> seenCookies = new HashSet<String>();
-  // for (int i = 0; i < manager.numContainers(); i++) {
-  // client.setPort(Integer.parseInt(manager.getContainerPort(i)));
-  // Client.Response resp = client.get(null);
-  //
-  // assertNotNull(resp.getSessionCookie());
-  // // Verify that each container returned a different cookie
-  // assertTrue(seenCookies.add(resp.getSessionCookie()));
-  // }
-  // }
-
-  // @Test
-  // public void twoTomcatContainersShouldBeCreatingIndividualSessions() throws Exception
-  // {
-  // getInstall().setLocator(null, -1);
-  //
-  // manager.addContainers(2, getInstall());
-  //
-  // manager.startAllInactiveContainers();
-  // containersShouldBeCreatingIndividualSessions();
-  // manager.stopAllActiveContainers();
-  // }
-
   private void containersShouldReplicateSession() throws IOException, URISyntaxException {
     if (manager.numContainers() < 2)
       throw new IllegalArgumentException(
@@ -94,7 +68,6 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     manager.startAllInactiveContainers();
     containersShouldReplicateSession();
-    manager.stopAllActiveContainers();
   }
 
   private void containersShouldHavePersistentSessionData() throws IOException, URISyntaxException {
@@ -125,7 +98,6 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     manager.startAllInactiveContainers();
     containersShouldHavePersistentSessionData();
-    manager.stopAllActiveContainers();
   }
 
   private void failureShouldStillAllowOtherContainersDataAccess()
@@ -159,7 +131,6 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     manager.startAllInactiveContainers();
     failureShouldStillAllowOtherContainersDataAccess();
-    manager.stopAllActiveContainers();
   }
 
   private void invalidationShouldRemoveValueAccessForAllContainers()
@@ -188,7 +159,6 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     manager.startAllInactiveContainers();
     invalidationShouldRemoveValueAccessForAllContainers();
-    manager.stopAllActiveContainers();
   }
 
   private void containersShouldExpireInSetTimeframe()
@@ -227,7 +197,6 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     manager.startAllInactiveContainers();
     containersShouldExpireInSetTimeframe();
-    manager.stopAllActiveContainers();
   }
 
   private void containersShouldShareSessionExpirationReset()
@@ -270,11 +239,9 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     manager.startAllInactiveContainers();
     containersShouldShareSessionExpirationReset();
-    manager.stopAllActiveContainers();
   }
 
-  private void containersShouldShareDataRemovals() throws IOException, URISyntaxException
-  {
+  private void containersShouldShareDataRemovals() throws IOException, URISyntaxException {
     String key = "value_testSessionRemove";
     String value = "Foo";
 
@@ -302,7 +269,9 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
       resp = client.get(key);
 
       assertEquals(cookie, resp.getSessionCookie());
-      assertEquals("", resp.getResponse());
+      assertEquals(
+          "Was expecting an empty response after removal. Double check to make sure that the enableLocalCache cacheProperty is set to false. This test is unreliable on servers which use a local cache.",
+          "", resp.getResponse());
     }
   }
 
@@ -313,6 +282,5 @@ public abstract class CargoTestBase extends JUnit4CacheTestCase {
 
     manager.startAllInactiveContainers();
     containersShouldShareDataRemovals();
-    manager.stopAllActiveContainers();
   }
 }

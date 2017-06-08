@@ -87,8 +87,9 @@ public class GenericAppServerInstall extends ContainerInstall {
     this.cacheType = cacheType;
 
     appServerModulePath = findAndExtractModule(GEODE_BUILD_HOME, "appserver");
-    setSystemProperty("cache-xml-file", appServerModulePath + "/conf/" + cacheType.getXMLTypeFile());
-    setSystemProperty("enable_local_cache", "false");
+    setSystemProperty("cache-xml-file",
+        appServerModulePath + "/conf/" + cacheType.getXMLTypeFile());
+    setCacheProperty("enable_local_cache", "false");
 
     if (cacheType == CacheType.CLIENT_SERVER) {
       modifyWarFile();
@@ -108,13 +109,11 @@ public class GenericAppServerInstall extends ContainerInstall {
     command.add(cacheType.getCommandLineTypeString());
     command.add("-o");
     command.add(warFile.getAbsolutePath());
-    for (String property : cacheProperties.keySet())
-    {
+    for (String property : cacheProperties.keySet()) {
       command.add("-p");
       command.add("gemfire.cache." + property + "=" + cacheProperties.get(property));
     }
-    for (String property : systemProperties.keySet())
-    {
+    for (String property : systemProperties.keySet()) {
       command.add("-p");
       command.add("gemfire.property." + property + "=" + systemProperties.get(property));
     }
@@ -122,8 +121,7 @@ public class GenericAppServerInstall extends ContainerInstall {
     return command;
   }
 
-  private void modifyWarFile()
-      throws IOException, InterruptedException {
+  private void modifyWarFile() throws IOException, InterruptedException {
     warFile = File.createTempFile("session-testing", ".war", new File("/tmp"));
     warFile.deleteOnExit();
 
@@ -155,16 +153,15 @@ public class GenericAppServerInstall extends ContainerInstall {
   @Override
   public void setLocator(String address, int port) throws Exception {
     if (cacheType == CacheType.PEER_TO_PEER) {
-      systemProperties.put("locators", address + "[" + port + "]");
+      setSystemProperty("locators", address + "[" + port + "]");
       modifyWarFile();
-    }
-    else {
+    } else {
       HashMap<String, String> attributes = new HashMap<>();
       attributes.put("host", address);
       attributes.put("port", Integer.toString(port));
 
-      editXMLFile(appServerModulePath + "/conf/"
-          + cacheType.getXMLTypeFile(), "locator", "pool", attributes, true);
+      editXMLFile(appServerModulePath + "/conf/" + cacheType.getXMLTypeFile(), "locator", "pool",
+          attributes, true);
     }
   }
 

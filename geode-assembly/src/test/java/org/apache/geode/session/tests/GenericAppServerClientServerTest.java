@@ -20,7 +20,7 @@ import org.apache.geode.test.dunit.Host;
 import org.apache.geode.test.dunit.VM;
 import org.junit.Before;
 
-public abstract class CargoClientServerTest extends CargoTestBase {
+public abstract class GenericAppServerClientServerTest extends CargoTestBase {
   @Before
   public void startServers() throws InterruptedException {
     Host host = Host.getHost(0);

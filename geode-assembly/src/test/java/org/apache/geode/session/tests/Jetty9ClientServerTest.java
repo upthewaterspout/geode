@@ -17,7 +17,7 @@ package org.apache.geode.session.tests;
 import org.apache.geode.test.dunit.DUnitEnv;
 import org.junit.BeforeClass;
 
-public class Jetty9ClientServerTest extends CargoClientServerTest {
+public class Jetty9ClientServerTest extends GenericAppServerClientServerTest {
   private static ContainerInstall install;
 
   @BeforeClass

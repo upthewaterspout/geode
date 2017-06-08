@@ -55,10 +55,6 @@ public class Client {
     this.port = port;
   }
 
-  public int getPort() {
-    return port;
-  }
-
   public void resetURI() {
     reqURIBuild.setHost(host + ":" + port);
     reqURIBuild.clearParameters();
@@ -136,8 +132,8 @@ public class Client {
     return remove(key, true);
   }
 
-  public Response remove(String key, boolean storeRespCookie) throws URISyntaxException,
-      IOException {
+  public Response remove(String key, boolean storeRespCookie)
+      throws URISyntaxException, IOException {
     resetURI();
     reqURIBuild.setParameter("cmd", QueryCommand.REMOVE.name());
     reqURIBuild.setParameter("param", key);

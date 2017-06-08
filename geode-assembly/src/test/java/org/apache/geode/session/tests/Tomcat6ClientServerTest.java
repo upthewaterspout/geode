@@ -17,7 +17,7 @@ package org.apache.geode.session.tests;
 import org.apache.geode.test.dunit.DUnitEnv;
 import org.junit.BeforeClass;
 
-public class Tomcat6ClientServerTest extends CargoClientServerTest {
+public class Tomcat6ClientServerTest extends TomcatClientServerTest {
   private static ContainerInstall install;
 
   @BeforeClass

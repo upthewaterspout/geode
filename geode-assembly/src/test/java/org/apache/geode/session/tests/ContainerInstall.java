@@ -111,8 +111,7 @@ public abstract class ContainerInstall {
         + "/session-testing-war/build/libs/session-testing-war.war";
   }
 
-  public WAR getDeployableWAR()
-  {
+  public WAR getDeployableWAR() {
     return new WAR(findSessionTestingWar());
   }
 
@@ -197,7 +196,7 @@ public abstract class ContainerInstall {
             // Set to new attributes
             for (String key : attributes.keySet()) {
               ((Element) node).setAttribute(key, attributes.get(key));
-//              node.getAttributes().getNamedItem(key).setTextContent(attributes.get(key));
+              // node.getAttributes().getNamedItem(key).setTextContent(attributes.get(key));
             }
 
             hasTag = true;
@@ -215,14 +214,14 @@ public abstract class ContainerInstall {
             }
           }
           // Check to make sure does not have more than attribute fields
-//          for (int j = 0; j < nodeAttrs.getLength(); j++)
-//          {
-//            if (attributes.get(nodeAttrs.item(j).getNodeName()) == null)
-//            {
-//              updateNode = false;
-//              break;
-//            }
-//          }
+          // for (int j = 0; j < nodeAttrs.getLength(); j++)
+          // {
+          // if (attributes.get(nodeAttrs.item(j).getNodeName()) == null)
+          // {
+          // updateNode = false;
+          // break;
+          // }
+          // }
 
           // Update node attributes
           if (updateNode) {
@@ -246,7 +245,6 @@ public abstract class ContainerInstall {
       for (String key : attributes.keySet())
         e.setAttribute(key, attributes.get(key));
 
-      // WordUtils.capitalize(FilenameUtils.getBaseName(XMLPath))
       // Add it as a child of the tag for the file
       doc.getElementsByTagName(parentTagName).item(0).appendChild(e);
     }
