@@ -14,6 +14,7 @@
  */
 package org.apache.geode.session.tests;
 
+import org.apache.geode.internal.AvailablePortHelper;
 import org.codehaus.cargo.container.ContainerType;
 import org.codehaus.cargo.container.InstalledLocalContainer;
 import org.codehaus.cargo.container.State;
@@ -23,6 +24,7 @@ import org.codehaus.cargo.container.deployable.WAR;
 import org.codehaus.cargo.container.property.GeneralPropertySet;
 import org.codehaus.cargo.container.property.LoggingLevel;
 import org.codehaus.cargo.container.property.ServletPropertySet;
+import org.codehaus.cargo.container.tomcat.TomcatPropertySet;
 import org.codehaus.cargo.generic.DefaultContainerFactory;
 import org.codehaus.cargo.generic.configuration.DefaultConfigurationFactory;
 
@@ -47,11 +49,6 @@ public class ContainerManager {
         .createConfiguration(install.getContainerId(), ContainerType.INSTALLED,
             ConfigurationType.STANDALONE, "/tmp/cargo_configs/config" + index);
     configuration.setProperty(GeneralPropertySet.LOGGING, LoggingLevel.HIGH.getLevel());
-
-    configuration.setProperty(ServletPropertySet.PORT, Integer.toString(8080));
-    configuration.setProperty(GeneralPropertySet.RMI_PORT, Integer.toString(7000));
-    configuration.setProperty(GeneralPropertySet.PORT_OFFSET, Integer.toString(index));
-    configuration.applyPortOffset();
 
     install.modifyConfiguration(configuration);
 
@@ -93,6 +90,11 @@ public class ContainerManager {
   public String getContainerPort(int index) {
     LocalConfiguration config = getContainer(index).getConfiguration();
     config.applyPortOffset();
+
+    if (!getContainer(index).getState().isStarted())
+    {
+      throw new IllegalStateException("Port has not yet been assigned to container " + index);
+    }
     return config.getPropertyValue(ServletPropertySet.PORT);
   }
 
@@ -153,16 +155,28 @@ public class ContainerManager {
   }
 
   public String getContainerDescription(int index) {
-    return getContainerInstall(index).getContainerDescription() + ":" + getContainerPort(index);
+    String port = "<not started>";
+    try
+    {
+      port = String.valueOf(getContainerPort(index));
+    } catch (IllegalStateException ise) {}
+
+    return getContainerInstall(index).getContainerDescription() + "_" + index + ":" + port;
   }
 
   public void startContainer(int index) {
     InstalledLocalContainer container = getContainer(index);
     if (!container.getState().isStarted()) {
+      int[] ports = AvailablePortHelper.getRandomAvailableTCPPorts(3);
+      container.getConfiguration().setProperty(ServletPropertySet.PORT, Integer.toString(ports[0]));
+      container.getConfiguration().setProperty(GeneralPropertySet.RMI_PORT, Integer.toString(ports[1]));
+      container.getConfiguration().setProperty(TomcatPropertySet.AJP_PORT, Integer.toString(ports[2]));
+      container.getConfiguration().setProperty(GeneralPropertySet.PORT_OFFSET, "0");
+
       container.start();
-      System.out.println("Started container" + index + " " + getContainerDescription(index));
+      System.out.println("Started container " + getContainerDescription(index));
     } else
-      throw new IllegalArgumentException("Cannot start container" + index + " "
+      throw new IllegalArgumentException("Cannot start container "
           + getContainerDescription(index) + " it has currently " + container.getState());
   }
 
@@ -172,7 +186,7 @@ public class ContainerManager {
       container.stop();
       System.out.println("Stopped container" + index + " " + getContainerDescription(index));
     } else
-      throw new IllegalArgumentException("Cannot stop container" + index + " "
+      throw new IllegalArgumentException("Cannot stop container "
           + getContainerDescription(index) + " it is currently " + container.getState());
   }
 
