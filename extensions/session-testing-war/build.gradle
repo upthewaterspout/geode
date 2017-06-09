@@ -23,3 +23,5 @@ dependencies {
 war {
     version = ''
 }
+
+disableMavenPublishing()
