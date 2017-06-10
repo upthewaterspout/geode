@@ -161,6 +161,7 @@ public class LuceneIndexForPartitionedRegion extends LuceneIndexImpl {
     if (regionAttributes.getDataPolicy().withPersistence()) {
       factory.setDiskStoreName(regionAttributes.getDiskStoreName());
     }
+    factory.setOffHeap(regionAttributes.getOffHeap());
     RegionAttributes<K, V> attributes = factory.create();
 
     return createRegion(regionName, attributes);
