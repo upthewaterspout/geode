@@ -28,6 +28,7 @@ import org.apache.geode.cache.lucene.internal.filesystem.ChunkKey;
 import org.apache.geode.cache.lucene.internal.filesystem.File;
 import org.apache.geode.cache.lucene.internal.filesystem.FileSystemStats;
 import org.apache.geode.cache.lucene.internal.repository.serializer.HeterogeneousLuceneSerializer;
+import org.apache.geode.distributed.ConfigurationProperties;
 import org.apache.geode.test.junit.categories.PerformanceTest;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -63,7 +64,7 @@ import static org.apache.geode.distributed.ConfigurationProperties.*;
 @Ignore("Tests have no assertions")
 public class IndexRepositoryImplPerformanceTest {
 
-  private static final int NUM_WORDS = 1000;
+  private static final int NUM_WORDS = 100000;
   private static int[] COMMIT_INTERVAL = new int[] {100, 1000, 5000};
   private static int NUM_ENTRIES = 500_000;
   private static int NUM_QUERIES = 500_000;
@@ -156,13 +157,15 @@ public class IndexRepositoryImplPerformanceTest {
 
       @Override
       public void init() throws Exception {
-        cache = new CacheFactory().set(MCAST_PORT, "0").set(LOG_LEVEL, "warning").create();
+        cache = new CacheFactory().set(MCAST_PORT, "0").set(LOG_LEVEL, "warning")
+        .set(ConfigurationProperties.OFF_HEAP_MEMORY_SIZE, "800m").create();
         service = LuceneServiceProvider.get(cache);
-        service.createIndexFactory().addField("test").create("index", "/region");
+        service.createIndexFactory().addField("text").create("index", "/region");
         region =
             cache.<String, TestObject>createRegionFactory(RegionShortcut.PARTITION)
                 .setPartitionAttributes(
                     new PartitionAttributesFactory<>().setTotalNumBuckets(1).create())
+                .setOffHeap(true)
                 .create("region");
       }
 
