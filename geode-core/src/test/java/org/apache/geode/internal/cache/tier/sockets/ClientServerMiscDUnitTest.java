@@ -47,6 +47,7 @@ import org.apache.geode.cache.client.internal.RegisterInterestTracker;
 import org.apache.geode.cache.server.CacheServer;
 import org.apache.geode.cache.util.CacheListenerAdapter;
 import org.apache.geode.cache30.CacheSerializableRunnable;
+import org.apache.geode.distributed.ConfigurationProperties;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.DistributedSystem;
 import org.apache.geode.distributed.DistributedSystemDisconnectedException;
@@ -67,14 +68,10 @@ import org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase;
 import org.apache.geode.test.dunit.standalone.VersionManager;
 import org.apache.geode.test.junit.categories.ClientServerTest;
 import org.apache.geode.test.junit.categories.DistributedTest;
-import org.apache.geode.test.junit.runners.CategoryWithParameterizedRunnerFactory;
 import org.awaitility.Awaitility;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
@@ -867,7 +864,14 @@ public class ClientServerMiscDUnitTest extends JUnit4CacheTestCase {
 
   public static Integer createServerCache(Boolean notifyBySubscription, Integer maxThreads,
       boolean isHA) throws Exception {
-    Cache cache = new ClientServerMiscDUnitTest().createCacheV(new Properties());
+    return createServerCache(notifyBySubscription, maxThreads, isHA);
+  }
+
+  public static Integer createServerCache(Boolean notifyBySubscription, Integer maxThreads,
+      boolean isHA, final int locatorPort) throws Exception {
+    Properties props = new Properties();
+    props.setProperty(ConfigurationProperties.LOCATORS, "localhost[" + locatorPort + "]");
+    Cache cache = new ClientServerMiscDUnitTest().createCacheV(props);
     unsetSlowDispatcherFlag();
     AttributesFactory factory = new AttributesFactory();
     factory.setScope(Scope.DISTRIBUTED_ACK);
