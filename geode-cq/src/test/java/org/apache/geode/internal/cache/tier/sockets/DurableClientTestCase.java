@@ -1081,14 +1081,12 @@ public class DurableClientTestCase extends JUnit4DistributedTestCase {
     });
   }
 
-  @Ignore("TODO: This test is failing inconsistently, see bug 51258")
   @Test
   public void testDurableNonHAFailover() throws InterruptedException {
     durableFailover(0);
     durableFailoverAfterReconnect(0);
   }
 
-  @Ignore("TODO: This test is failing inconsistently, see bug 51258")
   @Test
   public void testDurableHAFailover() throws InterruptedException {
     // Clients see this when the servers disconnect
