@@ -51,7 +51,7 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.concurrent.TimeUnit;
+
 import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -91,6 +91,7 @@ public class SessionReplicationIntegrationJUnitTest {
 
     tester = new MyServletTester();
     tester.setContextPath("/test");
+    tester.getContext().getSessionHandler().setMaxInactiveInterval(1000000);
 
     Assume.assumeFalse(System.getProperty("os.name").toLowerCase().contains("win"));
 
@@ -170,10 +171,15 @@ public class SessionReplicationIntegrationJUnitTest {
 
     List<Cookie> cookies = getCookies(response);
     assertEquals("Session id != JSESSIONID from cookie", response.getContent(),
-        cookies.get(0).getValue());
+        getSessionCookie(cookies).getValue());
 
     Region r = getRegion();
-    assertNotNull("Session not found in region", r.get(cookies.get(0).getValue()));
+    assertNotNull("Session not found in region", r.get(getSessionCookie(cookies).getValue()));
+  }
+
+  private Cookie getSessionCookie(List<Cookie> cookies) {
+    return cookies.stream().filter(cookie -> cookie.getName().equals("JSESSIONID"))
+        .reduce((oldCookie, cookie) -> cookie).get();
   }
 
 
@@ -281,18 +287,19 @@ public class SessionReplicationIntegrationJUnitTest {
     assertEquals("Session should be new", "new", response.getContent());
 
     List<Cookie> cookies = getCookies(response);
-    request.setHeader("Cookie", "JSESSIONID=" + cookies.get(0).getValue());
+    request.setHeader("Cookie", "JSESSIONID=" + getSessionCookie(cookies).getValue());
 
     response = HttpTester.parseResponse(tester.getResponses(request.generate()));
 
     assertEquals("Session should be old", "old", response.getContent());
 
     List<Cookie> cookies2 = getCookies(response);
-    assertEquals("Session IDs should be the same", cookies.get(0).getValue(),
-        cookies2.get(0).getValue());
+    assertEquals("Session IDs should be the same", getSessionCookie(cookies).getValue(),
+        getSessionCookie(cookies2).getValue());
 
     Region r = getRegion();
-    assertNotNull("Session object should exist in region", r.get(cookies.get(0).getValue()));
+    assertNotNull("Session object should exist in region",
+        r.get(getSessionCookie(cookies).getValue()));
   }
 
   /**
@@ -338,13 +345,15 @@ public class SessionReplicationIntegrationJUnitTest {
     List<Cookie> cookies = getCookies(response);
 
     Region r = getRegion();
-    assertEquals("bar", ((HttpSession) r.get(cookies.get(0).getValue())).getAttribute("foo"));
+    assertEquals("bar",
+        ((HttpSession) r.get(getSessionCookie(cookies).getValue())).getAttribute("foo"));
 
-    request.setHeader("Cookie", "JSESSIONID=" + cookies.get(0).getValue());
+    request.setHeader("Cookie", "JSESSIONID=" + getSessionCookie(cookies).getValue());
     request.setURI("/test/request2");
     response = HttpTester.parseResponse(tester.getResponses(request.generate()));
 
-    assertEquals("baz", ((HttpSession) r.get(cookies.get(0).getValue())).getAttribute("foo"));
+    assertEquals("baz",
+        ((HttpSession) r.get(getSessionCookie(cookies).getValue())).getAttribute("foo"));
   }
 
   /**
@@ -393,13 +402,14 @@ public class SessionReplicationIntegrationJUnitTest {
     List<Cookie> cookies = getCookies(response);
 
     Region r = getRegion();
-    assertEquals("bar", ((HttpSession) r.get(cookies.get(0).getValue())).getAttribute("foo"));
+    assertEquals("bar",
+        ((HttpSession) r.get(getSessionCookie(cookies).getValue())).getAttribute("foo"));
 
-    request.setHeader("Cookie", "JSESSIONID=" + cookies.get(0).getValue());
+    request.setHeader("Cookie", "JSESSIONID=" + getSessionCookie(cookies).getValue());
     request.setURI("/test/request2");
     response = HttpTester.parseResponse(tester.getResponses(request.generate()));
 
-    assertNull(((HttpSession) r.get(cookies.get(0).getValue())).getAttribute("foo"));
+    assertNull(((HttpSession) r.get(getSessionCookie(cookies).getValue())).getAttribute("foo"));
   }
 
   /**
@@ -566,13 +576,14 @@ public class SessionReplicationIntegrationJUnitTest {
 
     List<Cookie> cookies = getCookies(response);
     Region r = getRegion();
-    assertEquals("bar", ((HttpSession) r.get(cookies.get(0).getValue())).getAttribute("foo"));
+    assertEquals("bar",
+        ((HttpSession) r.get(getSessionCookie(cookies).getValue())).getAttribute("foo"));
 
-    request.setHeader("Cookie", "JSESSIONID=" + cookies.get(0).getValue());
+    request.setHeader("Cookie", "JSESSIONID=" + getSessionCookie(cookies).getValue());
     request.setURI("/test/request2");
     response = HttpTester.parseResponse(tester.getResponses(request.generate()));
 
-    assertNull("Region should not contain session", r.get(cookies.get(0).getValue()));
+    assertNull("Region should not contain session", r.get(getSessionCookie(cookies).getValue()));
   }
 
   /**
@@ -1102,7 +1113,7 @@ public class SessionReplicationIntegrationJUnitTest {
     assertTrue("Creation time should be positive", time1 > 0);
 
     List<Cookie> cookies = getCookies(response);
-    request.setHeader("Cookie", "JSESSIONID=" + cookies.get(0).getValue());
+    request.setHeader("Cookie", "JSESSIONID=" + getSessionCookie(cookies).getValue());
 
     try {
       Thread.sleep(1000);
@@ -1145,7 +1156,7 @@ public class SessionReplicationIntegrationJUnitTest {
     // assertTrue("Last accessed time should be positive", time1 > 0);
 
     List<Cookie> cookies = getCookies(response);
-    request.setHeader("Cookie", "JSESSIONID=" + cookies.get(0).getValue());
+    request.setHeader("Cookie", "JSESSIONID=" + getSessionCookie(cookies).getValue());
 
     Thread.sleep(1000);
 
@@ -1182,13 +1193,13 @@ public class SessionReplicationIntegrationJUnitTest {
     response = HttpTester.parseResponse(tester.getResponses(request.generate()));
     List<Cookie> cookies = getCookies(response);
     String sessionId = response.getContent();
-    assertEquals("Session ids should be the same", sessionId, cookies.get(0).getValue());
+    assertEquals("Session ids should be the same", sessionId, getSessionCookie(cookies).getValue());
 
     request.setURI("/test/hello;jsessionid=" + sessionId);
     response = HttpTester.parseResponse(tester.getResponses(request.generate()));
     cookies = getCookies(response);
 
-    assertEquals("Session ids should be the same", sessionId, cookies.get(0).getValue());
+    assertEquals("Session ids should be the same", sessionId, getSessionCookie(cookies).getValue());
   }
 
 
