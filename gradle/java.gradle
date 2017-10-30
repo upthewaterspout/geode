@@ -38,7 +38,7 @@ subprojects {
   // apply default manifest
   gradle.taskGraph.whenReady({ graph ->
     tasks.withType(Jar).each { jar ->
-      jar.doFirst {
+      jar.configure {
         manifest {
           attributes(
             "Manifest-Version": "1.0",
