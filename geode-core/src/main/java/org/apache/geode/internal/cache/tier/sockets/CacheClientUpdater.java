@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.CancelException;
 import org.apache.geode.DataSerializer;
+import org.apache.geode.InternalGemFireError;
 import org.apache.geode.InvalidDeltaException;
 import org.apache.geode.StatisticDescriptor;
 import org.apache.geode.Statistics;
@@ -654,13 +655,21 @@ public class CacheClientUpdater extends Thread implements ClientUpdater, Disconn
       boolean isCreate = clientMessage.getMessageType() == MessageType.LOCAL_CREATE;
 
       if (isDebugEnabled) {
-        logger.debug(
-            "Putting entry for region: {} key: {} create: {}{} callbackArgument: {} withInterest={} withCQs={} eventID={} version={}",
-            regionName, key, isCreate,
-            valuePart.isObject()
-                ? new StringBuilder(" value: ").append(deserialize(valuePart.getSerializedForm()))
-                : "",
-            callbackArgument, withInterest, withCQs, eventId, versionTag);
+        try {
+          logger.debug(
+              "Putting entry for region: {} key: {} create: {}{} callbackArgument: {} withInterest={} withCQs={} eventID={} version={}",
+              regionName, key, isCreate,
+              valuePart.isObject()
+                  ? new StringBuilder(" value: ").append(deserialize(valuePart.getSerializedForm()))
+                  : "",
+              callbackArgument, withInterest, withCQs, eventId, versionTag);
+        } catch (InternalGemFireError e) {
+
+          String message =
+              e.getMessage() + " with key " + key + "region: " + regionName + " eventId " + eventId;
+          logger.warn(message);
+          throw new InternalGemFireError(message);
+        }
       }
 
       LocalRegion region = (LocalRegion) this.cacheHelper.getRegion(regionName);

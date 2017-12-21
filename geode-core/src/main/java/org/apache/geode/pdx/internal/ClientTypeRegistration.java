@@ -195,6 +195,7 @@ public class ClientTypeRegistration implements TypeRegistration {
       try {
         EnumInfo result = GetPDXEnumByIdOp.execute((ExecutablePool) pool, enumId);
         if (result != null) {
+          logger.info("DAN DEBUG: Got enum for ID " + enumId);
           return result;
         }
       } catch (ServerConnectivityException e) {

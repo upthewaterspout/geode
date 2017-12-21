@@ -154,6 +154,7 @@ public class PeerTypeRegistration implements TypeRegistration {
     factory.addCacheListener(new CacheListenerAdapter<Object, Object>() {
       @Override
       public void afterCreate(EntryEvent<Object, Object> event) {
+        logger.info("DAN DEBUG: Got pdx key " + event.getKey());
         verifyConfiguration();
         // update a local map with the pdxtypes registered
         Object value = event.getNewValue();
