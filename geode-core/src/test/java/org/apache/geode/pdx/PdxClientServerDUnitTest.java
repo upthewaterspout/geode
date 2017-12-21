@@ -20,14 +20,20 @@ import static org.apache.geode.distributed.ConfigurationProperties.MCAST_PORT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.mockito.ArgumentCaptor;
 
 import org.apache.geode.DataSerializer;
 import org.apache.geode.cache.AttributesFactory;
@@ -47,10 +53,20 @@ import org.apache.geode.cache.client.internal.PoolImpl;
 import org.apache.geode.cache.query.internal.DefaultQuery;
 import org.apache.geode.cache.server.CacheServer;
 import org.apache.geode.distributed.internal.DistributionConfig;
+import org.apache.geode.distributed.internal.DistributionManager;
+import org.apache.geode.distributed.internal.DistributionMessage;
+import org.apache.geode.distributed.internal.DistributionMessageObserver;
 import org.apache.geode.internal.AvailablePortHelper;
 import org.apache.geode.internal.HeapDataOutputStream;
+import org.apache.geode.internal.NullDataOutputStream;
 import org.apache.geode.internal.PdxSerializerObject;
 import org.apache.geode.internal.Version;
+import org.apache.geode.internal.cache.UpdateOperation;
+import org.apache.geode.pdx.internal.PdxOutputStream;
+import org.apache.geode.pdx.internal.PdxType;
+import org.apache.geode.pdx.internal.PdxWriterImpl;
+import org.apache.geode.pdx.internal.PeerTypeRegistration;
+import org.apache.geode.pdx.internal.TypeRegistry;
 import org.apache.geode.test.dunit.Host;
 import org.apache.geode.test.dunit.Invoke;
 import org.apache.geode.test.dunit.NetworkUtils;
@@ -583,6 +599,78 @@ public class PdxClientServerDUnitTest extends JUnit4CacheTestCase {
     });
   }
 
+  @Test
+  public void testRaceInTypeCreation() {
+    Host host = Host.getHost(0);
+    VM server1 = host.getVM(0);
+    VM server2 = host.getVM(1);
+    VM client1 = host.getVM(2);
+    VM client2 = host.getVM(3);
+
+    SimpleClass object = new SimpleClass();
+    PdxType type = getPdxType(object);
+
+
+//    //Get a PDX Type for our simple class
+//    server1.invoke(() -> {
+//      getCache();
+//      //Serialize our simple class. This should create the PdxType for this class
+//      DataSerializer.writeObject(new SimpleClass(), new NullDataOutputStream());
+//      PdxType
+//    });
+
+
+    //Delay processing of type registry updated in server2
+    server2.invoke(() -> {
+      DistributionMessageObserver.setInstance(new BlockingPdxTypeUpdateObserver());
+    });
+
+    //Create two servers
+    int port1 = server1.invoke(() -> createServerRegion(SimpleClass.class));
+    int port2 = createServerAccessor(server2);
+
+    //Create two clients. Each client is connected to a different server
+    createClientRegion(client1, port1);
+    createClientRegion(client2, port2);
+
+
+    server1.invoke(() -> {
+      getCache().getPdxRegistry().addRemoteType(55, type);
+    });
+
+    client1.invoke(() -> {
+      Region r = getRootRegion("testSimplePdx");
+      r.put(1, new SimpleClass(57, (byte) 3));
+      return null;
+    });
+    final SerializableCallable checkValue = new SerializableCallable() {
+      public Object call() throws Exception {
+        Region r = getRootRegion("testSimplePdx");
+        assertEquals(new SimpleClass(57, (byte) 3), r.get(1));
+        return null;
+      }
+    };
+
+    client2.invoke(checkValue);
+
+    server2.invoke(() -> {
+      ((BlockingPdxTypeUpdateObserver) DistributionMessageObserver.getInstance()).latch.countDown();
+    });
+  }
+
+  //Get the PdxType of a class without actually registering it anywhere
+  private PdxType getPdxType(SimpleClass object) {
+    TypeRegistry registry = mock(TypeRegistry.class);
+    when(registry.defineLocalType(object, any()));
+    PdxWriterImpl writer = new PdxWriterImpl(registry, object, new PdxOutputStream());
+    object.toData(writer);
+    writer.completeByteStreamGeneration();
+
+    ArgumentCaptor<PdxType> typeArgumentCaptor = ArgumentCaptor.forClass(PdxType.class);
+    verify(registry.defineType(typeArgumentCaptor.capture()));
+    return typeArgumentCaptor.getValue();
+  }
+
 
   public PdxInstance getTypedJSONPdxInstance(String className) throws Exception {
 
@@ -818,6 +906,22 @@ public class PdxClientServerDUnitTest extends JUnit4CacheTestCase {
     public AutoPdxType2(int int1, int int2) {
       this.int1 = int1;
       this.int2 = int2;
+    }
+  }
+
+  private static class BlockingPdxTypeUpdateObserver extends DistributionMessageObserver {
+    private CountDownLatch latch = new CountDownLatch(1);
+    @Override
+    public void beforeProcessMessage(DistributionManager dm, DistributionMessage message) {
+      if(message instanceof UpdateOperation.UpdateMessage && ((UpdateOperation.UpdateMessage) message).getRegionPath().contains(
+          PeerTypeRegistration.REGION_FULL_PATH)) {
+        try {
+          latch.await();
+        } catch (InterruptedException e) {
+          throw new RuntimeException("Interrupted", e);
+        }
+
+      }
     }
   }
 }
