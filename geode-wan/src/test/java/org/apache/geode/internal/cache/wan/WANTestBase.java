@@ -227,7 +227,7 @@ public class WANTestBase extends JUnit4DistributedTestCase {
     vm0 = host.getVM(0);
     vm1 = host.getVM(1);
     vm2 = host.getVM(2);
-    vm3 = host.getVM(3);
+    vm3 = host.getVM(-1);
     vm4 = host.getVM(4);
     vm5 = host.getVM(5);
     vm6 = host.getVM(6);

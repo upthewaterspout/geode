@@ -564,7 +564,6 @@ public class PDXNewWanDUnitTest extends WANTestBase {
         }
     );
 
-//    vm5.invoke(() -> WANTestBase.startSender("ln"));
     vm5.invoke(() -> WANTestBase.resumeSender("ln"));
 
 
@@ -576,8 +575,6 @@ public class PDXNewWanDUnitTest extends WANTestBase {
 
     assertTrue(blocking);
 
-
-//    vm4.invoke(() -> WANTestBase.startSender("ln"));
     vm4.invoke(() -> WANTestBase.resumeSender("ln"));
 
     vm2.invoke(() -> WANTestBase.validateRegionSize_PDX(getTestMethodName() + "_PR", 1));
