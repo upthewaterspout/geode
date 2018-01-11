@@ -33,7 +33,9 @@ import org.apache.geode.distributed.internal.DistributionMessageObserver;
 import org.apache.geode.internal.cache.UpdateOperation;
 import org.apache.geode.internal.cache.wan.WANTestBase;
 import org.apache.geode.pdx.PdxClientServerDUnitTest;
-import org.apache.geode.pdx.SimpleClass;
+import org.apache.geode.pdx.PdxReader;
+import org.apache.geode.pdx.PdxSerializable;
+import org.apache.geode.pdx.PdxWriter;
 import org.apache.geode.pdx.internal.PeerTypeRegistration;
 import org.apache.geode.test.dunit.IgnoredException;
 import org.apache.geode.test.dunit.Wait;
@@ -518,13 +520,13 @@ public class PDXNewWanDUnitTest extends WANTestBase {
     //just a peer
     createCacheInVMs(nyPort, vm2, vm3);
     vm2.invoke(() -> WANTestBase.createReceiver());
-    vm2.invoke(() -> WANTestBase.createPartitionedRegion(getTestMethodName() + "_PR", null, 0, 1,
+    vm2.invoke(() -> WANTestBase.createPartitionedRegion(getTestMethodName() + "_PR", null, 0, 4,
         isOffHeap()));
-    vm3.invoke(() -> WANTestBase.createPartitionedRegion(getTestMethodName() + "_PR", null, 0, 1,
+    vm3.invoke(() -> WANTestBase.createPartitionedRegion(getTestMethodName() + "_PR", null, 0, 4,
         isOffHeap()));
 
-    //Delay processing of type registry updated in vm3
-    vm3.invoke(() -> {
+    //Delay processing of sending type registry update from vm2
+    vm2.invoke(() -> {
       DistributionMessageObserver
           .setInstance(new BlockingPdxTypeUpdateObserver());
     });
@@ -537,17 +539,28 @@ public class PDXNewWanDUnitTest extends WANTestBase {
     vm5.invoke(() -> WANTestBase.createSender("ln", 2, true, 100, 10, false, false, null, false));
 
     //Create the partitioned region in vm4
-    vm4.invoke(() -> WANTestBase.createPartitionedRegion(getTestMethodName() + "_PR", "ln", 0, 1,
+    vm4.invoke(() -> WANTestBase.createPartitionedRegion(getTestMethodName() + "_PR", "ln", 0, 4,
         isOffHeap()));
 
 
-    vm5.invoke(() -> WANTestBase.createPartitionedRegion(getTestMethodName() + "_PR", "ln", 0, 1,
+    vm5.invoke(() -> WANTestBase.createPartitionedRegion(getTestMethodName() + "_PR", "ln", 0, 4,
         isOffHeap()));
+
+    vm5.invoke(() -> {
+      Region region = cache.getRegion(getTestMethodName() + "_PR");
+          PartitionRegionHelper.assignBucketsToPartitions(region);
+    });
 
     vm4.invoke(() -> WANTestBase.pauseSender("ln"));
     vm5.invoke(() -> WANTestBase.pauseSender("ln"));
 
-    vm4.invoke(() -> WANTestBase.doPutsPDXSerializable(getTestMethodName() + "_PR", 1));
+    //Do some puts to fill up our queues
+    vm4.invoke(() -> WANTestBase.doPuts(getTestMethodName() + "_PR", 20));
+
+    vm4.invoke(() -> {
+      final Region r = cache.getRegion(Region.SEPARATOR + getTestMethodName() + "_PR");
+      PdxValue result = (PdxValue) r.put(KEY_0, new PdxValue(0));
+    });
 
     //Force VM4 to be the primary
     vm4.invoke(() -> {
@@ -567,7 +580,7 @@ public class PDXNewWanDUnitTest extends WANTestBase {
     vm5.invoke(() -> WANTestBase.resumeSender("ln"));
 
 
-    boolean blocking = vm3.invoke(() -> {
+    boolean blocking = vm2.invoke(() -> {
       BlockingPdxTypeUpdateObserver observer =
           (BlockingPdxTypeUpdateObserver) DistributionMessageObserver.getInstance();
       return observer.startedBlocking.await(1, TimeUnit.MINUTES);
@@ -577,13 +590,19 @@ public class PDXNewWanDUnitTest extends WANTestBase {
 
     vm4.invoke(() -> WANTestBase.resumeSender("ln"));
 
-    vm2.invoke(() -> WANTestBase.validateRegionSize_PDX(getTestMethodName() + "_PR", 1));
+    vm2.invoke(() -> {
+      final Region region = cache.getRegion(Region.SEPARATOR + getTestMethodName() + "_PR");
+      Awaitility.await().atMost(1, TimeUnit.MINUTES).until(() -> region.containsKey(KEY_0));
+
+    });
+//    Thread.sleep(20000);
+//    vm2.invoke(() -> WANTestBase.validateRegionSize_PDX(getTestMethodName() + "_PR", 21));
 
     //Make sure vm3 can deserialize the value
     vm3.invoke(() -> {
       final Region r = cache.getRegion(Region.SEPARATOR + getTestMethodName() + "_PR");
-      SimpleClass result = (SimpleClass) r.get(KEY_0);
-      assertEquals(result, new SimpleClass(0, (byte)0));
+      PdxValue result = (PdxValue) r.get(KEY_0);
+      assertEquals(result, new PdxValue(0));
     });
   }
 
@@ -818,8 +837,9 @@ public class PDXNewWanDUnitTest extends WANTestBase {
   private static class BlockingPdxTypeUpdateObserver extends DistributionMessageObserver {
     private CountDownLatch latch = new CountDownLatch(1);
     private CountDownLatch startedBlocking = new CountDownLatch(1);
+
     @Override
-    public void beforeProcessMessage(DistributionManager dm, DistributionMessage message) {
+    public void beforeSendMessage(DistributionManager dm, DistributionMessage message) {
       if(message instanceof UpdateOperation.UpdateMessage && ((UpdateOperation.UpdateMessage) message).getRegionPath().contains(
           PeerTypeRegistration.REGION_FULL_PATH)) {
         startedBlocking.countDown();
@@ -830,6 +850,58 @@ public class PDXNewWanDUnitTest extends WANTestBase {
         }
 
       }
+    }
+
+//    @Override
+//    public void beforeProcessMessage(DistributionManager dm, DistributionMessage message) {
+//      if(message instanceof UpdateOperation.UpdateMessage && ((UpdateOperation.UpdateMessage) message).getRegionPath().contains(
+//          PeerTypeRegistration.REGION_FULL_PATH)) {
+//        startedBlocking.countDown();
+//        try {
+//          latch.await();
+//        } catch (InterruptedException e) {
+//          throw new RuntimeException("Interrupted", e);
+//        }
+//
+//      }
+//    }
+  }
+
+  public static class PdxValue implements PdxSerializable {
+    public int value;
+
+    public PdxValue(int value) {
+      this.value = value;
+    }
+
+    @Override
+    public void toData(PdxWriter writer) {
+      writer.writeInt("value", value);
+
+    }
+
+    @Override
+    public void fromData(PdxReader reader) {
+      value = reader.readInt("value");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      PdxValue pdxValue = (PdxValue) o;
+
+      return value == pdxValue.value;
+    }
+
+    @Override
+    public int hashCode() {
+      return value;
     }
   }
 
