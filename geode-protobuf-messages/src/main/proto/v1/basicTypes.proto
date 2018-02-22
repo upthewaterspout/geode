@@ -29,6 +29,10 @@ message Entry {
     EncodedValue value = 2;
 }
 
+message Struct {
+  repeated EncodedValue element = 1;
+}
+
 message EncodedValue {
     oneof value{
         int32 intResult = 1;

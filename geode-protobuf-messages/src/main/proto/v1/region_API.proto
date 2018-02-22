@@ -84,3 +84,12 @@ message GetRegionRequest {
 message GetRegionResponse {
     Region region = 1;
 }
+
+message OQLQueryRequest {
+    string query = 1;
+    repeated EncodedValue bindParameter = 2;
+}
+
+message OQLQueryResponse {
+    repeated Struct result = 1;
+}

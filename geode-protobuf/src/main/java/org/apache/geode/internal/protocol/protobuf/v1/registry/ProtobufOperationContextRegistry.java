@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.geode.annotations.Experimental;
 import org.apache.geode.internal.protocol.protobuf.v1.ClientProtocol;
+import org.apache.geode.internal.protocol.protobuf.v1.ClientProtocol.Message.MessageTypeCase;
 import org.apache.geode.internal.protocol.protobuf.v1.ProtobufOperationContext;
 import org.apache.geode.internal.protocol.protobuf.v1.operations.ExecuteFunctionOnGroupRequestOperationHandler;
 import org.apache.geode.internal.protocol.protobuf.v1.operations.ExecuteFunctionOnMemberRequestOperationHandler;
@@ -29,11 +30,14 @@ import org.apache.geode.internal.protocol.protobuf.v1.operations.GetRegionNamesR
 import org.apache.geode.internal.protocol.protobuf.v1.operations.GetRegionRequestOperationHandler;
 import org.apache.geode.internal.protocol.protobuf.v1.operations.GetRequestOperationHandler;
 import org.apache.geode.internal.protocol.protobuf.v1.operations.GetServerOperationHandler;
+import org.apache.geode.internal.protocol.protobuf.v1.operations.OqlQueryRequestOperationHandler;
 import org.apache.geode.internal.protocol.protobuf.v1.operations.PutAllRequestOperationHandler;
 import org.apache.geode.internal.protocol.protobuf.v1.operations.PutRequestOperationHandler;
 import org.apache.geode.internal.protocol.protobuf.v1.operations.RemoveRequestOperationHandler;
 import org.apache.geode.internal.protocol.protobuf.v1.operations.security.AuthenticationRequestOperationHandler;
 import org.apache.geode.security.ResourcePermission;
+import org.apache.geode.security.ResourcePermission.Operation;
+import org.apache.geode.security.ResourcePermission.Resource;
 
 @Experimental
 public class ProtobufOperationContextRegistry {
@@ -138,5 +142,10 @@ public class ProtobufOperationContextRegistry {
             // Resource permissions get handled per-function, since they have varying permission
             // requirements.
             new ResourcePermission(ResourcePermission.NULL, ResourcePermission.NULL)));
+    operationContexts.put(MessageTypeCase.OQLQUERYREQUEST,
+        new ProtobufOperationContext<>(ClientProtocol.Message::getOqlQueryRequest,
+            new OqlQueryRequestOperationHandler(),
+            opsResp -> ClientProtocol.Message.newBuilder().setOqlQueryResponse(opsResp),
+            new ResourcePermission(Resource.DATA, Operation.READ)));
   }
 }
