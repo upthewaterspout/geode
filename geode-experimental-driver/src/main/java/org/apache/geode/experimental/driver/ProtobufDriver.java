@@ -85,6 +85,11 @@ public class ProtobufDriver implements Driver {
   }
 
   @Override
+  public QueryService getQueryService() {
+    return new ProtobufQueryService(channel);
+  }
+
+  @Override
   public void close() {
     try {
       this.channel.close();
