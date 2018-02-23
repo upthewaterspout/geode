@@ -14,13 +14,10 @@
  */
 package org.apache.geode.internal.protocol.protobuf.v1;
 
-import java.util.List;
-
 import com.google.protobuf.ByteString;
 import com.google.protobuf.NullValue;
 
 import org.apache.geode.annotations.Experimental;
-import org.apache.geode.internal.protocol.protobuf.v1.BasicTypes.EncodedValue;
 import org.apache.geode.internal.protocol.protobuf.v1.serialization.JsonPdxConverter;
 import org.apache.geode.internal.protocol.protobuf.v1.serialization.SerializationService;
 import org.apache.geode.internal.protocol.protobuf.v1.serialization.exception.DecodingException;

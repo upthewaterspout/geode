@@ -58,10 +58,7 @@ public class OqlQueryRequestOperationHandler
 
     Query query = queryService.newQuery(queryString);
 
-    Object[] bindParameters = new Object[encodedParameters.size()];
-    for (int i = 0; i < encodedParameters.size(); i++) {
-      bindParameters[i] = serializationService.decode(encodedParameters.get(i));
-    }
+    Object[] bindParameters = decodeBindParameters(serializationService, encodedParameters);
     try {
       Object results = query.execute(bindParameters);
       return Success.of(encodeResults(serializationService, results));
@@ -70,6 +67,15 @@ public class OqlQueryRequestOperationHandler
       return Failure.of(e);
     }
 
+  }
+
+  private Object[] decodeBindParameters(final ProtobufSerializationService serializationService,
+      final List<EncodedValue> encodedParameters) {
+    Object[] bindParameters = new Object[encodedParameters.size()];
+    for (int i = 0; i < encodedParameters.size(); i++) {
+      bindParameters[i] = serializationService.decode(encodedParameters.get(i));
+    }
+    return bindParameters;
   }
 
   private OQLQueryResponse encodeResults(final ProtobufSerializationService serializationService,
