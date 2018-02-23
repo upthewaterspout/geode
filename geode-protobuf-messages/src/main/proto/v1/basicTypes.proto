@@ -29,8 +29,16 @@ message Entry {
     EncodedValue value = 2;
 }
 
-message Struct {
+message List {
   repeated EncodedValue element = 1;
+}
+
+//Represents a table, such as the results of
+//an OQL query. The field names and all rows
+//should have the same number of elements.
+message Table {
+    repeated string fieldName = 1;
+    repeated List row = 2;
 }
 
 message EncodedValue {

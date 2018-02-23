@@ -90,6 +90,13 @@ message OQLQueryRequest {
     repeated EncodedValue bindParameter = 2;
 }
 
+//Response to an OQL query. Depending on the query,
+//it may return a single value, a list of values, or a table
+//of values.
 message OQLQueryResponse {
-    repeated Struct result = 1;
+    oneof result {
+      EncodedValue singleResult = 1;
+      List listResult = 2;
+      Table tableResult = 3;
+    }
 }

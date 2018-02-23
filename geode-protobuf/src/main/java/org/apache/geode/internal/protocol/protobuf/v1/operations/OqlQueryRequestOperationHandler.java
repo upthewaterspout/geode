@@ -14,6 +14,7 @@
  */
 package org.apache.geode.internal.protocol.protobuf.v1.operations;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.logging.log4j.Logger;
@@ -23,12 +24,12 @@ import org.apache.geode.cache.query.QueryException;
 import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.cache.query.Struct;
 import org.apache.geode.cache.query.internal.InternalQueryService;
+import org.apache.geode.cache.query.types.StructType;
 import org.apache.geode.internal.exception.InvalidExecutionContextException;
 import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.internal.protocol.operations.ProtobufOperationHandler;
 import org.apache.geode.internal.protocol.protobuf.v1.BasicTypes;
 import org.apache.geode.internal.protocol.protobuf.v1.BasicTypes.EncodedValue;
-import org.apache.geode.internal.protocol.protobuf.v1.ClientProtocol.ErrorResponse;
 import org.apache.geode.internal.protocol.protobuf.v1.Failure;
 import org.apache.geode.internal.protocol.protobuf.v1.MessageExecutionContext;
 import org.apache.geode.internal.protocol.protobuf.v1.ProtobufSerializationService;
@@ -40,16 +41,14 @@ import org.apache.geode.internal.protocol.protobuf.v1.Success;
 import org.apache.geode.internal.protocol.protobuf.v1.serialization.exception.DecodingException;
 import org.apache.geode.internal.protocol.protobuf.v1.serialization.exception.EncodingException;
 import org.apache.geode.internal.protocol.protobuf.v1.state.exception.ConnectionStateException;
-import org.apache.geode.internal.protocol.protobuf.v1.utilities.ProtobufResponseUtilities;
 
 public class OqlQueryRequestOperationHandler
     implements ProtobufOperationHandler<OQLQueryRequest, OQLQueryResponse> {
   Logger logger = LogService.getLogger();
 
   @Override
-  public Result<OQLQueryResponse, ErrorResponse> process(
-      final ProtobufSerializationService serializationService, final OQLQueryRequest request,
-      final MessageExecutionContext messageExecutionContext)
+  public Result<OQLQueryResponse> process(final ProtobufSerializationService serializationService,
+      final OQLQueryRequest request, final MessageExecutionContext messageExecutionContext)
       throws InvalidExecutionContextException, ConnectionStateException, EncodingException,
       DecodingException {
     String queryString = request.getQuery();
@@ -68,7 +67,7 @@ public class OqlQueryRequestOperationHandler
       return Success.of(encodeResults(serializationService, results));
     } catch (QueryException e) {
       logger.info("Query failed: " + query, e);
-      return Failure.of(ProtobufResponseUtilities.makeErrorResponse(e));
+      return Failure.of(e);
     }
 
   }
@@ -76,29 +75,43 @@ public class OqlQueryRequestOperationHandler
   private OQLQueryResponse encodeResults(final ProtobufSerializationService serializationService,
       final Object value) throws EncodingException {
     final Builder builder = OQLQueryResponse.newBuilder();
-    if (value instanceof SelectResults) {
-      for (Object row : (SelectResults) value) {
-        if (row instanceof Struct) {
-          builder.addResult(encodeStruct(serializationService, (Struct) row));
-        } else {
-          builder.addResult(
-              BasicTypes.Struct.newBuilder().addElement(serializationService.encode(row)));
-        }
-      }
 
-    } else {
-      builder
-          .addResult(BasicTypes.Struct.newBuilder().addElement(serializationService.encode(value)));
+    // The result is a single value
+    if (!(value instanceof SelectResults)) {
+      builder.setSingleResult(serializationService.encode(value));
+      return builder.build();
     }
+
+    SelectResults<?> selectResults = (SelectResults<?>) value;
+
+    // The result is a list of objects
+    if (!selectResults.getCollectionType().getElementType().isStructType()) {
+      BasicTypes.List.Builder listResult = BasicTypes.List.newBuilder();
+      selectResults.stream().map(serializationService::encode).forEach(listResult::addElement);
+      builder.setListResult(listResult);
+      return builder.build();
+    }
+
+    // The result is a list of structs
+    SelectResults<Struct> structResults = (SelectResults<Struct>) selectResults;
+
+    StructType elementType = (StructType) structResults.getCollectionType().getElementType();
+    BasicTypes.Table.Builder tableResult = BasicTypes.Table.newBuilder();
+    tableResult.addAllFieldName(Arrays.asList(elementType.getFieldNames()));
+
+    for (Struct row : structResults) {
+      tableResult.addRow(encodeStruct(serializationService, row));
+    }
+    builder.setTableResult(tableResult);
+
     return builder.build();
   }
 
-  private BasicTypes.Struct.Builder encodeStruct(
+  private BasicTypes.List.Builder encodeStruct(
       final ProtobufSerializationService serializationService, final Struct row)
       throws EncodingException {
-    final Struct struct = row;
-    BasicTypes.Struct.Builder structBuilder = BasicTypes.Struct.newBuilder();
-    for (Object element : struct.getFieldValues()) {
+    BasicTypes.List.Builder structBuilder = BasicTypes.List.newBuilder();
+    for (Object element : row.getFieldValues()) {
       structBuilder.addElement(serializationService.encode(element));
     }
     return structBuilder;

@@ -14,7 +14,6 @@
  */
 package org.apache.geode.internal.protocol.protobuf.v1.operations;
 
-import static org.apache.geode.internal.protocol.protobuf.v1.operations.OqlQueryUtils.expectedResults;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -22,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,12 +34,15 @@ import org.apache.geode.cache.query.QueryInvocationTargetException;
 import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.cache.query.internal.InternalQueryService;
+import org.apache.geode.cache.query.internal.LinkedStructSet;
 import org.apache.geode.cache.query.internal.ResultsBag;
 import org.apache.geode.cache.query.internal.StructImpl;
+import org.apache.geode.cache.query.internal.types.ObjectTypeImpl;
 import org.apache.geode.cache.query.internal.types.StructTypeImpl;
 import org.apache.geode.internal.exception.InvalidExecutionContextException;
 import org.apache.geode.internal.protocol.TestExecutionContext;
-import org.apache.geode.internal.protocol.protobuf.v1.BasicTypes.Struct;
+import org.apache.geode.internal.protocol.protobuf.v1.BasicTypes;
+import org.apache.geode.internal.protocol.protobuf.v1.ProtobufSerializationService;
 import org.apache.geode.internal.protocol.protobuf.v1.RegionAPI.OQLQueryRequest;
 import org.apache.geode.internal.protocol.protobuf.v1.RegionAPI.OQLQueryResponse;
 import org.apache.geode.internal.protocol.protobuf.v1.Result;
@@ -73,11 +75,11 @@ public class OqlQueryRequestOperationHandlerJUnitTest extends OperationHandlerJU
     when(query.execute((Object[]) any())).thenReturn(STRING_RESULT_1);
     final OQLQueryRequest request =
         OQLQueryRequest.newBuilder().setQuery(SELECT_STAR_QUERY).build();
-    final Result<OQLQueryResponse, ?> result = operationHandler.process(serializationService,
-        request, TestExecutionContext.getNoAuthCacheExecutionContext(cacheStub));
+    final Result<OQLQueryResponse> result = operationHandler.process(serializationService, request,
+        TestExecutionContext.getNoAuthCacheExecutionContext(cacheStub));
 
-    assertEquals(expectedResults(serializationService, new Object[] {STRING_RESULT_1}),
-        result.getMessage().getResultList());
+    assertEquals(serializationService.encode(STRING_RESULT_1),
+        result.getMessage().getSingleResult());
   }
 
   @Test
@@ -87,17 +89,19 @@ public class OqlQueryRequestOperationHandlerJUnitTest extends OperationHandlerJU
     Query query = mock(Query.class);
     when(queryService.newQuery(eq(SELECT_STAR_QUERY))).thenReturn(query);
     SelectResults results = new ResultsBag();
+    results.setElementType(new ObjectTypeImpl());
     results.add(STRING_RESULT_1);
     results.add(STRING_RESULT_2);
 
     when(query.execute((Object[]) any())).thenReturn(results);
     final OQLQueryRequest request =
         OQLQueryRequest.newBuilder().setQuery(SELECT_STAR_QUERY).build();
-    final Result<OQLQueryResponse, ?> result = operationHandler.process(serializationService,
-        request, TestExecutionContext.getNoAuthCacheExecutionContext(cacheStub));
+    final Result<OQLQueryResponse> result = operationHandler.process(serializationService, request,
+        TestExecutionContext.getNoAuthCacheExecutionContext(cacheStub));
 
-    assertEquals(expectedResults(serializationService, new Object[] {STRING_RESULT_1},
-        new Object[] {STRING_RESULT_2}), result.getMessage().getResultList());
+    assertEquals(Arrays.asList(STRING_RESULT_1, STRING_RESULT_2),
+        result.getMessage().getListResult().getElementList().stream()
+            .map(serializationService::decode).collect(Collectors.toList()));
   }
 
   @Test
@@ -106,20 +110,29 @@ public class OqlQueryRequestOperationHandlerJUnitTest extends OperationHandlerJU
       TypeMismatchException, QueryInvocationTargetException, FunctionDomainException {
     Query query = mock(Query.class);
     when(queryService.newQuery(eq(SELECT_STAR_QUERY))).thenReturn(query);
-    SelectResults results = new ResultsBag();
-    results.add(new StructImpl(new StructTypeImpl(), new Object[] {STRING_RESULT_1}));
-    results.add(new StructImpl(new StructTypeImpl(), new Object[] {STRING_RESULT_1}));
+
+
+    SelectResults results = new LinkedStructSet();
+    StructTypeImpl elementType = new StructTypeImpl(new String[] {"field1"});
+    results.setElementType(elementType);
+    results.add(new StructImpl(elementType, new Object[] {STRING_RESULT_1}));
+    results.add(new StructImpl(elementType, new Object[] {STRING_RESULT_2}));
 
     when(query.execute((Object[]) any())).thenReturn(results);
+
     final OQLQueryRequest request =
         OQLQueryRequest.newBuilder().setQuery(SELECT_STAR_QUERY).build();
-    final Result<OQLQueryResponse, ?> result = operationHandler.process(serializationService,
-        request, TestExecutionContext.getNoAuthCacheExecutionContext(cacheStub));
 
-    assertEquals(Arrays.asList(
-        Struct.newBuilder().addElement(serializationService.encode(STRING_RESULT_1)).build(),
-        Struct.newBuilder().addElement(serializationService.encode(STRING_RESULT_1)).build()),
-        result.getMessage().getResultList());
+    final Result<OQLQueryResponse> result = operationHandler.process(serializationService, request,
+        TestExecutionContext.getNoAuthCacheExecutionContext(cacheStub));
+
+    assertEquals(
+        Arrays.asList(
+            BasicTypes.List.newBuilder().addElement(serializationService.encode(STRING_RESULT_1))
+                .build(),
+            BasicTypes.List.newBuilder().addElement(serializationService.encode(STRING_RESULT_2))
+                .build()),
+        result.getMessage().getTableResult().getRowList());
   }
 
 }
