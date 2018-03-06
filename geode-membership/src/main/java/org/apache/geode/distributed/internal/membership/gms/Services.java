@@ -19,6 +19,7 @@ import static org.apache.geode.internal.serialization.DataSerializableFixedID.FI
 import static org.apache.geode.internal.serialization.DataSerializableFixedID.FIND_COORDINATOR_RESP;
 import static org.apache.geode.internal.serialization.DataSerializableFixedID.GET_VIEW_REQ;
 import static org.apache.geode.internal.serialization.DataSerializableFixedID.GET_VIEW_RESP;
+import static org.apache.geode.internal.serialization.DataSerializableFixedID.HANDSHAKE;
 import static org.apache.geode.internal.serialization.DataSerializableFixedID.HEARTBEAT_REQUEST;
 import static org.apache.geode.internal.serialization.DataSerializableFixedID.HEARTBEAT_RESPONSE;
 import static org.apache.geode.internal.serialization.DataSerializableFixedID.INSTALL_VIEW_MESSAGE;
@@ -70,7 +71,8 @@ import org.apache.geode.distributed.internal.membership.gms.messages.NetworkPart
 import org.apache.geode.distributed.internal.membership.gms.messages.RemoveMemberMessage;
 import org.apache.geode.distributed.internal.membership.gms.messages.SuspectMembersMessage;
 import org.apache.geode.distributed.internal.membership.gms.messages.ViewAckMessage;
-import org.apache.geode.distributed.internal.membership.gms.messenger.JGroupsMessenger;
+import org.apache.geode.distributed.internal.membership.gms.tcpmessenger.NettyTcpMessenger;
+import org.apache.geode.distributed.internal.membership.gms.tcpmessenger.netty.Handshake;
 import org.apache.geode.distributed.internal.tcpserver.TcpClient;
 import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreator;
 import org.apache.geode.internal.serialization.DSFIDSerializer;
@@ -152,7 +154,8 @@ public class Services<ID extends MemberIdentifier> {
     this.manager = membershipManager;
     this.joinLeave = new GMSJoinLeave<>(locatorClient);
     this.healthMon = new GMSHealthMonitor<>(socketCreator);
-    this.messenger = new JGroupsMessenger<>();
+    // this.messenger = new JGroupsMessenger();
+    this.messenger = new NettyTcpMessenger(serializer, manager);
     this.auth = authenticator;
     this.serializer = serializer;
     this.memberFactory = memberFactory;
@@ -178,6 +181,7 @@ public class Services<ID extends MemberIdentifier> {
     serializer.registerDSFID(JOIN_RESPONSE, JoinResponseMessage.class);
     serializer.registerDSFID(JOIN_REQUEST, JoinRequestMessage.class);
     serializer.registerDSFID(MEMBER_IDENTIFIER, MemberIdentifierImpl.class);
+    serializer.registerDSFID(HANDSHAKE, Handshake.class);
 
   }
 

@@ -1460,7 +1460,6 @@ public class JGroupsMessenger<ID extends MemberIdentifier> implements Messenger<
     return null;
   }
 
-  private AtomicInteger requestId = new AtomicInteger((new Random().nextInt()));
   private HashMap<Integer, ID> requestIdVsRecipients = new HashMap<>();
 
   ID getRequestedMember(int requestId) {
@@ -1469,11 +1468,6 @@ public class JGroupsMessenger<ID extends MemberIdentifier> implements Messenger<
 
   void addRequestId(int requestId, ID mbr) {
     requestIdVsRecipients.put(requestId, mbr);
-  }
-
-  @Override
-  public int getRequestId() {
-    return requestId.incrementAndGet();
   }
 
   @Override

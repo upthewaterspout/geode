@@ -64,6 +64,8 @@ dependencies {
 
 
     upgradeTestRuntimeOnly(project(path: ':geode-old-versions', configuration: 'classpathsOutput'))
+    implementation('io.netty:netty-all')
+
 }
 
 distributedTest {

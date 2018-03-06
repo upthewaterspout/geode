@@ -187,7 +187,7 @@ public class DistributionImpl implements Distribution {
     } catch (RuntimeException e) {
       logger.error("Unexpected problem starting up membership services", e);
       throw new SystemConnectException("Problem starting up membership services: " + e.getMessage()
-          + ".  Consult log file for more details");
+          + ".  Consult log file for more details", e);
     }
   }
 

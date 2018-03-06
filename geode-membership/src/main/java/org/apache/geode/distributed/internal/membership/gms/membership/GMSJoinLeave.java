@@ -31,11 +31,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
@@ -257,6 +260,11 @@ public class GMSJoinLeave<ID extends MemberIdentifier> implements JoinLeave<ID> 
    */
   private final TcpClient locatorClient;
 
+  /**
+   * A counter for generating unique request ids
+   */
+  private final AtomicInteger requestId = new AtomicInteger((ThreadLocalRandom.current().nextInt()));
+
   public GMSJoinLeave(final TcpClient locatorClient) {
     this.locatorClient = locatorClient;
   }
@@ -473,7 +481,7 @@ public class GMSJoinLeave<ID extends MemberIdentifier> implements JoinLeave<ID> 
       int port = services.getHealthMonitor().getFailureDetectionPort();
       JoinRequestMessage<ID> req = new JoinRequestMessage<>(coord, this.localAddress,
           services.getAuthenticator().getCredentials(coord), port,
-          services.getMessenger().getRequestId());
+          getRequestId());
       services.getMessenger().send(req);
     }
 
@@ -1161,7 +1169,7 @@ public class GMSJoinLeave<ID extends MemberIdentifier> implements JoinLeave<ID> 
     String dhalgo = services.getConfig().getSecurityUDPDHAlgo();
     FindCoordinatorRequest<ID> request = new FindCoordinatorRequest<>(this.localAddress,
         state.alreadyTried, state.viewId, services.getMessenger().getPublicKey(localAddress),
-        services.getMessenger().getRequestId(), dhalgo);
+        getRequestId(), dhalgo);
     Set<ID> possibleCoordinators = new HashSet<ID>();
     Set<ID> coordinatorsWithView = new HashSet<ID>();
 
@@ -1300,7 +1308,7 @@ public class GMSJoinLeave<ID extends MemberIdentifier> implements JoinLeave<ID> 
           FindCoordinatorRequest<ID> req =
               new FindCoordinatorRequest<>(localAddress, state.alreadyTried,
                   state.viewId, services.getMessenger().getPublicKey(localAddress),
-                  services.getMessenger().getRequestId(), dhalgo);
+                  getRequestId(), dhalgo);
           req.setRecipients(r);
 
           services.getMessenger().send(req, v);
@@ -1309,7 +1317,7 @@ public class GMSJoinLeave<ID extends MemberIdentifier> implements JoinLeave<ID> 
         FindCoordinatorRequest<ID> req =
             new FindCoordinatorRequest<>(localAddress, state.alreadyTried,
                 state.viewId, services.getMessenger().getPublicKey(localAddress),
-                services.getMessenger().getRequestId(), dhalgo);
+                getRequestId(), dhalgo);
         req.setRecipients(recipients);
 
         services.getMessenger().send(req, v);
@@ -1910,6 +1918,11 @@ public class GMSJoinLeave<ID extends MemberIdentifier> implements JoinLeave<ID> 
     }
     return result;
   }
+
+  private int getRequestId() {
+    return requestId.incrementAndGet();
+  }
+
 
   /***
    * test method

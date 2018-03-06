@@ -20,6 +20,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
 import org.apache.geode.distributed.internal.membership.api.Message;
+import org.apache.geode.distributed.internal.membership.api.QuorumChecker;
 import org.apache.geode.distributed.internal.membership.gms.GMSMembershipView;
 import org.apache.geode.distributed.internal.membership.gms.messenger.GMSQuorumChecker;
 
@@ -61,7 +62,7 @@ public interface Messenger<ID extends MemberIdentifier> extends Service<ID> {
   /**
    * retrieves the quorum checker that is used during auto-reconnect attempts
    */
-  GMSQuorumChecker<ID> getQuorumChecker();
+  QuorumChecker getQuorumChecker();
 
   /**
    * test whether multicast is not only turned on but is working
@@ -118,13 +119,6 @@ public interface Messenger<ID extends MemberIdentifier> extends Service<ID> {
    * @return byte[] cluster key
    */
   byte[] getClusterSecretKey();
-
-  /**
-   * To set requestId in request. This requestId comes back in response to match the request.
-   *
-   * @return int request id
-   */
-  int getRequestId();
 
   /**
    * Initialize the cluster key, this happens when member becomes coordinator.
