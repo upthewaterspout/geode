@@ -55,11 +55,9 @@ public class PdxInstanceGenerator extends Generator {
     Map<Class<?>, Method> writeMethods = getAllowedWriteMethods();
 
     int numFields = random.nextInt(0, 20);
-    PdxInstanceFactory factory =
-        PdxInstanceFactoryMock.createMockFactory(className);
+    PdxInstanceFactory factory = PdxInstanceFactoryMock.createMockFactory(className);
     Set<String> fieldNames =
         new HashSet<>(gen().type(String.class).times(numFields).generate(random, status));
-    System.out.println("FieldNames=" + fieldNames);
     for (String fieldName : fieldNames) {
       Map.Entry<Class<?>, Method> writeMethod = random.choose(writeMethods.entrySet());
       Class<?> type = writeMethod.getKey();

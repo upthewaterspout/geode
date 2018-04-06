@@ -14,6 +14,7 @@
  */
 package org.apache.geode.protocol.serialization;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -26,6 +27,7 @@ import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.pholser.junit.quickcheck.From;
 import com.pholser.junit.quickcheck.Property;
+import com.pholser.junit.quickcheck.When;
 import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
 import org.junit.After;
 import org.junit.Before;
@@ -80,16 +82,20 @@ public class ProtobufStructSerializerTest {
     assertEquals("value", struct.getFieldsMap().get("field1").getStringValue());
   }
 
-  @Property(trials = 10)
-  public void testSymmetry(
-      @PdxInstanceGenerator.ClassName(ProtobufStructSerializer.PROTOBUF_STRUCT)
-      @PdxInstanceGenerator.FieldTypes({String.class, int.class})
-      @From(PdxInstanceGenerator.class) PdxInstance original)
+  @Property(trials = 100)
+  public void testSymmetry(@When(
+      seed = 793351614853016898L) @PdxInstanceGenerator.ClassName(ProtobufStructSerializer.PROTOBUF_STRUCT) @PdxInstanceGenerator.FieldTypes({
+          String.class, int.class, long.class, byte.class, byte[].class})
+  // @PdxInstanceGenerator.FieldTypes({String.class, boolean.class})
+  @From(PdxInstanceGenerator.class) PdxInstance original)
       throws IOException, ClassNotFoundException {
     ByteString bytes = serializer.serialize(original);
     Struct struct = Struct.parseFrom(bytes);
     bytes = struct.toByteString();
     PdxInstance actual = (PdxInstance) serializer.deserialize(bytes);
-    assertEquals(original, actual);
+    // assertThat(actual).isEqualTo(original);
+    // assertEquals(original, actual);
+    assertThat(original).isEqualTo(actual);
+    assertEquals(actual, original);
   }
 }

@@ -84,7 +84,9 @@ public interface ValueSerializer {
    * Unique identifier for this serializer. Client's must set the valueFormat field of the
    * HandshakeRequest to this value in order to use this format.
    */
-  String getID();
+  default String getID() {
+    return getClass().getName();
+  }
 
   /**
    * True if this serializer wants to serialize all values, including primitives like
