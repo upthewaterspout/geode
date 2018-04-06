@@ -83,6 +83,14 @@ public class TypeRegistry {
     }
   }
 
+  /**
+   * Test hook to create a TypeRegistry without a cache
+   */
+  public TypeRegistry(TypeRegistration registration) {
+    this.distributedTypeRegistry = registration;
+    this.cache = null;
+  }
+
   /*
    * Test Hook to clear the type registry
    */

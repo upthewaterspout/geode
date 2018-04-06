@@ -34,7 +34,7 @@ public class ProtobufStructSerializer implements ValueSerializer {
     PdxInstance pdxInstance = (PdxInstance) object;
 
     Struct.Builder structBuilder = Struct.newBuilder();
-    for(String fieldName : pdxInstance.getFieldNames()) {
+    for (String fieldName : pdxInstance.getFieldNames()) {
       Object value = pdxInstance.getField(fieldName);
       structBuilder.putFields(fieldName, Value.newBuilder().setStringValue((String) value).build());
     }
@@ -45,11 +45,9 @@ public class ProtobufStructSerializer implements ValueSerializer {
   @Override
   public Object deserialize(ByteString bytes) throws IOException, ClassNotFoundException {
     Struct struct = Struct.parseFrom(bytes);
-    PdxInstanceFactory
-        pdxInstanceFactory =
-        cache.createPdxInstanceFactory(PROTOBUF_STRUCT);
+    PdxInstanceFactory pdxInstanceFactory = cache.createPdxInstanceFactory(PROTOBUF_STRUCT);
 
-    for(Map.Entry<String, Value> field:  struct.getFieldsMap().entrySet()) {
+    for (Map.Entry<String, Value> field : struct.getFieldsMap().entrySet()) {
       String fieldName = field.getKey();
       Value value = field.getValue();
       pdxInstanceFactory.writeString(fieldName, value.getStringValue());
