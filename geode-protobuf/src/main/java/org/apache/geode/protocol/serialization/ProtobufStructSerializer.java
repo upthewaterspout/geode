@@ -18,13 +18,18 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.UnsafeByteOperations;
 
 import org.apache.geode.cache.Cache;
+import org.apache.geode.internal.InternalDataSerializer;
 import org.apache.geode.internal.protocol.protobuf.v1.BasicTypes;
 import org.apache.geode.internal.protocol.protobuf.v1.Struct;
 import org.apache.geode.internal.protocol.protobuf.v1.Value;
+import org.apache.geode.internal.tcp.ByteBufferInputStream;
 import org.apache.geode.pdx.PdxInstance;
 import org.apache.geode.pdx.PdxInstanceFactory;
+import org.apache.geode.pdx.internal.PdxField;
+import org.apache.geode.pdx.internal.PdxInstanceImpl;
 
 public class ProtobufStructSerializer implements ValueSerializer {
   static final String PROTOBUF_STRUCT = "__PROTOBUF_STRUCT_AS_PDX";
@@ -33,32 +38,42 @@ public class ProtobufStructSerializer implements ValueSerializer {
   @Override
   public ByteString serialize(Object object) throws IOException {
     PdxInstance pdxInstance = (PdxInstance) object;
+    PdxInstanceImpl impl = (PdxInstanceImpl) pdxInstance;
 
     Struct.Builder structBuilder = Struct.newBuilder();
     for (String fieldName : pdxInstance.getFieldNames()) {
-      Object value = pdxInstance.getField(fieldName);
       Value.Builder builder = Value.newBuilder();
-      if (value instanceof String) {
-        builder.setEncodedValue(
-            BasicTypes.EncodedValue.newBuilder().setStringResult((String) value).build());
-      } else if (value instanceof Boolean) {
-        builder.setEncodedValue(
-            BasicTypes.EncodedValue.newBuilder().setBooleanResult((Boolean) value).build());
-      } else if (value instanceof Integer) {
-        builder.setEncodedValue(
-            BasicTypes.EncodedValue.newBuilder().setIntResult((Integer) value).build());
-      } else if (value instanceof Byte) {
-        builder.setEncodedValue(
-            BasicTypes.EncodedValue.newBuilder().setByteResult((Byte) value).build());
-      } else if (value instanceof Long) {
-        builder.setEncodedValue(
-            BasicTypes.EncodedValue.newBuilder().setLongResult((Long) value).build());
-      } else if (value instanceof byte[]) {
-        builder.setEncodedValue(BasicTypes.EncodedValue.newBuilder()
-            .setBinaryResult(ByteString.copyFrom((byte[]) value)).build());
-      } else {
-        throw new IllegalStateException(
-            "Don't know how to translate object of type " + value.getClass() + ": " + value);
+      PdxField pdxField = impl.getPdxType().getPdxField(fieldName);
+      switch (pdxField.getFieldType()) {
+        case STRING:
+          builder.setEncodedValue(BasicTypes.EncodedValue.newBuilder()
+              .setStringResult((String) pdxInstance.getField(fieldName)).build());
+          break;
+        case BOOLEAN:
+          builder.setEncodedValue(BasicTypes.EncodedValue.newBuilder()
+              .setBooleanResult((Boolean) pdxInstance.getField(fieldName)).build());
+          break;
+        case INT:
+          builder.setEncodedValue(BasicTypes.EncodedValue.newBuilder()
+              .setIntResult((Integer) pdxInstance.getField(fieldName)).build());
+          break;
+        case BYTE:
+          builder.setEncodedValue(BasicTypes.EncodedValue.newBuilder()
+              .setByteResult((Byte) pdxInstance.getField(fieldName)).build());
+          break;
+        case LONG:
+          builder.setEncodedValue(BasicTypes.EncodedValue.newBuilder()
+              .setLongResult((Long) pdxInstance.getField(fieldName)).build());
+          break;
+        case BYTE_ARRAY:
+          builder
+              .setEncodedValue(BasicTypes.EncodedValue.newBuilder()
+                  .setBinaryResult(createByteString(impl.getRaw(pdxField.getFieldIndex()))))
+              .build();
+          break;
+        default:
+          throw new IllegalStateException("Don't know how to translate object of type "
+              + pdxField.getFieldType() + ": " + pdxInstance.getField(fieldName));
       }
       structBuilder.putFields(fieldName, builder.build());
     }
@@ -118,4 +133,11 @@ public class ProtobufStructSerializer implements ValueSerializer {
     this.cache = cache;
 
   }
+
+  private ByteString createByteString(ByteBufferInputStream.ByteSource raw) throws IOException {
+    int length = InternalDataSerializer
+        .readArrayLength(new ByteBufferInputStream(raw.getBackingByteBuffer()));
+    return UnsafeByteOperations.unsafeWrap(raw.getBackingByteBuffer());
+  }
+
 }
