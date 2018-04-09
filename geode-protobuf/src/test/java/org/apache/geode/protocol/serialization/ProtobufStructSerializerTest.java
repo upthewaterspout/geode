@@ -23,8 +23,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Struct;
-import com.google.protobuf.Value;
 import com.pholser.junit.quickcheck.From;
 import com.pholser.junit.quickcheck.Property;
 import com.pholser.junit.quickcheck.When;
@@ -37,6 +35,9 @@ import org.junit.runner.RunWith;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.CacheFactory;
+import org.apache.geode.internal.protocol.protobuf.v1.BasicTypes;
+import org.apache.geode.internal.protocol.protobuf.v1.Struct;
+import org.apache.geode.internal.protocol.protobuf.v1.Value;
 import org.apache.geode.pdx.PdxInstance;
 import org.apache.geode.test.junit.categories.IntegrationTest;
 import org.apache.geode.test.junit.categories.UnitTest;
@@ -65,7 +66,7 @@ public class ProtobufStructSerializerTest {
   @Test
   public void testDeserialize() throws IOException, ClassNotFoundException {
     Struct struct = Struct.newBuilder()
-        .putFields("field1", Value.newBuilder().setStringValue("value").build()).build();
+        .putFields("field1", Value.newBuilder().setEncodedValue(BasicTypes.EncodedValue.newBuilder().setStringResult("value")).build()).build();
     ByteString bytes = struct.toByteString();
     PdxInstance value = (PdxInstance) serializer.deserialize(bytes);
 
@@ -79,7 +80,7 @@ public class ProtobufStructSerializerTest {
     ByteString bytes = serializer.serialize(value);
     Struct struct = Struct.parseFrom(bytes);
 
-    assertEquals("value", struct.getFieldsMap().get("field1").getStringValue());
+    assertEquals("value", struct.getFieldsMap().get("field1").getEncodedValue().getStringResult());
   }
 
   @Property(trials = 100)
