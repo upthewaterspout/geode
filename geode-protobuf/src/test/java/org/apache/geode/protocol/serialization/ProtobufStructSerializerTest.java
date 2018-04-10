@@ -66,9 +66,7 @@ public class ProtobufStructSerializerTest {
   @Test
   public void testDeserialize() throws IOException, ClassNotFoundException {
     Struct struct = Struct.newBuilder()
-        .putFields("field1", Value.newBuilder()
-            .setEncodedValue(BasicTypes.EncodedValue.newBuilder().setStringResult("value")).build())
-        .build();
+        .putFields("field1", Value.newBuilder().setEncodedValue(BasicTypes.EncodedValue.newBuilder().setStringResult("value")).build()).build();
     ByteString bytes = struct.toByteString();
     PdxInstance value = (PdxInstance) serializer.deserialize(bytes);
 
@@ -86,11 +84,10 @@ public class ProtobufStructSerializerTest {
   }
 
   @Property(trials = 100)
-  public void testSymmetry(
-      @When(
-          seed = 793351614853016898L) @PdxInstanceGenerator.ClassName(ProtobufStructSerializer.PROTOBUF_STRUCT) @PdxInstanceGenerator.FieldTypes({
-              String.class, int.class, long.class, byte.class,
-              byte[].class}) @From(PdxInstanceGenerator.class) PdxInstance original)
+  public void testSymmetry(@When(
+      seed = 793351614853016898L) @PdxInstanceGenerator.ClassName(ProtobufStructSerializer.PROTOBUF_STRUCT) @PdxInstanceGenerator.FieldTypes({
+          String.class, int.class, long.class, byte.class, byte[].class})
+  @From(PdxInstanceGenerator.class) PdxInstance original)
       throws IOException, ClassNotFoundException {
     ByteString bytes = serializer.serialize(original);
     Struct struct = Struct.parseFrom(bytes);
