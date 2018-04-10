@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.UnsafeByteOperations;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.internal.protocol.protobuf.v1.BasicTypes;
@@ -55,7 +56,7 @@ public class ProtobufStructSerializer implements ValueSerializer {
             BasicTypes.EncodedValue.newBuilder().setLongResult((Long) value).build());
       } else if (value instanceof byte[]) {
         builder.setEncodedValue(BasicTypes.EncodedValue.newBuilder()
-            .setBinaryResult(ByteString.copyFrom((byte[]) value)).build());
+            .setBinaryResult(UnsafeByteOperations.unsafeWrap((byte[]) value)).build());
       } else {
         throw new IllegalStateException(
             "Don't know how to translate object of type " + value.getClass() + ": " + value);
