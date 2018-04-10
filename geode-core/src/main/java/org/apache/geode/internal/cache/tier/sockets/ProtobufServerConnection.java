@@ -57,7 +57,7 @@ public class ProtobufServerConnection extends ServerConnection {
         communicationMode, acceptor, securityService);
     this.protocolProcessor = clientProtocolProcessor;
 
-    this.output = new BufferedOutputStream(socket.getOutputStream());
+    this.output = new BufferedOutputStream(socket.getOutputStream(), socketBufferSize);
     setClientProxyMembershipId();
 
     doHandShake(CommunicationMode.ProtobufClientServerProtocol.getModeNumber(), 0);

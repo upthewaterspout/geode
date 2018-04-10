@@ -48,7 +48,7 @@ class ProtobufChannel {
     this.serializer = serializer;
     socket = connectToAServer(locators, username, password, keyStorePath, trustStorePath, protocols,
         ciphers);
-    output = new BufferedOutputStream(socket.getOutputStream());
+    output = new BufferedOutputStream(socket.getOutputStream(), socket.getSendBufferSize());
   }
 
   public void close() throws IOException {
