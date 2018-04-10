@@ -15,6 +15,7 @@
 
 package org.apache.geode.internal.cache.tier.sockets;
 
+import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,6 +43,7 @@ public class ProtobufServerConnection extends ServerConnection {
   private final ClientProtocolProcessor protocolProcessor;
   private boolean cleanedUp;
   private ClientProxyMembershipID clientProxyMembershipID;
+  private final BufferedOutputStream output;
 
   /**
    * Creates a new <code>ProtobufServerConnection</code> that processes messages received from an
@@ -50,11 +52,12 @@ public class ProtobufServerConnection extends ServerConnection {
   public ProtobufServerConnection(Socket socket, InternalCache c, CachedRegionHelper helper,
       CacheServerStats stats, int hsTimeout, int socketBufferSize, String communicationModeStr,
       byte communicationMode, Acceptor acceptor, ClientProtocolProcessor clientProtocolProcessor,
-      SecurityService securityService) {
+      SecurityService securityService) throws IOException {
     super(socket, c, helper, stats, hsTimeout, socketBufferSize, communicationModeStr,
         communicationMode, acceptor, securityService);
     this.protocolProcessor = clientProtocolProcessor;
 
+    this.output = new BufferedOutputStream(socket.getOutputStream());
     setClientProxyMembershipId();
 
     doHandShake(CommunicationMode.ProtobufClientServerProtocol.getModeNumber(), 0);
@@ -65,12 +68,12 @@ public class ProtobufServerConnection extends ServerConnection {
     Socket socket = this.getSocket();
     try {
       InputStream inputStream = socket.getInputStream();
-      OutputStream outputStream = socket.getOutputStream();
 
       InternalCache cache = getCache();
       cache.setReadSerializedForCurrentThread(true);
       try {
-        protocolProcessor.processMessage(inputStream, outputStream);
+        protocolProcessor.processMessage(inputStream, output);
+        output.flush();
       } finally {
         cache.setReadSerializedForCurrentThread(false);
       }

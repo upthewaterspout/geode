@@ -21,6 +21,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -76,7 +77,7 @@ public class OutputCapturingServerConnectionTest {
 
   private ProtobufServerConnection getServerConnection(Socket socketMock,
       ClientProtocolProcessor clientProtocolProcessorMock, AcceptorImpl acceptorStub)
-      throws UnknownHostException {
+      throws IOException {
     ClientHealthMonitor clientHealthMonitorMock = mock(ClientHealthMonitor.class);
     when(acceptorStub.getClientHealthMonitor()).thenReturn(clientHealthMonitorMock);
     InetSocketAddress inetSocketAddressStub = InetSocketAddress.createUnresolved("localhost", 9071);
