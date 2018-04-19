@@ -1,2 +1,3 @@
 org.apache.geode.protocol.serialization.ProtobufStructSerializer
 org.apache.geode.protocol.serialization.CompressingProtobufStructSerializer
+org.apache.geode.protocol.serialization.PdxPassThroughSerializer
