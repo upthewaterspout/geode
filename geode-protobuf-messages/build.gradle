@@ -29,6 +29,7 @@ buildscript {
 
 dependencies {
     compile 'com.google.protobuf:protobuf-java:' + project.'protobuf-java.version'
+    compile 'io.grpc:grpc-all:1.12.0'
 }
 
 protobuf {
@@ -36,6 +37,17 @@ protobuf {
         // The artifact spec for the Protobuf Compiler
         artifact = 'com.google.protobuf:protoc:' + project.'protoc.version'
     }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.12.0'
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+
     generatedFilesBaseDir = "$buildDir/generated-src/proto"
 }
 
