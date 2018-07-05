@@ -80,6 +80,9 @@ resources:
       password: ((!source-email-password))
     from: ((!source-email-address))
     to: [ ((!notification-email-address)) ]
+- name: hour-timer
+  type: time
+  source: {interval: 1h}
 
 groups:
 - name: main
@@ -209,6 +212,8 @@ jobs:
       - get: docker-geode-build-image
         params:
           rootfs: true
+      - get: hour-timer
+        trigger: true
     - aggregate:
       - task: run-distributed-core
         image: docker-geode-build-image
