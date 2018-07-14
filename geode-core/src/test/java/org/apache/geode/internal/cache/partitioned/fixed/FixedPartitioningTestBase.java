@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -57,9 +58,7 @@ import org.apache.geode.distributed.internal.membership.InternalDistributedMembe
 import org.apache.geode.internal.cache.FixedPartitionAttributesImpl;
 import org.apache.geode.internal.cache.HARegion;
 import org.apache.geode.internal.cache.InternalCache;
-import org.apache.geode.internal.cache.PartitionRegionConfig;
 import org.apache.geode.internal.cache.PartitionedRegion;
-import org.apache.geode.internal.cache.PartitionedRegionHelper;
 import org.apache.geode.internal.cache.execute.data.CustId;
 import org.apache.geode.internal.cache.execute.data.Customer;
 import org.apache.geode.internal.cache.execute.data.Order;
@@ -72,8 +71,6 @@ import org.apache.geode.internal.cache.partitioned.PartitionedRegionObserverHold
 import org.apache.geode.test.dunit.Host;
 import org.apache.geode.test.dunit.LogWriterUtils;
 import org.apache.geode.test.dunit.VM;
-import org.apache.geode.test.dunit.Wait;
-import org.apache.geode.test.dunit.WaitCriterion;
 import org.apache.geode.test.dunit.internal.JUnit4DistributedTestCase;
 import org.apache.geode.test.junit.categories.DistributedTest;
 
@@ -1193,29 +1190,12 @@ public class FixedPartitioningTestBase extends JUnit4DistributedTestCase {
     origObserver =
         PartitionedRegionObserverHolder.setInstance(new PartitionedRegionObserverAdapter() {
           public void beforeCalculatingStartingBucketId() {
-            WaitCriterion wc = new WaitCriterion() {
-              String excuse;
-
-              public boolean done() {
-                Region prRoot = PartitionedRegionHelper.getPRRoot(cache);
-                PartitionRegionConfig regionConfig = (PartitionRegionConfig) prRoot.get("#Quarter");
-                if (regionConfig == null) {
-                  return false;
-                } else {
-                  if (!regionConfig.isFirstDataStoreCreated()) {
-                    return true;
-                  } else {
-                    return false;
-                  }
-                }
-              }
-
-              public String description() {
-                return excuse;
-              }
-            };
-            Wait.waitForCriterion(wc, 20000, 500, false);
-            LogWriterUtils.getLogWriter().info("end of beforeCalculatingStartingBucketId");
+            getBlackboard().signalGate("waiting");
+            try {
+              getBlackboard().waitForGate("done", 1, TimeUnit.MINUTES);
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
           }
         });
   }
