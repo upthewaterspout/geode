@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -2731,15 +2732,25 @@ public class ClusterDistributionManager implements DistributionManager {
       return;
     }
 
-    // Determine who is the elder...
-    InternalDistributedMember candidate = getElderCandidate();
-    if (candidate == null) {
-      changeElder(null);
-      return; // No valid elder in current context
-    }
+    //Get
 
-    // Carefully switch to new elder
+      // Determine who is the elder...
+      InternalDistributedMember candidate = getElderCandidate();
+      if (candidate == null) {
+        changeElder(null);
+        return; // No valid elder in current context
+      }
+
+      if(candidate.toString().contains("locator") && Thread.currentThread().getName().contains("Pooled")) {
+        try {
+          Thread.sleep(2000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+
     synchronized (this.elderMonitor) {
+      // Carefully switch to new elder
       if (!candidate.equals(this.elder)) {
         if (logger.isDebugEnabled()) {
           logger.debug("The elder is: {} (was {})", candidate, this.elder);
@@ -3379,6 +3390,12 @@ public class ClusterDistributionManager implements DistributionManager {
     try {
       // Assert.assertTrue(
       // desiredElder.getVmKind() != DistributionManager.ADMIN_ONLY_DM_TYPE);
+
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
       synchronized (this.elderMonitor) {
         while (true) {
           if (closeInProgress)

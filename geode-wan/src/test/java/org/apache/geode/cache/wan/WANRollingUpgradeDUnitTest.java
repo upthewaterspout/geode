@@ -106,7 +106,7 @@ public class WANRollingUpgradeDUnitTest extends JUnit4CacheTestCase {
     final Host host = Host.getHost(0);
     VM oldLocator = host.getVM(oldVersion, 0);
     VM oldServer = host.getVM(oldVersion, 1);
-    VM currentServer = host.getVM(VersionManager.CURRENT_VERSION, 2);
+    VM currentServer = host.getVM(VersionManager.CURRENT_VERSION, -1);
 
     // Start locator
     final int port = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
