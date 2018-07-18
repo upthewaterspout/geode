@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
@@ -42,6 +43,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import io.netty.util.concurrent.CompleteFuture;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.CancelCriterion;
@@ -2734,6 +2736,7 @@ public class ClusterDistributionManager implements DistributionManager {
 
     //Get
 
+    synchronized (this.elderMonitor) {
       // Determine who is the elder...
       InternalDistributedMember candidate = getElderCandidate();
       if (candidate == null) {
@@ -2749,7 +2752,6 @@ public class ClusterDistributionManager implements DistributionManager {
         }
       }
 
-    synchronized (this.elderMonitor) {
       // Carefully switch to new elder
       if (!candidate.equals(this.elder)) {
         if (logger.isDebugEnabled()) {
@@ -4090,7 +4092,8 @@ public class ClusterDistributionManager implements DistributionManager {
 
     @Override
     public void viewInstalled(NetView view) {
-      processElderSelection();
+      dm.getWaitingThreadPool().execute(this::processElderSelection);
+//      processElderSelection();
       dm.handleViewInstalled(view);
     }
 
