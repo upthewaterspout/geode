@@ -63,6 +63,7 @@ def dockerConfig = {
     // specify the user for starting Gradle test worker within the container.
     user = dunitDockerUser
 
+
     beforeContainerCreate = { cmd, client ->
       def javaHomeIdx = -1
       def pathIdx = -1
@@ -98,6 +99,18 @@ def dockerConfig = {
 
       cmd.withEnv(tmpEnv)
 
+      //Limit the CPU usage of the command
+      //Newer docker has a --cpu command, but for the docker-java plugin
+      //we have to set the CPU period (100 microseconds) and CPU quota
+      if(project.hasProperty("dunitCpuQuota")) {
+        int period = 100_000;
+        int quota = period * Float.parseFloat(project.dunitCpuQuota);
+        def hostConfig = cmd.getHostConfig();
+        hostConfig.withCpuPeriod(period)
+        hostConfig.withCpuQuota(quota)
+        cmd.withHostConfig(hostConfig)
+      }
+
       // Infer the index of this invocation
       def cmdList = cmd.getCmd()
       def matcher = (cmdList[cmdList.length - 1] =~ /.*Executor (\d*).*/)
@@ -105,7 +118,6 @@ def dockerConfig = {
       def workdir = new File(cmd.getWorkingDir() + matcher[0][1])
       workdir.mkdirs()
       cmd.withWorkingDir(workdir.toString())
-
       //println cmd
     }
   }
