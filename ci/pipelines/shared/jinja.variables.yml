@@ -32,6 +32,7 @@ build_test:
   CALL_STACK_TIMEOUT: "1800"
   PARALLEL_DUNIT: "false"
   DUNIT_PARALLEL_FORKS: "4"
+  DUNIT_CPU_QUOTA: "-1"
   # Actual gradle task is "build install" but is hard-coded in execute_build.sh
   # It's consumption is more like a "TEST_RESULTS_DESTINATIONS_DIRECTORY_STUB_THING.
   GRADLE_TASK: build
@@ -44,16 +45,68 @@ tests:
   ARTIFACT_SLUG: acceptancetestfiles
   CALL_STACK_TIMEOUT: "1800"
   DUNIT_PARALLEL_FORKS: "0"
+  DUNIT_CPU_QUOTA: "-1"
   GRADLE_TASK: acceptanceTest
   execute_test_timeout: 45m
   PARALLEL_DUNIT: "false"
   PARALLEL_GRADLE: "false"
+- name: "Distributed-24-4"
+  CPUS: "96"
+  RAM: "180"
+  ARTIFACT_SLUG: distributedtestfiles
+  CALL_STACK_TIMEOUT: "7200"
+  DUNIT_PARALLEL_FORKS: "24"
+  DUNIT_CPU_QUOTA: "4"
+  GRADLE_TASK: distributedTest
+  execute_test_timeout: 2h15m
+  PARALLEL_DUNIT: "true"
+- name: "Distributed-24-8"
+  CPUS: "96"
+  RAM: "180"
+  ARTIFACT_SLUG: distributedtestfiles
+  CALL_STACK_TIMEOUT: "7200"
+  DUNIT_PARALLEL_FORKS: "24"
+  DUNIT_CPU_QUOTA: "8"
+  GRADLE_TASK: distributedTest
+  execute_test_timeout: 2h15m
+  PARALLEL_DUNIT: "true"
+- name: "Distributed-48-2"
+  CPUS: "96"
+  RAM: "240"
+  ARTIFACT_SLUG: distributedtestfiles
+  CALL_STACK_TIMEOUT: "7200"
+  DUNIT_PARALLEL_FORKS: "48"
+  DUNIT_CPU_QUOTA: "2"
+  GRADLE_TASK: distributedTest
+  execute_test_timeout: 2h15m
+  PARALLEL_DUNIT: "true"
+- name: "Distributed-48-4"
+  CPUS: "96"
+  RAM: "240"
+  ARTIFACT_SLUG: distributedtestfiles
+  CALL_STACK_TIMEOUT: "7200"
+  DUNIT_PARALLEL_FORKS: "48"
+  DUNIT_CPU_QUOTA: "4"
+  GRADLE_TASK: distributedTest
+  execute_test_timeout: 2h15m
+  PARALLEL_DUNIT: "true"
+- name: "Distributed-96-1"
+  CPUS: "96"
+  RAM: "360"
+  ARTIFACT_SLUG: distributedtestfiles
+  CALL_STACK_TIMEOUT: "7200"
+  DUNIT_PARALLEL_FORKS: "96"
+  DUNIT_CPU_QUOTA: "1"
+  GRADLE_TASK: distributedTest
+  execute_test_timeout: 2h15m
+  PARALLEL_DUNIT: "true"
 - name: "Distributed"
   CPUS: "96"
   RAM: "180"
   ARTIFACT_SLUG: distributedtestfiles
   CALL_STACK_TIMEOUT: "7200"
   DUNIT_PARALLEL_FORKS: "24"
+  DUNIT_CPU_QUOTA: "-1"
   GRADLE_TASK: distributedTest
   execute_test_timeout: 2h15m
   PARALLEL_DUNIT: "true"
@@ -63,6 +116,7 @@ tests:
   ARTIFACT_SLUG: integrationtestfiles
   CALL_STACK_TIMEOUT: "1500"
   DUNIT_PARALLEL_FORKS: "48"
+  DUNIT_CPU_QUOTA: "-1"
   GRADLE_TASK: integrationTest
   execute_test_timeout: 40m
   PARALLEL_DUNIT: "true"
@@ -72,6 +126,7 @@ tests:
   ARTIFACT_SLUG: upgradetestfiles
   CALL_STACK_TIMEOUT: "3000"
   DUNIT_PARALLEL_FORKS: "48"
+  DUNIT_CPU_QUOTA: "-1"
   GRADLE_TASK: upgradeTest
   execute_test_timeout: 1h
   PARALLEL_DUNIT: "true"
@@ -81,6 +136,7 @@ tests:
   ARTIFACT_SLUG: stressnewtestfiles
   CALL_STACK_TIMEOUT: "7200"
   DUNIT_PARALLEL_FORKS: "24"
+  DUNIT_CPU_QUOTA: "-1"
   GRADLE_TASK: repeatTest
   execute_test_timeout: 2h15m
   PARALLEL_DUNIT: "true"
@@ -90,6 +146,7 @@ windowstests:
   tags: "acceptance"
   CALL_STACK_TIMEOUT: "1800"
   DUNIT_PARALLEL_FORKS: "0"
+  DUNIT_CPU_QUOTA: "-1"
   PARALLEL_DUNIT: "false"
   target_arg: :geode-assembly:acceptanceTest
   dir_arg: windows-acceptancetestfiles

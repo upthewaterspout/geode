@@ -62,6 +62,10 @@ if [[ -n "${PARALLEL_DUNIT}" && "${PARALLEL_DUNIT}" == "true" ]]; then
   PARALLEL_DUNIT="-PparallelDunit -PdunitDockerUser=geode"
   if [ -n "${DUNIT_PARALLEL_FORKS}" ]; then
     DUNIT_PARALLEL_FORKS="-PdunitParallelForks=${DUNIT_PARALLEL_FORKS}"
+    if (( $DUNIT_CPU_QUOTA > 0 )); then
+      DUNIT_PARALLEL_FORKS="${DUNIT_PARALLEL_FORKS} -PdunitCpuQuota=${DUNIT_CPU_QUOTA}"
+    fi
+
   fi
 else
   PARALLEL_DUNIT=""
