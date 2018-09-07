@@ -296,7 +296,7 @@ jobs:
 {% for test in tests if not test.name=="StressNew" %}
 - name: {{test.name}}Test
   public: true
-  max_in_flight: 5
+  max_in_flight: 3
   plan:
   - do:
     {{ plan_resource_gets() |indent(4) }}
