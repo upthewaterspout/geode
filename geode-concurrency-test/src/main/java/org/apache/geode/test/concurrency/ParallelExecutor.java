@@ -28,13 +28,13 @@ public interface ParallelExecutor {
   /**
    * Add a task to run in parallel
    */
-  <T> Future<T> inParallel(Callable<T> callable);
+  <T> Future<T> inParallel(String label, Callable<T> callable);
 
   /**
    * Add a task to run in parallel
    */
-  default <T> Future<T> inParallel(RunnableWithException runnable) {
-    return inParallel(() -> {
+  default <T> Future<T> inParallel(String label, RunnableWithException runnable) {
+    return inParallel(label, () -> {
       runnable.run();
       return null;
     });

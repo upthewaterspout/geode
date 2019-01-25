@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.Future;
 
@@ -26,15 +27,25 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.apache.geode.distributed.DistributedMember;
+import org.apache.geode.distributed.internal.InternalDistributedSystem;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.MemberAttributes;
+import org.apache.geode.internal.CopyOnWriteHashSet;
 import org.apache.geode.internal.Version;
 import org.apache.geode.internal.cache.tier.InterestType;
+import org.apache.geode.internal.logging.log4j.FastLogger;
 import org.apache.geode.internal.util.BlobHelper;
+import org.apache.geode.internal.util.concurrent.CopyOnWriteHashMap;
 import org.apache.geode.test.concurrency.ConcurrentTestRunner;
 import org.apache.geode.test.concurrency.ParallelExecutor;
+import org.apache.geode.test.concurrency.annotation.ConcurrentTestConfig;
+import org.apache.geode.test.concurrency.fates.FatesConfig;
+import org.apache.geode.test.concurrency.fates.FatesRunner;
 
 @RunWith(ConcurrentTestRunner.class)
+@ConcurrentTestConfig(runner = FatesRunner.class)
+@FatesConfig(atomicClasses = {FastLogger.class, MemberAttributes.class, HashMap.class, InternalDistributedMember.class,
+    InternalDistributedSystem.class, CopyOnWriteHashMap.class, FilterProfile.IDMap.class, CopyOnWriteHashSet.class})
 public class FilterProfileConcurrencyTest {
 
   @Test
@@ -46,8 +57,8 @@ public class FilterProfileConcurrencyTest {
 
     // In parallel, serialize the filter profile
     // and add a new client
-    Future<byte[]> serializer = executor.inParallel(() -> serialize(profile));
-    executor.inParallel(() -> addClient(profile));
+    executor.inParallel("addClient", () -> addClient(profile));
+    Future<byte[]> serializer = executor.inParallel("serialize", () -> serialize(profile));
     executor.execute();
 
     // Make sure we can deserialize the filter profile
@@ -62,7 +73,7 @@ public class FilterProfileConcurrencyTest {
   }
 
   private FilterProfile createFilterProfile() throws UnknownHostException {
-    DistributedMember member = new InternalDistributedMember(InetAddress.getLocalHost(), 0, false,
+    DistributedMember member = new InternalDistributedMember(InetAddress.getByAddress(new byte[] {127,0,0,1}), 0, false,
         false, MemberAttributes.DEFAULT);
     return new FilterProfile(null, member, true);
   }

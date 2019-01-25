@@ -74,7 +74,7 @@ public class LoopRunner implements Runner {
     }
 
     @Override
-    public <T> Future<T> inParallel(Callable<T> callable) {
+    public <T> Future<T> inParallel(String label, Callable<T> callable) {
       Future<T> future = executorService.submit(callable);
       futures.add(future);
       return future;
