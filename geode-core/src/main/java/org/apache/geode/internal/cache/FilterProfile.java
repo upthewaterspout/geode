@@ -1522,20 +1522,20 @@ public class FilterProfile implements DataSerializableFixedID {
   @Override
   public void toData(DataOutput out) throws IOException {
     InternalDataSerializer.invokeToData(memberID, out);
-    InternalDataSerializer.writeSetOfLongs(this.allKeyClients.getSnapshot(),
+    InternalDataSerializer.writeSetOfLongs(this.allKeyClients,
         this.clientMap.hasLongID, out);
-    DataSerializer.writeHashMap(this.keysOfInterest.getSnapshot(), out);
-    DataSerializer.writeHashMap(this.patternsOfInterest.getSnapshot(), out);
-    DataSerializer.writeHashMap(this.filtersOfInterest.getSnapshot(), out);
+    DataSerializer.writeHashMap(this.keysOfInterest, out);
+    DataSerializer.writeHashMap(this.patternsOfInterest, out);
+    DataSerializer.writeHashMap(this.filtersOfInterest, out);
 
-    InternalDataSerializer.writeSetOfLongs(this.allKeyClientsInv.getSnapshot(),
+    InternalDataSerializer.writeSetOfLongs(this.allKeyClientsInv,
         this.clientMap.hasLongID, out);
-    DataSerializer.writeHashMap(this.keysOfInterestInv.getSnapshot(), out);
-    DataSerializer.writeHashMap(this.patternsOfInterestInv.getSnapshot(), out);
-    DataSerializer.writeHashMap(this.filtersOfInterestInv.getSnapshot(), out);
+    DataSerializer.writeHashMap(this.keysOfInterestInv, out);
+    DataSerializer.writeHashMap(this.patternsOfInterestInv, out);
+    DataSerializer.writeHashMap(this.filtersOfInterestInv, out);
 
     // Write CQ info.
-    Map<String, ServerCQ> theCQs = this.cqs.getSnapshot();
+    Map<String, ServerCQ> theCQs = this.cqs;
     int size = theCQs.size();
     InternalDataSerializer.writeArrayLength(size, out);
     for (Iterator<Map.Entry<String, ServerCQ>> it = theCQs.entrySet().iterator(); it.hasNext();) {
