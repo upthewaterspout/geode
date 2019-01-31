@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import com.github.upthewaterspout.fates.core.states.explorers.RandomExplorer;
 import com.github.upthewaterspout.fates.core.threading.ThreadFates;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.spi.AbstractLogger;
@@ -27,23 +28,13 @@ public class FatesRunner implements Runner {
       Class<?> declaringClass = child.getDeclaringClass();
       FatesConfig config = declaringClass.getAnnotation(FatesConfig.class);
 
-      ThreadFates threadFates = new ThreadFates();
-      threadFates
-          .addAtomicClasses(Constructor.class)
-          .addAtomicClasses(Class.class)
-          .addAtomicClasses(ConcurrentHashMap.class)
-          .addAtomicClasses(AbstractLogger.class)
-          .addAtomicClasses(AccessControlContext.class)
-          .addAtomicClasses(System.class)
-          .addAtomicClasses(InetAddress.class)
-          .addAtomicClasses(ThreadGroup.class)
-          .addAtomicClasses(Logger.class)
-          .addAtomicClasses(CompletableFuture.class)
+      ThreadFates threadFates = new ThreadFates()
           .setTrace(true);
 
       if (config != null) {
         threadFates.addAtomicClasses(config.atomicClasses());
       }
+      threadFates.setExplorer(() -> new RandomExplorer(10000, -1883761820146619328L));
       threadFates.run(() -> {
         Object test = declaringClass.newInstance();
         ParallelExecutor executor = new FatesExecutor();

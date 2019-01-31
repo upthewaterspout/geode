@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.Future;
 
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -33,6 +34,7 @@ import org.apache.geode.distributed.internal.membership.MemberAttributes;
 import org.apache.geode.internal.CopyOnWriteHashSet;
 import org.apache.geode.internal.Version;
 import org.apache.geode.internal.cache.tier.InterestType;
+import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.internal.logging.log4j.FastLogger;
 import org.apache.geode.internal.util.BlobHelper;
 import org.apache.geode.internal.util.concurrent.CopyOnWriteHashMap;
@@ -41,11 +43,11 @@ import org.apache.geode.test.concurrency.ParallelExecutor;
 import org.apache.geode.test.concurrency.annotation.ConcurrentTestConfig;
 import org.apache.geode.test.concurrency.fates.FatesConfig;
 import org.apache.geode.test.concurrency.fates.FatesRunner;
+import org.apache.geode.test.concurrency.loop.LoopRunner;
 
 @RunWith(ConcurrentTestRunner.class)
 @ConcurrentTestConfig(runner = FatesRunner.class)
-@FatesConfig(atomicClasses = {FastLogger.class, MemberAttributes.class, HashMap.class, InternalDistributedMember.class,
-    InternalDistributedSystem.class, CopyOnWriteHashMap.class, FilterProfile.IDMap.class, CopyOnWriteHashSet.class})
+@FatesConfig(atomicClasses = {FastLogger.class, LogService.class, Logger.class})
 public class FilterProfileConcurrencyTest {
 
   @Test
