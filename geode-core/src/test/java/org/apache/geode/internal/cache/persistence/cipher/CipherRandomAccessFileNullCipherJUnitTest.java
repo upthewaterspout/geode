@@ -1,4 +1,4 @@
-package com.gemstone.gemfire.internal.cache.persistence;
+package org.apache.geode.internal.cache.persistence.cipher;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;

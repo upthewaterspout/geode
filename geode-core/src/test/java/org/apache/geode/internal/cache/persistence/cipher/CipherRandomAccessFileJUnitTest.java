@@ -1,6 +1,8 @@
-package com.gemstone.gemfire.internal.cache.persistence;
+package org.apache.geode.internal.cache.persistence.cipher;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,12 +25,10 @@ import javax.crypto.spec.DESKeySpec;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
-import com.gemstone.gemfire.internal.cache.persistence.cipher.CipherRandomAccessFile;
-import com.gemstone.gemfire.test.junit.categories.UnitTest;
+import org.apache.geode.internal.cache.persistence.RandomAccessFileInterface;
+import org.apache.geode.internal.cache.persistence.UninterruptibleRandomAccessFile;
 
-@Category(UnitTest.class)
 public class CipherRandomAccessFileJUnitTest {
   //An arbitrary key for encryption. Maybe this should be random
   byte[] keyBytes = new byte[] {0x3, 0x67, 0x11, 0x55, 0x01, 0x03, -0x45, -0x22};

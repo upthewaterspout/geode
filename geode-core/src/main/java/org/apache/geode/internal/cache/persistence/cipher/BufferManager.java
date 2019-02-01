@@ -1,15 +1,12 @@
-package com.gemstone.gemfire.internal.cache.persistence.cipher;
+package org.apache.geode.internal.cache.persistence.cipher;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.ShortBufferException;
 
-public class BufferManager {
+class BufferManager {
 
   private final BufferLoader bufferLoader;
   private final int bufferSize;

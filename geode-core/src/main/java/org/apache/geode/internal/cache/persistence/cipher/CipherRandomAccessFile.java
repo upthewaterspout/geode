@@ -1,14 +1,15 @@
-package com.gemstone.gemfire.internal.cache.persistence.cipher;
+package org.apache.geode.internal.cache.persistence.cipher;
 
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
+
 import javax.crypto.Cipher;
 
-import com.gemstone.gemfire.internal.cache.persistence.RandomAccessFileInterface;
-import com.gemstone.gemfire.internal.cache.persistence.UninterruptibleFileChannel;
+import org.apache.geode.internal.cache.persistence.RandomAccessFileInterface;
+import org.apache.geode.internal.cache.persistence.UninterruptibleFileChannel;
 
 public class CipherRandomAccessFile implements RandomAccessFileInterface {
   private final BlockIO blockIO;

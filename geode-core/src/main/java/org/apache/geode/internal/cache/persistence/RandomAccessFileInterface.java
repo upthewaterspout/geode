@@ -1,7 +1,9 @@
-package com.gemstone.gemfire.internal.cache.persistence;
+package org.apache.geode.internal.cache.persistence;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+
+import org.apache.geode.internal.cache.persistence.UninterruptibleFileChannel;
 
 public interface RandomAccessFileInterface {
 

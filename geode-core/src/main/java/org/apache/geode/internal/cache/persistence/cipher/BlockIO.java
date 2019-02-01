@@ -1,19 +1,18 @@
-package com.gemstone.gemfire.internal.cache.persistence.cipher;
+package org.apache.geode.internal.cache.persistence.cipher;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
 
-import com.gemstone.gemfire.GemFireIOException;
-import com.gemstone.gemfire.internal.Assert;
-import com.gemstone.gemfire.internal.cache.AbstractBucketRegionQueue;
-import com.gemstone.gemfire.internal.cache.persistence.UninterruptibleFileChannel;
-import com.gemstone.gemfire.internal.cache.persistence.cipher.BufferManager.BufferLoader;
+import org.apache.geode.GemFireIOException;
+import org.apache.geode.internal.Assert;
+import org.apache.geode.internal.cache.persistence.UninterruptibleFileChannel;
 
-class BlockIO implements BufferLoader {
+class BlockIO implements BufferManager.BufferLoader {
 
   private final Cipher decrypt;
   private final ByteBuffer encryptedBuffer;

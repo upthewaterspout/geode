@@ -111,6 +111,8 @@ import org.apache.geode.internal.shared.NativeCalls;
 import org.apache.geode.internal.util.BlobHelper;
 import org.apache.geode.pdx.internal.PdxWriterImpl;
 
+import org.apache.geode.internal.cache.persistence.RandomAccessFileInterface;
+
 /**
  * Implements an operation log to write to disk. As of prPersistSprint2 this file only supports
  * persistent regions. For overflow only regions see {@link OverflowOplog}.
