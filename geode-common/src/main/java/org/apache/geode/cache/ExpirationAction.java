@@ -31,17 +31,18 @@ public class ExpirationAction implements Serializable {
   private static final long serialVersionUID = 658925707882047900L;
 
   /** When the region or cached object expires, it is invalidated. */
-  public static final ExpirationAction INVALIDATE = new ExpirationAction("INVALIDATE");
+  public static final ExpirationAction INVALIDATE = new ExpirationAction("INVALIDATE", 0);
   /** When expired, invalidated locally only. Not supported for partitioned regions. */
-  public static final ExpirationAction LOCAL_INVALIDATE = new ExpirationAction("LOCAL_INVALIDATE");
+  public static final ExpirationAction LOCAL_INVALIDATE =
+      new ExpirationAction("LOCAL_INVALIDATE", 1);
 
   /** When the region or cached object expires, it is destroyed. */
-  public static final ExpirationAction DESTROY = new ExpirationAction("DESTROY");
+  public static final ExpirationAction DESTROY = new ExpirationAction("DESTROY", 2);
   /**
    * When expired, destroyed locally only. Not supported for partitioned regions. Use DESTROY
    * instead.
    */
-  public static final ExpirationAction LOCAL_DESTROY = new ExpirationAction("LOCAL_DESTROY");
+  public static final ExpirationAction LOCAL_DESTROY = new ExpirationAction("LOCAL_DESTROY", 3);
 
   /** The name of this action */
   private final transient String name;
@@ -52,8 +53,9 @@ public class ExpirationAction implements Serializable {
    * @param name the name of the expiration action
    * @see #toString
    */
-  private ExpirationAction(String name) {
+  private ExpirationAction(String name, int ordinal) {
     this.name = name;
+    this.ordinal = ordinal;
   }
 
   /**
@@ -163,8 +165,7 @@ public class ExpirationAction implements Serializable {
   }
 
   // The 4 declarations below are necessary for serialization
-  private static int nextOrdinal = 0;
-  public int ordinal = nextOrdinal++;
+  public final int ordinal;
   private static final ExpirationAction[] VALUES =
       {INVALIDATE, LOCAL_INVALIDATE, DESTROY, LOCAL_DESTROY};
 
