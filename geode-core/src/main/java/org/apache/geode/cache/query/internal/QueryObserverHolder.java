@@ -14,6 +14,8 @@
  */
 package org.apache.geode.cache.query.internal;
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * This class is intended to hold a single 'observer' which will receive callbacks from the query
  * subsystem when various events take place. There can be only one such observer at a time. If no
@@ -40,6 +42,7 @@ public class QueryObserverHolder {
   /**
    * The default 'do-nothing' query observer *
    */
+  @Immutable
   private static final QueryObserver NO_OBSERVER = new QueryObserverAdapter();
   /**
    * The current observer which will be notified of all query events.

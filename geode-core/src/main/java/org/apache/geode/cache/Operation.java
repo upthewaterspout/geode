@@ -18,6 +18,7 @@ package org.apache.geode.cache;
 
 import java.io.ObjectStreamException;
 
+import org.apache.geode.annotations.Immutable;
 import org.apache.geode.cache.execute.FunctionService;
 import org.apache.geode.internal.cache.OpType;
 
@@ -31,6 +32,7 @@ import org.apache.geode.internal.cache.OpType;
  *
  * @since GemFire 5.0
  */
+@Immutable
 public class Operation implements java.io.Serializable {
   private static final long serialVersionUID = -7521751729852504238L;
 

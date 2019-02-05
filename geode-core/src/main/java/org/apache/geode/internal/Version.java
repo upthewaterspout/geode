@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+import org.apache.geode.annotations.Immutable;
 import org.apache.geode.cache.UnsupportedVersionException;
 import org.apache.geode.internal.cache.tier.sockets.CommandInitializer;
 
@@ -35,6 +36,7 @@ import org.apache.geode.internal.cache.tier.sockets.CommandInitializer;
  *
  * @since GemFire 5.7
  */
+@Immutable
 public class Version implements Comparable<Version> {
 
   /** The name of this version */

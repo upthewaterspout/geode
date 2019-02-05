@@ -19,6 +19,8 @@ package org.apache.geode.cache;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 
+import org.apache.geode.annotations.Immutable;
+
 
 /**
  * Enumerated type for region distribution scope.
@@ -29,6 +31,7 @@ import java.io.Serializable;
  * @see AttributesFactory#setScope
  * @since GemFire 3.0
  */
+@Immutable
 public class Scope implements Serializable {
   private static final long serialVersionUID = 5534399159504301602L;
 

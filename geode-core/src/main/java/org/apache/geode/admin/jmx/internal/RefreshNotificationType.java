@@ -16,12 +16,15 @@ package org.apache.geode.admin.jmx.internal;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * Type-safe definition for refresh notifications.
  *
  * @since GemFire 3.5
  *
  */
+@Immutable
 public class RefreshNotificationType implements java.io.Serializable {
   private static final long serialVersionUID = 4376763592395613794L;
 

@@ -18,6 +18,8 @@ package org.apache.geode.cache;
 
 import java.io.ObjectStreamException;
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * Enumerated type for region subscription interest policy. The interest policy specifies what data
  * a subscriber is interested in having in it's region.
@@ -28,6 +30,7 @@ import java.io.ObjectStreamException;
  *
  * @since GemFire 5.0
  */
+@Immutable
 public class InterestPolicy implements java.io.Serializable {
   private static final long serialVersionUID = 1567179436331385968L;
 

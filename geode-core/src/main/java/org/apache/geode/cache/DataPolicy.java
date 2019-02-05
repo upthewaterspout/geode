@@ -18,6 +18,7 @@ package org.apache.geode.cache;
 
 import java.io.ObjectStreamException;
 
+import org.apache.geode.annotations.Immutable;
 import org.apache.geode.cache.configuration.RegionAttributesDataPolicy;
 
 
@@ -51,6 +52,7 @@ import org.apache.geode.cache.configuration.RegionAttributesDataPolicy;
  *
  * @since GemFire 5.0
  */
+@Immutable
 public class DataPolicy implements java.io.Serializable {
   private static final long serialVersionUID = 2095573273889467233L;
 

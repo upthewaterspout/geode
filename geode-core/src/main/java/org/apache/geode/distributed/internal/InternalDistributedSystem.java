@@ -56,6 +56,7 @@ import org.apache.geode.Statistics;
 import org.apache.geode.StatisticsType;
 import org.apache.geode.SystemConnectException;
 import org.apache.geode.SystemFailure;
+import org.apache.geode.annotations.Immutable;
 import org.apache.geode.cache.CacheClosedException;
 import org.apache.geode.cache.CacheFactory;
 import org.apache.geode.cache.CacheXmlException;
@@ -150,6 +151,7 @@ public class InternalDistributedSystem extends DistributedSystem
    */
   public static volatile DistributedSystem systemAttemptingReconnect;
 
+  @Immutable
   public static final CreationStackGenerator DEFAULT_CREATION_STACK_GENERATOR =
       new CreationStackGenerator() {
         @Override
@@ -2275,6 +2277,7 @@ public class InternalDistributedSystem extends DistributedSystem
    * Installs a shutdown hook to ensure that we are disconnected if an application VM shuts down
    * without first calling disconnect itself.
    */
+  @Immutable
   public static final Thread shutdownHook;
 
   static {

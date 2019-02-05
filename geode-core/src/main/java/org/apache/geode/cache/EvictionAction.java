@@ -18,6 +18,8 @@ import java.io.Serializable;
 
 import javax.print.attribute.EnumSyntax;
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * The action that an {@link org.apache.geode.cache.EvictionAlgorithm} takes.
  *
@@ -25,6 +27,7 @@ import javax.print.attribute.EnumSyntax;
  * @see org.apache.geode.cache.EvictionAlgorithm
  * @see org.apache.geode.internal.cache.EvictionAttributesImpl
  */
+@Immutable
 public final class EvictionAction extends EnumSyntax implements Serializable {
   private static final long serialVersionUID = -98840597493242980L;
   /**

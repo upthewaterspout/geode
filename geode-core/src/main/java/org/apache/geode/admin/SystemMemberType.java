@@ -15,6 +15,8 @@
 package org.apache.geode.admin;
 
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * Type-safe definition for system members.
  *
@@ -24,6 +26,7 @@ package org.apache.geode.admin;
  *             "{@docRoot}/org/apache/geode/management/package-summary.html">management</a></code>
  *             package instead
  */
+@Immutable
 public class SystemMemberType implements java.io.Serializable {
   private static final long serialVersionUID = 3284366994485749302L;
 

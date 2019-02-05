@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.geode.annotations.Immutable;
+
 
 /**
  * Specifies how access to the region is affected when one or more required roles are lost. A role
@@ -29,6 +31,7 @@ import java.util.List;
  *
  * @deprecated this feature is scheduled to be removed
  */
+@Immutable
 public class LossAction implements Serializable {
   private static final long serialVersionUID = -832035480397447797L;
 

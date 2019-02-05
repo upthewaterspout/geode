@@ -14,6 +14,7 @@
  */
 package org.apache.geode.admin;
 
+import org.apache.geode.annotations.Immutable;
 import org.apache.geode.internal.admin.Alert;
 
 /**
@@ -24,6 +25,7 @@ import org.apache.geode.internal.admin.Alert;
  *             "{@docRoot}/org/apache/geode/management/package-summary.html">management</a></code>
  *             package instead
  */
+@Immutable
 public class AlertLevel implements java.io.Serializable {
   private static final long serialVersionUID = -4752438966587392126L;
 

@@ -38,6 +38,7 @@ import org.apache.geode.CancelException;
 import org.apache.geode.InternalGemFireException;
 import org.apache.geode.StatisticsFactory;
 import org.apache.geode.SystemFailure;
+import org.apache.geode.annotations.Immutable;
 import org.apache.geode.distributed.DistributedLockService;
 import org.apache.geode.distributed.DistributedSystem;
 import org.apache.geode.distributed.DistributedSystemDisconnectedException;
@@ -2951,6 +2952,7 @@ public class DLockService extends DistributedLockService {
   // -------------------------------------------------------------------------
 
   /** Used as the name (key) for the suspend locking entry in the tokens map */
+  @Immutable
   public static class SuspendLockingToken implements DataSerializableFixedID {
     public SuspendLockingToken() {}
 

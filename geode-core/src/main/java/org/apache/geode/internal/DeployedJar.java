@@ -57,7 +57,6 @@ public class DeployedJar {
 
   private static final Logger logger = LogService.getLogger();
   private static final MessageDigest messageDigest = getMessageDigest();
-  private static final byte[] ZERO_BYTES = new byte[0];
   private static final Pattern PATTERN_SLASH = Pattern.compile("/");
 
   private final String jarName;

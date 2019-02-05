@@ -14,6 +14,7 @@
  */
 package org.apache.geode.admin;
 
+import org.apache.geode.annotations.Immutable;
 import org.apache.geode.internal.Assert;
 
 /**
@@ -152,6 +153,7 @@ public interface GemFireHealth {
   /**
    * An enumerated type for the health of GemFire.
    */
+  @Immutable
   class Health implements java.io.Serializable {
     private static final long serialVersionUID = 3039539430412151801L;
     /** The string for good health */
@@ -166,7 +168,7 @@ public interface GemFireHealth {
     //////////////////// Instance Fields ////////////////////
 
     /** The string for this health */
-    private String healthString = OKAY_STRING;
+    private final String healthString;
 
     ///////////////////// Constructors //////////////////////
 

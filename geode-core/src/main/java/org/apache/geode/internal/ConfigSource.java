@@ -16,11 +16,14 @@ package org.apache.geode.internal;
 
 import java.io.Serializable;
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * Describes where the value of a configuration attribute came from.
  *
  * @since GemFire 7.0
  */
+@Immutable
 public class ConfigSource implements Serializable {
   private static final long serialVersionUID = -4097017272431018553L;
 

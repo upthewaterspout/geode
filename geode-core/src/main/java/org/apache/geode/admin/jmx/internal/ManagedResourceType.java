@@ -16,6 +16,8 @@ package org.apache.geode.admin.jmx.internal;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * Type-safe definition for ModelMBean managed resources. The class type ({@link #getClassTypeName})
  * must match the fully qualified class name listed in the type descriptor in
@@ -24,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
  * @since GemFire 3.5
  *
  */
+@Immutable
 public class ManagedResourceType implements java.io.Serializable {
   private static final long serialVersionUID = 3752874768667480449L;
 

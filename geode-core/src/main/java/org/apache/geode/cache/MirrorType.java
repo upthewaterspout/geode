@@ -18,6 +18,8 @@ package org.apache.geode.cache;
 
 import java.io.ObjectStreamException;
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * Enumerated type for region mirroring.
  *
@@ -31,6 +33,7 @@ import java.io.ObjectStreamException;
  * @since GemFire 3.0
  */
 @Deprecated
+@Immutable
 public class MirrorType implements java.io.Serializable {
   private static final long serialVersionUID = -6632651349646672540L;
 

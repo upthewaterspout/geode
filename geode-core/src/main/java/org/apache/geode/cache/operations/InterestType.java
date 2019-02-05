@@ -15,11 +15,14 @@
 
 package org.apache.geode.cache.operations;
 
+import org.apache.geode.annotations.Immutable;
+
 /**
  * Enumeration for various interest types supported by GemFire.
  *
  * @since GemFire 5.5
  */
+@Immutable
 public final class InterestType {
 
   public static final byte TP_KEY = 0;

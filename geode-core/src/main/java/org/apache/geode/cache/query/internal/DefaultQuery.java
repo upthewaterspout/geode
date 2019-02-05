@@ -28,6 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 
+import org.apache.geode.annotations.Immutable;
 import org.apache.geode.cache.CacheRuntimeException;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.client.internal.ProxyCache;
@@ -83,6 +84,7 @@ public class DefaultQuery implements Query {
 
   private boolean traceOn = false;
 
+  @Immutable
   private static final Object[] EMPTY_ARRAY = new Object[0];
 
   public static boolean QUERY_VERBOSE =
