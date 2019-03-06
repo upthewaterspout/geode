@@ -19,8 +19,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.apache.geode.test.concurrency.Runner;
-import org.apache.geode.test.concurrency.loop.LoopRunner;
 
 /**
  * Configuration options for the ConcurrentTestRunner
