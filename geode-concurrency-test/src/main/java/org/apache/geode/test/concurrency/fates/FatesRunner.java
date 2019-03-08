@@ -65,7 +65,7 @@ public class FatesRunner implements Runner, Serializable {
   }
 
   private static ExplorerSupplier randomExplorer() {
-    return () -> new RandomExplorer(10000, -1883761820146619328L);
+    return () -> new RandomExplorer(100, -1883761820146619328L);
   }
 
   /**

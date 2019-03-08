@@ -83,6 +83,11 @@ public class CallbackSampler {
   public void stop() {
     if (executor != null) {
       this.executor.shutdown();
+      try {
+        this.executor.awaitTermination(2, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     }
   }
 }
