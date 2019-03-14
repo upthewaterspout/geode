@@ -181,11 +181,12 @@ dependencies {
   //------------------------------------------------------------
 
 
-  //tools.jar seems to be used by gfsh is some cases to controll processes using
+  //tools.jar seems to be used by gfsh is some cases to control processes using
   //the sun attach API? But this code path may not even be used?
   compileOnly files("${System.getProperty('java.home')}/../lib/tools.jar")
 
-  //Find bugs is only used in two places in our code, remove it
+  //Find bugs is used in multiple places in the code to suppress findbugs warnings
+  //Implementation
   compile('com.github.stephenc.findbugs:findbugs-annotations')
 
   //Jgroups is a core component of our membership system.
@@ -212,14 +213,6 @@ dependencies {
   //Implementation
   compile('commons-validator:commons-validator')
 
-  //Commons digester is unused (exept that maybe it should be pulled in as a transitive
-  //dependency of commons-modeler, even though we excluded it, above^^
-  compile('commons-digester:commons-digester')
-
-  //javax.activation appears to be used by jaxb and never directly in our code.
-  // It's a transisive dependency ,so we should remove it
-  compile('com.sun.activation:javax.activation')
-
   //jaxb is used by cluster configuration
   //Implementation
   compile('javax.xml.bind:jaxb-api')
@@ -230,8 +223,8 @@ dependencies {
 
   //istack appears to be used only by jaxb, not in our code. jaxb doesn't
   //declare this as required dependency though. It's unclear if this is needed
-  //Runtime (or maybe not needed at all?)
-  compile('com.sun.istack:istack-commons-runtime') {
+  //Runtime
+  runtimeOnly('com.sun.istack:istack-commons-runtime') {
     exclude group: '*'
   }
 
@@ -242,7 +235,6 @@ dependencies {
   //Commons modeler is used by the (deprecated) admin API
   //Implementation
   compile('commons-modeler:commons-modeler') {
-    exclude module: 'commons-digester'
     exclude module: 'commons-logging-api'
     exclude module: 'mx4j-jmx'
     exclude module: 'xml-apis'
@@ -291,7 +283,7 @@ dependencies {
   //Implementation
   compile('net.java.dev.jna:jna')
 
-  //JOptSimple is used by the CLI. A couple of usages have leaked into DiskStore
+  //JOptSimple is used by gfsh. A couple of usages have leaked into DiskStore
   //Implementation
   compile('net.sf.jopt-simple:jopt-simple')
 
@@ -305,11 +297,6 @@ dependencies {
   runtimeOnly('org.fusesource.jansi:jansi') {
     ext.optional = true
   }
-
-  //Unclear why we need to declare slf4j-api (We don't use it, and shiro declares it as a
-  //transitive dependency)
-  //Remove this
-  runtimeOnly('org.slf4j:slf4j-api')
 
   //This routes slf4j logs to log4j. Shiro and micrometer use slf4j
   runtimeOnly('org.apache.logging.log4j:log4j-slf4j-impl') {
@@ -330,6 +317,7 @@ dependencies {
     ext.optional = true
   }
   //Jetty is used by the http service, which is used for the developer and management rest APIs
+  //Implementation
   compile('org.eclipse.jetty:jetty-server')
 
 
