@@ -22,6 +22,7 @@ dependencies {
   compile(platform(project(':boms:geode-all-bom')))
 
   compileOnly(project(':geode-core'))
+  compile(project(':geode-json'))
 
   compile('com.fasterxml.jackson.core:jackson-annotations')
   compile('com.fasterxml.jackson.core:jackson-databind')
