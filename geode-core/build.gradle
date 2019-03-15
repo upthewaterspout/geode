@@ -348,10 +348,6 @@ dependencies {
   //probably does not belong in this project
   api(project(':geode-common'))
   
-  //Geode JSON is used in gfsh
-  implementation(project(':geode-json'))
-  
-  
   compile(project(':geode-management'))
 
   jcaAnnotationProcessor 'org.apache.logging.log4j:log4j-core'
