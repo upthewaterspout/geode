@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -318,6 +319,48 @@ public class AsyncEventQueueEvictionAndExpirationJUnitTest {
   }
 
   @Test
+  public void expirationDestroyIsConflated() {
+
+    // String aeqId = "AEQTest";
+    String aeqId = name.getMethodName();
+
+    AsyncEventListener al = this.createAsyncListener(events);
+    aeq = cache.createAsyncEventQueueFactory().setParallel(false)
+        .setForwardExpirationDestroy(true).setBatchSize(1)
+        .setBatchConflationEnabled(true)
+        .setBatchTimeInterval(1).create(aeqId, al);
+
+
+    region = createRegion("ReplicatedRegionForAEQ", true, aeqId, false, false,
+        true, false);
+
+    // Populate region with two entries.
+    region.put("junkkey", "junkvalue");
+    region.put("Key-1", "Value-1");
+    region.put("Key-1", "Value-2");
+    region.put("Key-1", "Value-3");
+    region.put("Key-1", "Value-4");
+    for(int i = 0; i < 50; i++ ) {
+      region.put("k" + i, "value");
+    }
+    region.put("Key-1", "Value-5");
+
+    // Wait for region to evict/expire events.
+    await()
+        .untilAsserted(() -> assertEquals(0, region.size()));
+
+    await().atMost(200, TimeUnit.SECONDS)
+        .untilAsserted(() -> assertEquals(1, getEventsReceived(aeqId)));
+//
+//    // The AQListner should get expected events.
+//    await()
+//        .untilAsserted(() -> assertEquals(4, events.size()));
+//
+//    assertTrue("Expiration event not arrived", checkForOperation(events, false, true));
+
+  }
+
+  @Test
   public void expirationDestroyPropogatedUsingForwardExpirationDestroyAttribute() {
     // For Replicated Region with expiration-destroy op.
     // Number of expected events 4. Two for create and Two for expiration destroy.
@@ -507,8 +550,12 @@ public class AsyncEventQueueEvictionAndExpirationJUnitTest {
       @Override
       public boolean processEvents(List<AsyncEvent> arg0) {
         try {
+          Thread.sleep(2000);
           synchronized (aeList) {
             aeList.add(arg0.get(0));
+            for(AsyncEvent event : arg0) {
+              System.out.println("Received " + event.getOperation() + ": " + event.getKey() + "=" + event.getDeserializedValue());
+            }
           }
         } catch (Exception ex) {
         }
