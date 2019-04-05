@@ -132,6 +132,7 @@ public class PartitionedRegionQueryEvaluator extends StreamingPartitionOperation
   private final Set<Integer> bucketsToQuery;
   // set of members failed to execute query
   private Set<InternalDistributedMember> failedMembers;
+  private final Object principal;
 
   /**
    * Construct a PartitionedRegionQueryEvaluator
@@ -162,6 +163,7 @@ public class PartitionedRegionQueryEvaluator extends StreamingPartitionOperation
     if (query != null && query.isTraced()) {
       prQueryTraceInfoList = new ConcurrentLinkedQueue();
     }
+    this.principal = executionContext.getPrincipal();
   }
 
   @Override
@@ -172,7 +174,7 @@ public class PartitionedRegionQueryEvaluator extends StreamingPartitionOperation
   protected PartitionMessage createRequestMessage(InternalDistributedMember recipient,
       ReplyProcessor21 processor, List bucketIds) {
     return new QueryMessage(recipient, this.pr.getPRId(), processor, this.query, this.parameters,
-        bucketIds);
+        bucketIds, principal);
   }
 
 
@@ -814,7 +816,8 @@ public class PartitionedRegionQueryEvaluator extends StreamingPartitionOperation
   private SelectResults buildSortedResult(CompiledSelect cs, int limit) throws QueryException {
 
     try {
-      ExecutionContext localContext = new QueryExecutionContext(this.parameters, this.pr.cache);
+      ExecutionContext localContext =
+          new QueryExecutionContext(this.parameters, this.pr.cache, this.principal);
 
 
       List<Collection> allResults = new ArrayList<Collection>();
@@ -1027,7 +1030,7 @@ public class PartitionedRegionQueryEvaluator extends StreamingPartitionOperation
   }
 
   protected PRQueryProcessor createLocalPRQueryProcessor(List<Integer> bucketList) {
-    return new PRQueryProcessor(this.pr, query, parameters, bucketList);
+    return new PRQueryProcessor(this.pr, query, parameters, bucketList, principal);
   }
 
   protected void memberStreamCorrupted(InternalDistributedMember sender) {

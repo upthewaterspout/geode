@@ -41,6 +41,7 @@ import org.apache.geode.cache.query.Struct;
 import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.cache.query.internal.DefaultQuery;
 import org.apache.geode.cache.query.internal.IndexTrackingQueryObserver;
+import org.apache.geode.cache.query.internal.QueryExecutionContext;
 import org.apache.geode.cache.query.internal.QueryObserver;
 import org.apache.geode.cache.query.internal.QueryObserverHolder;
 import org.apache.geode.distributed.DistributedMember;
@@ -212,13 +213,15 @@ public class DataCommandFunction implements InternalFunction {
     List<SelectResultRow> list = new ArrayList<>();
 
     try {
-      Object results = query.execute();
+      QueryExecutionContext context =
+          new QueryExecutionContext(new Object[0], cache, query, principal);
+      Object results = ((DefaultQuery) query).executeUsingContext(context);
       if (tracedQuery.isTraced()) {
         queryVerboseMsg = getLogMessage(queryObserver, startTime, queryString);
         queryObserver.reset2();
       }
       if (results instanceof SelectResults) {
-        select_SelectResults((SelectResults) results, principal, list, cache);
+        select_SelectResults((SelectResults) results, list);
       } else {
         select_NonSelectResults(results, list);
       }
@@ -244,12 +247,8 @@ public class DataCommandFunction implements InternalFunction {
     list.add(createSelectResultRow(results));
   }
 
-  private void select_SelectResults(SelectResults selectResults, Object principal,
-      List<SelectResultRow> list, InternalCache cache) {
+  private void select_SelectResults(SelectResults selectResults, List<SelectResultRow> list) {
     for (Object object : selectResults) {
-      // Post processing
-      object = cache.getSecurityService().postProcess(principal, null, null, object, false);
-
       list.add(createSelectResultRow(object));
     }
   }

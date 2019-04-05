@@ -50,6 +50,7 @@ import org.apache.geode.cache.query.types.CollectionType;
 import org.apache.geode.cache.query.types.ObjectType;
 import org.apache.geode.internal.cache.LocalDataSet;
 import org.apache.geode.internal.cache.PartitionedRegion;
+import org.apache.geode.internal.security.PostProcessing;
 
 /**
  * @since GemFire 4.0
@@ -102,17 +103,19 @@ public class QRegion implements SelectResults {
       this.region = localData;
       if (includeKeys) {
         res = new ResultsCollectionWrapper(TypeUtils.getObjectType(constraint),
-            localData.localEntrySet());
+            PostProcessing.entrySet(localData, context.getPrincipal()));
       } else {
         res = new ResultsCollectionWrapper(TypeUtils.getObjectType(constraint),
-            localData.localValues());
+            PostProcessing.values(localData, context.getPrincipal()));
       }
     } else {
       this.region = region;
       if (includeKeys) {
-        res = new ResultsCollectionWrapper(TypeUtils.getObjectType(constraint), region.entrySet());
+        res = new ResultsCollectionWrapper(TypeUtils.getObjectType(constraint),
+            PostProcessing.entrySet(region, context.getPrincipal()));
       } else {
-        res = new ResultsCollectionWrapper(TypeUtils.getObjectType(constraint), region.values());
+        res = new ResultsCollectionWrapper(TypeUtils.getObjectType(constraint),
+            PostProcessing.values(region, context.getPrincipal()));
       }
     }
     res.setModifiable(false);

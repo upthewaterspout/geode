@@ -142,7 +142,8 @@ public class LocalDataSet implements Region, QueryExecutor {
     QueryService qs = getCache().getLocalQueryService();
     DefaultQuery query = (DefaultQuery) qs
         .newQuery("select * from " + getFullPath() + " this where " + queryPredicate);
-    final ExecutionContext executionContext = new QueryExecutionContext(null, getCache(), query);
+    final ExecutionContext executionContext =
+        new QueryExecutionContext(null, getCache(), query, null);
     Object[] params = null;
     return (SelectResults) this.executeQuery(query, executionContext, params, getBucketSet());
   }

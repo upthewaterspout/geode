@@ -71,6 +71,7 @@ import org.apache.geode.internal.cache.RegionEntryContext;
 import org.apache.geode.internal.cache.entries.VMThinRegionEntryHeap;
 import org.apache.geode.internal.cache.persistence.query.CloseableIterator;
 import org.apache.geode.internal.logging.LogService;
+import org.apache.geode.internal.security.PostProcessing;
 import org.apache.geode.pdx.internal.PdxString;
 
 /**
@@ -780,7 +781,8 @@ public class CompactRangeIndex extends AbstractIndex {
           continue;
         }
 
-        Object value = indexEntry.getDeserializedValue();
+        Object value =
+            PostProcessing.getPostProcessedValue(region, indexEntry, context.getPrincipal());
 
         if (IndexManager.IS_TEST_EXPANSION) {
           Object rk = indexEntry.getDeserializedRegionKey();
@@ -816,7 +818,8 @@ public class CompactRangeIndex extends AbstractIndex {
         } else {
           if (value != null) {
             boolean ok = true;
-            if (indexEntry.isUpdateInProgress() || TEST_ALWAYS_UPDATE_IN_PROGRESS) {
+            if (indexEntry.isUpdateInProgress() || TEST_ALWAYS_UPDATE_IN_PROGRESS
+                || PostProcessing.needsPostProcessing(region)) {
               IndexInfo indexInfo = (IndexInfo) context.cacheGet(CompiledValue.INDEX_INFO);
               if (runtimeItr == null) {
                 runtimeItr = getRuntimeIteratorForThisIndex(context, indexInfo);

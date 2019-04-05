@@ -364,7 +364,7 @@ public class CompiledSelect extends AbstractCompiledValue {
   public SelectResults getEmptyResultSet(Object[] parameters, InternalCache cache, Query query)
       throws FunctionDomainException, TypeMismatchException, NameResolutionException,
       QueryInvocationTargetException {
-    ExecutionContext context = new QueryExecutionContext(parameters, cache, query);
+    ExecutionContext context = new QueryExecutionContext(parameters, cache, query, null);
     computeDependencies(context);
     context.newScope((Integer) context.cacheGet(scopeID));
     context.pushExecCache((Integer) context.cacheGet(scopeID));

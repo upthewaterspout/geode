@@ -155,7 +155,9 @@ public class QueryDataFunction implements Function, InternalEntity {
             }
             LocalDataSet lds = new LocalDataSet(parRegion, localPrimaryBucketSet);
             DefaultQuery query = (DefaultQuery) cache.getQueryService().newQuery(queryString);
-            final ExecutionContext executionContext = new QueryExecutionContext(null, cache, query);
+            /** TODO - pass the principal!!! */
+            final ExecutionContext executionContext =
+                new QueryExecutionContext(null, cache, query, null);
             results = lds.executeQuery(query, executionContext, null, localPrimaryBucketSet);
           }
         } else {

@@ -70,6 +70,7 @@ public class QueryMessage extends StreamingPartitionOperation.StreamingPartition
   private Iterator<Collection> currentSelectResultIterator;
   private boolean isTraceInfoIteration = false;
   private boolean isStructType = false;
+  private Object principal;
 
   /**
    * Empty constructor to satisfy {@link DataSerializer} requirements
@@ -79,13 +80,14 @@ public class QueryMessage extends StreamingPartitionOperation.StreamingPartition
   }
 
   public QueryMessage(InternalDistributedMember recipient, int regionId, ReplyProcessor21 processor,
-      DefaultQuery query, Object[] parameters, final List buckets) {
+      DefaultQuery query, Object[] parameters, final List buckets, final Object principal) {
     super(recipient, regionId, processor);
     this.queryString = query.getQueryString();
     this.buckets = buckets;
     this.parameters = parameters;
     this.cqQuery = query.isCqQuery();
     this.traceOn = query.isTraced() || DefaultQuery.QUERY_VERBOSE;
+    this.principal = principal;
   }
 
   /**
@@ -171,7 +173,8 @@ public class QueryMessage extends StreamingPartitionOperation.StreamingPartition
     }
 
     DefaultQuery query = new DefaultQuery(this.queryString, pr.getCache(), false);
-    final ExecutionContext executionContext = new QueryExecutionContext(null, pr.getCache(), query);
+    final ExecutionContext executionContext =
+        new QueryExecutionContext(null, pr.getCache(), query, principal);
     // Remote query, use the PDX types in serialized form.
     Boolean initialPdxReadSerialized = pr.getCache().getPdxReadSerializedOverride();
     pr.getCache().setPdxReadSerializedOverride(true);
@@ -183,7 +186,8 @@ public class QueryMessage extends StreamingPartitionOperation.StreamingPartition
 
     try {
       query.setIsCqQuery(this.cqQuery);
-      PRQueryProcessor qp = new PRQueryProcessor(pr, query, this.parameters, this.buckets);
+      PRQueryProcessor qp =
+          new PRQueryProcessor(pr, query, this.parameters, this.buckets, principal);
       if (logger.isDebugEnabled()) {
         logger.debug("Started executing query from remote node: {}", query.getQueryString());
       }
@@ -307,6 +311,17 @@ public class QueryMessage extends StreamingPartitionOperation.StreamingPartition
 
   @Override
   public void fromData(DataInput in) throws IOException, ClassNotFoundException {
+    fromDataPre_GEODE_1_10_0_0(in);
+    this.principal = DataSerializer.readObject(in);
+  }
+
+  @Override
+  public void toData(DataOutput out) throws IOException {
+    toDataPre_GEODE_1_10_0_0(out);
+    DataSerializer.writeObject(this.principal, out);
+  }
+
+  public void fromDataPre_GEODE_1_10_0_0(DataInput in) throws IOException, ClassNotFoundException {
     super.fromData(in);
     this.queryString = DataSerializer.readString(in);
     this.buckets = DataSerializer.readArrayList(in);
@@ -316,8 +331,7 @@ public class QueryMessage extends StreamingPartitionOperation.StreamingPartition
     this.traceOn = DataSerializer.readBoolean(in);
   }
 
-  @Override
-  public void toData(DataOutput out) throws IOException {
+  public void toDataPre_GEODE_1_10_0_0(DataOutput out) throws IOException {
     super.toData(out);
     DataSerializer.writeString(this.queryString, out);
     DataSerializer.writeArrayList((ArrayList) this.buckets, out);

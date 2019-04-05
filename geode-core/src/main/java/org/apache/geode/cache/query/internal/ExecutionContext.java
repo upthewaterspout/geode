@@ -595,6 +595,10 @@ public class ExecutionContext {
     return null;
   }
 
+  public Object getPrincipal() {
+    return null;
+  }
+
   public void pushExecCache(int scopeNum) {
     throw new UnsupportedOperationException("Method should not have been called");
   }

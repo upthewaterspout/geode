@@ -86,6 +86,7 @@ public class PRQueryProcessor {
   private volatile ObjectType resultType = null;
 
   private boolean isIndexUsedForLocalQuery = false;
+  private Object principal;
 
   public PRQueryProcessor(PartitionedRegionDataStore prDS, DefaultQuery query, Object[] parameters,
       List<Integer> buckets) {
@@ -99,7 +100,8 @@ public class PRQueryProcessor {
   }
 
   public PRQueryProcessor(PartitionedRegion pr, DefaultQuery query, Object[] parameters,
-      List buckets) {
+      List buckets, Object principal) {
+    this.principal = principal;
     Assert.assertTrue(!buckets.isEmpty(), "bucket list can not be empty. ");
     this.pr = pr;
     this._bucketsToQuery = buckets;
@@ -172,7 +174,8 @@ public class PRQueryProcessor {
         CompiledSelect cs = this.query.getSimpleSelect();
 
         if (cs != null && (cs.isOrderBy() || cs.isGroupBy())) {
-          ExecutionContext context = new QueryExecutionContext(this.parameters, pr.getCache());
+          ExecutionContext context =
+              new QueryExecutionContext(this.parameters, pr.getCache(), principal);
           int limit = this.query.getLimit(parameters);
           Collection mergedResults = coalesceOrderedResults(resultCollector, context, cs, limit);
           resultCollector.clear();
@@ -193,7 +196,7 @@ public class PRQueryProcessor {
   private void executeSequentially(Collection<Collection> resultCollector, List buckets)
       throws QueryException, InterruptedException, ForceReattemptException {
     ExecutionContext context =
-        new QueryExecutionContext(this.parameters, this.pr.getCache(), this.query);
+        new QueryExecutionContext(this.parameters, this.pr.getCache(), this.query, principal);
 
     CompiledSelect cs = this.query.getSimpleSelect();
     int limit = this.query.getLimit(parameters);
@@ -409,7 +412,7 @@ public class PRQueryProcessor {
       try {
         List<Integer> bucketList = Collections.singletonList(this._bucketId);
         ExecutionContext context =
-            new QueryExecutionContext(this.parameters, pr.getCache(), this.query);
+            new QueryExecutionContext(this.parameters, pr.getCache(), this.query, principal);
         context.setBucketList(bucketList);
         executeQueryOnBuckets(this.resultColl, context);
       } catch (ForceReattemptException | QueryException | CacheRuntimeException fre) {

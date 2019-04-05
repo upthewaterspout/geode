@@ -19,14 +19,11 @@ import static org.apache.geode.security.ResourcePermission.Operation.READ;
 import static org.apache.geode.security.ResourcePermission.Operation.WRITE;
 import static org.apache.geode.security.ResourcePermission.Resource.DATA;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionDestroyedException;
@@ -34,14 +31,9 @@ import org.apache.geode.cache.query.FunctionDomainException;
 import org.apache.geode.cache.query.NameResolutionException;
 import org.apache.geode.cache.query.Query;
 import org.apache.geode.cache.query.QueryInvocationTargetException;
-import org.apache.geode.cache.query.SelectResults;
-import org.apache.geode.cache.query.Struct;
 import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.cache.query.internal.DefaultQuery;
 import org.apache.geode.cache.query.internal.InternalQueryService;
-import org.apache.geode.cache.query.internal.ResultsCollectionWrapper;
-import org.apache.geode.cache.query.internal.StructImpl;
-import org.apache.geode.cache.query.internal.types.StructTypeImpl;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.security.NotAuthorizedException;
 import org.apache.geode.security.ResourcePermission;
@@ -181,48 +173,7 @@ public class SecureCacheImpl implements SecureCache {
 
     Object result = query.execute(bindParameters);
 
-    if (security.needsPostProcessing()) {
-      return postProcessQueryResults(result);
-    } else {
-      return result;
-    }
-  }
-
-  private Object postProcessQueryResults(Object value) {
-    // The result is a single value
-    if (!(value instanceof SelectResults)) {
-      // For query results, we don't have the region or the key
-      return security.postProcess(null, null, value);
-    }
-
-    SelectResults<?> selectResults = (SelectResults<?>) value;
-
-    // The result is a list of objects
-    if (!selectResults.getCollectionType().getElementType().isStructType()) {
-      List<Object> postProcessed = selectResults.stream()
-          .map(element -> security.postProcess(null, null, element)).collect(Collectors.toList());
-      return new ResultsCollectionWrapper(selectResults.getCollectionType().getElementType(),
-          postProcessed);
-    }
-
-    // The result is a list of structs
-    SelectResults<Struct> structResults = (SelectResults<Struct>) selectResults;
-
-    List<Struct> postProcessed =
-        structResults.stream().map(this::postProcessStruct).collect(Collectors.toList());
-
-
-    return new ResultsCollectionWrapper(selectResults.getCollectionType().getElementType(),
-        postProcessed);
-  }
-
-  private Struct postProcessStruct(Struct struct) {
-    List<Object> newValues = Arrays.stream(struct.getFieldValues())
-        .map(element -> security.postProcess(null, null, element)).collect(Collectors.toList());
-    StructImpl newStruct =
-        new StructImpl((StructTypeImpl) struct.getStructType(), newValues.toArray());
-
-    return newStruct;
+    return result;
   }
 
   private <K, V> Region<K, V> getRegion(String regionName) {

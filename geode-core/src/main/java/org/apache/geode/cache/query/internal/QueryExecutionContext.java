@@ -60,19 +60,27 @@ public class QueryExecutionContext extends ExecutionContext {
   private Map<Integer, PdxString> bindArgumentToPdxStringMap;
 
   /**
+   * The security principal associated with a query
+   */
+  private final Object principal;
+
+  /**
    * List of query index names that the user has hinted on using
    */
   private ArrayList hints = null;
 
-  public QueryExecutionContext(Object[] bindArguments, InternalCache cache) {
+  public QueryExecutionContext(Object[] bindArguments, InternalCache cache, Object principal) {
     super(bindArguments, cache);
     this.query = null;
+    this.principal = principal;
   }
 
-  public QueryExecutionContext(Object[] bindArguments, InternalCache cache, Query query) {
+  public QueryExecutionContext(Object[] bindArguments, InternalCache cache, Query query,
+      Object principal) {
     super(bindArguments, cache);
     this.query = query;
     this.cqQueryContext = ((DefaultQuery) query).isCqQuery();
+    this.principal = principal;
   }
 
   @Override
@@ -213,5 +221,10 @@ public class QueryExecutionContext extends ExecutionContext {
 
   boolean hasMultiHints() {
     return hints != null && hints.size() > 1;
+  }
+
+  @Override
+  public Object getPrincipal() {
+    return principal;
   }
 }

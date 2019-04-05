@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
 
+import org.apache.shiro.subject.Subject;
+
 import org.apache.geode.annotations.Immutable;
 import org.apache.geode.annotations.internal.MakeNotStatic;
 import org.apache.geode.annotations.internal.MutableForTesting;
@@ -54,10 +56,10 @@ import org.apache.geode.internal.cache.BucketRegion;
 import org.apache.geode.internal.cache.CachePerfStats;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.LocalDataSet;
-import org.apache.geode.internal.cache.PRQueryProcessor;
 import org.apache.geode.internal.cache.PartitionedRegion;
 import org.apache.geode.internal.cache.TXManagerImpl;
 import org.apache.geode.internal.cache.TXStateProxy;
+import org.apache.geode.internal.security.SecurityService;
 
 /**
  * Thread-safe implementation of org.apache.persistence.query.Query
@@ -166,7 +168,7 @@ public class DefaultQuery implements Query {
     this.compiledQuery = compiler.compileQuery(queryString);
     CompiledSelect cs = getSimpleSelect();
     if (cs != null && !isForRemote && (cs.isGroupBy() || cs.isOrderBy())) {
-      QueryExecutionContext ctx = new QueryExecutionContext(null, cache);
+      QueryExecutionContext ctx = new QueryExecutionContext(null, cache, null);
       try {
         cs.computeDependencies(ctx);
       } catch (QueryException qe) {
@@ -227,7 +229,8 @@ public class DefaultQuery implements Query {
 
     Object result = null;
     Boolean initialPdxReadSerialized = this.cache.getPdxReadSerializedOverride();
-    final ExecutionContext context = new QueryExecutionContext(params, this.cache, this);
+    final ExecutionContext context =
+        new QueryExecutionContext(params, this.cache, this, getPrincipal(cache));
 
     try {
       // Setting the readSerialized flag for local queries
@@ -330,77 +333,6 @@ public class DefaultQuery implements Query {
       UserAttributes.userAttributes.set(null);
       long endTime = CachePerfStats.getStatTime();
       updateStatistics(endTime - startTime);
-    }
-    return result;
-  }
-
-  /**
-   * Execute a PR Query on the specified bucket. Assumes query already meets restrictions for PR
-   * Query, and the first iterator in the FROM clause can be replaced with the BucketRegion.
-   */
-  public Object prExecuteOnBucket(Object[] parameters, PartitionedRegion pr, BucketRegion bukRgn)
-      throws FunctionDomainException, TypeMismatchException, NameResolutionException,
-      QueryInvocationTargetException {
-    if (parameters == null) {
-      parameters = EMPTY_ARRAY;
-    }
-
-    long startTime = 0L;
-    if (this.traceOn && this.cache != null) {
-      startTime = NanoTimer.getTime();
-    }
-
-    IndexTrackingQueryObserver indexObserver = null;
-    String otherObserver = null;
-    if (this.traceOn) {
-      QueryObserver qo = QueryObserverHolder.getInstance();
-      if (qo instanceof IndexTrackingQueryObserver) {
-        indexObserver = (IndexTrackingQueryObserver) qo;
-      } else if (!QueryObserverHolder.hasObserver()) {
-        indexObserver = new IndexTrackingQueryObserver();
-        QueryObserverHolder.setInstance(indexObserver);
-      } else {
-        otherObserver = qo.getClass().getName();
-      }
-    }
-
-    final ExecutionContext context = new QueryExecutionContext(parameters, this.cache, this);
-    context.setBucketRegion(pr, bukRgn);
-
-    // Check if QueryMonitor is enabled, if enabled add query to be monitored.
-    QueryMonitor queryMonitor = this.cache.getQueryMonitor();
-
-    // PRQueryProcessor executes the query using single thread(in-line) or ThreadPool.
-    // In case of threadPool each individual threads needs to be added into
-    // QueryMonitor Service.
-    if (queryMonitor != null && PRQueryProcessor.NUM_THREADS > 1) {
-      // Add current thread to be monitored by QueryMonitor.
-      queryMonitor.monitorQueryExecution(context);
-    }
-
-    Object result = null;
-    try {
-      result = executeUsingContext(context);
-    } finally {
-      if (queryMonitor != null && PRQueryProcessor.NUM_THREADS > 1) {
-        queryMonitor.stopMonitoringQueryExecution(context);
-      }
-
-      int resultSize = 0;
-      if (this.traceOn) {
-        if (result instanceof Collection) {
-          resultSize = ((Collection) result).size();
-        }
-      }
-
-      String queryVerboseMsg = DefaultQuery.getLogMessage(indexObserver, startTime, otherObserver,
-          resultSize, this.queryString, bukRgn);
-
-      if (this.traceOn) {
-        if (this.cache.getLogger().fineEnabled()) {
-          this.cache.getLogger().fine(queryVerboseMsg);
-        }
-      }
     }
     return result;
   }
@@ -926,6 +858,17 @@ public class DefaultQuery implements Query {
   private void setKeepSerialized() {
     this.keepSerialized = true;
   }
+
+  public static Object getPrincipal(InternalCache cache) {
+    SecurityService securityService = cache.getSecurityService();
+    Subject subject = securityService.getSubject();
+    if (subject == null) {
+      return null;
+    }
+
+    return subject.getPrincipal();
+  }
+
 
   /**
    * Test logic sets DefaultQuery.testHook to an implementation of this interface,
