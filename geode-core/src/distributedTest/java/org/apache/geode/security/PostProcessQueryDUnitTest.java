@@ -57,6 +57,7 @@ import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.cache.query.internal.index.CompactRangeIndex;
 import org.apache.geode.cache.query.internal.index.HashIndex;
 import org.apache.geode.cache.query.internal.index.PartitionedIndex;
+import org.apache.geode.cache.query.internal.index.PrimaryKeyIndex;
 import org.apache.geode.security.templates.UserPasswordAuthInit;
 import org.apache.geode.test.dunit.DUnitEnv;
 import org.apache.geode.test.dunit.VM;
@@ -124,7 +125,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
 
   protected void populateRegion(Region region) {
     for (int i = 0; i < 5; i++) {
-      region.put("key" + i, new Value(Integer.toString(i)));
+      region.put(Integer.toString(i), new Value(Integer.toString(i)));
     }
   }
 
@@ -170,18 +171,20 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
         IntStream.of(1));
     assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
   }
+
+  @Test
+  public void queryWithKeyIndexShouldRedact()
+      throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
+    Assume.assumeTrue(indexedField.equals("id"));
+    QueryService queryService = getCache().getQueryService();
+    Index index = queryService.createKeyIndex("index", "id", "/AuthRegion");
+    checkIndexType(index, PrimaryKeyIndex.class);
+    assertPostProcessed(
+        String.format("select %s from /AuthRegion r where r.id='1'", selectExpression),
+        IntStream.of(1));
+    assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
+  }
   /*
-   * @Test
-   * public void queryWithKeyIndexShouldRedact()
-   * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
-   * QueryService queryService = getCache().getQueryService();
-   * Index index = queryService.createKeyIndex("index", "id", "/AuthRegion");
-   * checkIndexType(index, PrimaryKeyIndex.class);
-   * assertPostProcessed(
-   * String.format("select %s from /AuthRegion r where r.id='1'", selectExpression),
-   * IntStream.of(1));
-   * assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
-   * }
    *
    * @Test
    * public void queryWithRangeIndexShouldRedact()
@@ -207,11 +210,6 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
    * fail("Not yet implemented");
    * }
    *
-   * @Test
-   * public void queryWithPartitionedIndexShouldRedact()
-   * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
-   * fail("Not yet implemented");
-   * }
    *
    * @Test
    * public void luceneQueryShouldRedact()

@@ -45,6 +45,7 @@ import org.apache.geode.cache.query.types.ObjectType;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.LocalRegion;
 import org.apache.geode.internal.cache.RegionEntry;
+import org.apache.geode.internal.security.PostProcessing;
 import org.apache.geode.pdx.internal.PdxString;
 
 public class PrimaryKeyIndex extends AbstractIndex {
@@ -198,6 +199,8 @@ public class PrimaryKeyIndex extends AbstractIndex {
           Region.Entry entry = ((LocalRegion) getRegion()).accessEntry(key, false);
           if (entry != null) {
             Object value = entry.getValue();
+            value =
+                PostProcessing.getPostProcessedValue(region, key, value, context.getPrincipal());
             if (value != null) {
               boolean ok = true;
               if (runtimeItr != null) {
@@ -225,6 +228,7 @@ public class PrimaryKeyIndex extends AbstractIndex {
             continue;
           }
           Object val = entry.getValue();
+          val = PostProcessing.getPostProcessedValue(region, key, val, context.getPrincipal());
           // TODO: is this correct. What should be the behaviour of null values?
           if (val != null) {
             boolean ok = true;
@@ -267,6 +271,7 @@ public class PrimaryKeyIndex extends AbstractIndex {
     if (context != null && context.isCqQueryContext()) {
       results.add(new CqEntry(key, result));
     } else {
+      result = PostProcessing.getPostProcessedValue(region, key, result, context.getPrincipal());
       results.add(result);
     }
   }
