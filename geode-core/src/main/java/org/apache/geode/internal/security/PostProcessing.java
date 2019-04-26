@@ -55,6 +55,62 @@ public class PostProcessing {
     return new TransformingCollection<>(transformation, region.entrySet());
   }
 
+  /**
+   * Return a post processed value from an index entry.
+   */
+  public static Object getPostProcessedValue(Region region, IndexStore.IndexStoreEntry indexEntry,
+      Object principal) {
+    SecurityService securityService = getSecurityService(region);
+
+    if (!securityService.needPostProcess()) {
+      return indexEntry.getDeserializedValue();
+    }
+
+    return securityService.postProcess(principal, region.getFullPath(),
+        indexEntry.getDeserializedRegionKey(),
+        indexEntry.getDeserializedValue(), false);
+  }
+
+  /**
+   * Post process a region value, if required
+   */
+  public static Object getPostProcessedValue(Region region, Object key, Object value,
+      Object principal) {
+    SecurityService securityService = getSecurityService(region);
+
+    if (!securityService.needPostProcess()) {
+      return value;
+    }
+
+    return securityService.postProcess(principal, region.getFullPath(),
+        key,
+        value, false);
+  }
+
+  public static boolean needsPostProcessing(Region region) {
+    return getSecurityService(region).needPostProcess();
+
+  }
+
+  /**
+   * Post process the value of a region entry if required. If no post processing is required, return
+   * the original
+   * entry.
+   */
+  public static Map.Entry getPostProcessedEntry(Region region, Map.Entry entry, Object principal) {
+    SecurityService securityService = getSecurityService(region);
+
+    if (!securityService.needPostProcess()) {
+      return entry;
+    }
+
+    return transformEntry(securityService, entry, region.getFullPath(), principal);
+  }
+
+  private static SecurityService getSecurityService(Region<?, ?> region) {
+    InternalCache cache = (InternalCache) region.getRegionService();
+    return cache.getSecurityService();
+  }
 
   private static <K, V> Map.Entry<K, Object> transformEntry(SecurityService securityService,
       Map.Entry<K, V> entry,
@@ -77,26 +133,5 @@ public class PostProcessing {
 
   }
 
-  public static Object getPostProcessedValue(Region region, IndexStore.IndexStoreEntry indexEntry,
-      Object principal) {
-    SecurityService securityService = getSecurityService(region);
 
-    if (!securityService.needPostProcess()) {
-      return indexEntry.getDeserializedValue();
-    }
-
-    return securityService.postProcess(principal, region.getFullPath(),
-        indexEntry.getDeserializedRegionKey(),
-        indexEntry.getDeserializedValue(), true);
-  }
-
-  public static boolean needsPostProcessing(Region region) {
-    return getSecurityService(region).needPostProcess();
-
-  }
-
-  private static SecurityService getSecurityService(Region<?, ?> region) {
-    InternalCache cache = (InternalCache) region.getRegionService();
-    return cache.getSecurityService();
-  }
 }

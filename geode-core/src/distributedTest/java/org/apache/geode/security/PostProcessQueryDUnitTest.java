@@ -55,6 +55,7 @@ import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.RegionNotFoundException;
 import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.cache.query.internal.index.CompactRangeIndex;
+import org.apache.geode.cache.query.internal.index.HashIndex;
 import org.apache.geode.cache.query.internal.index.PartitionedIndex;
 import org.apache.geode.security.templates.UserPasswordAuthInit;
 import org.apache.geode.test.dunit.DUnitEnv;
@@ -156,20 +157,20 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
     // TODO - assert that the index was used!
   }
 
+
+  @Test
+  public void queryWithHashIndexShouldRedact()
+      throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
+    QueryService queryService = getCache().getQueryService();
+    Index index = queryService.createHashIndex("index", indexedField, "/AuthRegion");
+    checkIndexType(index, HashIndex.class);
+    assertPostProcessed(
+        String.format("select %s from /AuthRegion r where r.%s='1'", selectExpression,
+            indexedField),
+        IntStream.of(1));
+    assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
+  }
   /*
-   * @Test
-   * public void queryWithHashIndexShouldRedact()
-   * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
-   * QueryService queryService = getCache().getQueryService();
-   * Index index = queryService.createHashIndex("index", indexedField, "/AuthRegion");
-   * checkIndexType(index, HashIndex.class);
-   * assertPostProcessed(
-   * String.format("select %s from /AuthRegion r where r.%s='1'", selectExpression,
-   * indexedField),
-   * IntStream.of(1));
-   * assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
-   * }
-   *
    * @Test
    * public void queryWithKeyIndexShouldRedact()
    * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {

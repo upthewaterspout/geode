@@ -53,6 +53,7 @@ import org.apache.geode.cache.query.internal.DefaultQuery;
 import org.apache.geode.cache.query.internal.ExecutionContext;
 import org.apache.geode.cache.query.internal.IndexInfo;
 import org.apache.geode.cache.query.internal.QRegion;
+import org.apache.geode.cache.query.internal.QueryExecutionContext;
 import org.apache.geode.cache.query.internal.QueryMonitor;
 import org.apache.geode.cache.query.internal.QueryObserver;
 import org.apache.geode.cache.query.internal.QueryObserverHolder;
@@ -74,6 +75,7 @@ import org.apache.geode.internal.cache.Token;
 import org.apache.geode.internal.cache.persistence.query.CloseableIterator;
 import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.internal.offheap.StoredObject;
+import org.apache.geode.internal.security.PostProcessing;
 
 /**
  * A HashIndex is an index that can be used for equal and not equals queries It is created only when
@@ -436,7 +438,7 @@ public class HashIndex extends AbstractIndex {
     CompactRangeIndex index = (CompactRangeIndex) indexInfo._getIndex();
     RuntimeIterator runtimeItr = index.getRuntimeIteratorForThisIndex(context, indexInfo);
     if (runtimeItr != null) {
-      runtimeItr.setCurrent(getTargetObject(entry));
+      runtimeItr.setCurrent(getTargetObject(entry, context));
     }
     return evaluateEntry(indexInfo, context, keyVal);
   }
@@ -659,14 +661,16 @@ public class HashIndex extends AbstractIndex {
       SelectResults intermediateResults, boolean isIntersection, int limit, QueryObserver observer,
       long iteratorCreationTime) throws FunctionDomainException, TypeMismatchException,
       NameResolutionException, QueryInvocationTargetException {
-    Object value = getTargetObject(re);
+    Object value = getTargetObject(re, context);
+    value = PostProcessing.getPostProcessedValue(region, re, value, context.getPrincipal());
     if (value != null) {
       boolean ok = true;
       // If the region entry is currently being updated or it has been modified since starting
       // iteration
       // we will reevaluate to be sure the value still matches the key
       if (re.isUpdateInProgress()
-          || IndexManager.needsRecalculation(iteratorCreationTime, re.getLastModified())) {
+          || IndexManager.needsRecalculation(iteratorCreationTime, re.getLastModified())
+          || PostProcessing.needsPostProcessing(region)) {
         IndexInfo indexInfo = (IndexInfo) context.cacheGet(CompiledValue.INDEX_INFO);
         if (runtimeItr == null) {
           runtimeItr = getRuntimeIteratorForThisIndex(context, indexInfo);
@@ -741,7 +745,8 @@ public class HashIndex extends AbstractIndex {
    * Get the object of interest from the region entry. For now it always gets the deserialized
    * value.
    */
-  private Object getTargetObject(RegionEntry entry) {
+  private Object getTargetObject(RegionEntry entry,
+      ExecutionContext context) {
     if (this.indexOnValues) {
       // OFFHEAP: incrc, deserialize, decrc
       Object o = entry.getValue((LocalRegion) getRegion());
@@ -750,7 +755,10 @@ public class HashIndex extends AbstractIndex {
           return null;
         }
         if (o instanceof CachedDeserializable) {
-          return ((CachedDeserializable) o).getDeserializedForReading();
+          Object value = ((CachedDeserializable) o).getDeserializedForReading();
+          value =
+              PostProcessing.getPostProcessedValue(region, entry, value, context.getPrincipal());
+          return value;
         }
       } catch (EntryDestroyedException ignored) {
         return null;
@@ -759,7 +767,9 @@ public class HashIndex extends AbstractIndex {
     } else if (this.indexOnRegionKeys) {
       return entry.getKey();
     }
-    return new NonTXEntry((LocalRegion) getRegion(), entry);
+    Map.Entry nonTXEntry = new NonTXEntry((LocalRegion) getRegion(), entry);
+    nonTXEntry = PostProcessing.getPostProcessedEntry(region, nonTXEntry, context.getPrincipal());
+    return nonTXEntry;
   }
 
   private Object getTargetObjectForUpdate(RegionEntry entry) {
@@ -827,7 +837,7 @@ public class HashIndex extends AbstractIndex {
       Collection entrySet = regionEntryCollection(indexEntry.getValue());
       for (Object anEntrySet : entrySet) {
         RegionEntry e = (RegionEntry) anEntrySet;
-        Object value = getTargetObject(e);
+        Object value = getTargetObject(e, new QueryExecutionContext(null, cache, null, null));
         sb.append("  RegionEntry.key = ").append(e.getKey());
         sb.append("  Value.type = ").append(value.getClass().getName());
         if (value instanceof Collection) {
