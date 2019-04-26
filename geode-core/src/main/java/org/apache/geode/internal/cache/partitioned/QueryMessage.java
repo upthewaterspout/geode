@@ -341,4 +341,8 @@ public class QueryMessage extends StreamingPartitionOperation.StreamingPartition
     DataSerializer.writeBoolean(this.traceOn, out);
   }
 
+  @Override
+  public Version[] getSerializationVersions() {
+    return new Version[] {Version.GEODE_1_10_0};
+  }
 }
