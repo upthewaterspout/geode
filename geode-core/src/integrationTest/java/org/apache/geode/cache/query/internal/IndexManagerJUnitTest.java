@@ -134,7 +134,7 @@ public class IndexManagerJUnitTest {
     qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolios, positions");
     QCompiler compiler = new QCompiler();
     List list = compiler.compileFromClause("/portfolios pf");
-    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
     context.newScope(context.associateScopeID());
 
     Iterator iter = list.iterator();

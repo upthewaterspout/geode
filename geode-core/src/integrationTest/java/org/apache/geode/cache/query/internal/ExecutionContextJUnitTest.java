@@ -67,7 +67,7 @@ public class ExecutionContextJUnitTest {
     // compileFromClause returns a List<CompiledIteratorDef>
     QCompiler compiler = new QCompiler();
     List list = compiler.compileFromClause("/portfolio p, p.positions");
-    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
     context.newScope(context.associateScopeID());
     try {
       Iterator iter = list.iterator();
@@ -95,7 +95,7 @@ public class ExecutionContextJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
       Iterator iter = list.iterator();
       int i = 0;
@@ -123,7 +123,7 @@ public class ExecutionContextJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
       Iterator iter = list.iterator();
       int i = 0;
@@ -161,7 +161,7 @@ public class ExecutionContextJUnitTest {
     List list = compiler.compileFromClause(
         "/portfolio p, p.positions, p.addreses addrs, addrs.collection1 coll1, /dummy d1, d1.collection2 d2");
     RuntimeIterator indItr = null;
-    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
     context.newScope(context.associateScopeID());
     int i = 0;
     List checkList = new ArrayList();
@@ -206,7 +206,7 @@ public class ExecutionContextJUnitTest {
     String qry =
         "select distinct p.pf, ELEMENT(select distinct pf1 from /portfolios pf1 where pf1.getID = p.pf.getID )  from (select distinct pf, pos from /portfolios pf, pf.positions.values pos) p, (select distinct * from /positions rtPos where rtPos.secId = p.pos.secId) as y "
             + "where ( select distinct pf2 from /portfolios pf2 ).size() <> 0 ";
-    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
     QCompiler compiler = new QCompiler();
     CompiledValue query = compiler.compileQuery(qry);
     helperComputeDependencyPhase(context, query);
@@ -278,7 +278,7 @@ public class ExecutionContextJUnitTest {
         try {
           latch.countDown();
           latch.await();
-          ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+          ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
           helperComputeDependencyPhase(context, query);
           Set runtimeItrs = context.getDependencySet(query, true);
           Iterator itr = runtimeItrs.iterator();

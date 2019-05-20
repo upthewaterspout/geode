@@ -350,7 +350,7 @@ public class PartitionedRegionQueryEvaluatorTest {
 
       public ExtendedPRQueryProcessor(PartitionedRegion pr, DefaultQuery query, Object[] parameters,
           List buckets) {
-        super(pr, query, parameters, buckets, principal);
+        super(pr, query, parameters, buckets, null);
       }
 
       public ExtendedPRQueryProcessor(PartitionedRegionDataStore prDS, DefaultQuery query,

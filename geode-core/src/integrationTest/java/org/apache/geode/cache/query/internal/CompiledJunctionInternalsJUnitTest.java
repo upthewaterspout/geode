@@ -79,7 +79,7 @@ public class CompiledJunctionInternalsJUnitTest {
   public void testMultipleRangeJunctionsInAGroupJunction() {
     QCompiler compiler = new QCompiler();
     List list = compiler.compileFromClause("/portfolio p, p.positions");
-    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
     context.newScope(context.associateScopeID());
     try {
       qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolio");
@@ -139,7 +139,7 @@ public class CompiledJunctionInternalsJUnitTest {
   public void testMultipleRangeJunctionsAndAnIndexableConditionInAGroupJunction() {
     QCompiler compiler = new QCompiler();
     List list = compiler.compileFromClause("/portfolio p, p.positions");
-    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
     context.newScope(context.associateScopeID());
     try {
       qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolio");
@@ -237,7 +237,7 @@ public class CompiledJunctionInternalsJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions,/employees e");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
 
       // qs.createIndex("statusIndex",
@@ -326,7 +326,7 @@ public class CompiledJunctionInternalsJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions,/employees e");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
       qs.createIndex("idIndex", IndexType.FUNCTIONAL, "ID", "/portfolio p");
       Iterator iter = list.iterator();
@@ -390,7 +390,7 @@ public class CompiledJunctionInternalsJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions,/employees e");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
 
       // qs.createIndex("statusIndex",
@@ -461,7 +461,7 @@ public class CompiledJunctionInternalsJUnitTest {
     // compileFromClause returns a List<CompiledIteratorDef>
     QCompiler compiler = new QCompiler();
     List list = compiler.compileFromClause("/portfolio p, p.positions");
-    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
     context.newScope(context.associateScopeID());
     try {
       qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolio");
@@ -507,7 +507,7 @@ public class CompiledJunctionInternalsJUnitTest {
     // compileFromClause returns a List<CompiledIteratorDef>
     QCompiler compiler = new QCompiler();
     List list = compiler.compileFromClause("/portfolio p, p.positions");
-    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+    ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
     context.newScope(context.associateScopeID());
     try {
       qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolio");
@@ -575,7 +575,7 @@ public class CompiledJunctionInternalsJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions,/employees e");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
 
       qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolio");
@@ -631,7 +631,7 @@ public class CompiledJunctionInternalsJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions,/employees e");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
 
       // qs.createIndex("statusIndex",
@@ -700,7 +700,7 @@ public class CompiledJunctionInternalsJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions,/employees e");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
 
       qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolio");
@@ -769,7 +769,7 @@ public class CompiledJunctionInternalsJUnitTest {
       // compileFromClause returns a List<CompiledIteratorDef>
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause("/portfolio p, p.positions,/employees e");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
 
       qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolio");
@@ -839,7 +839,7 @@ public class CompiledJunctionInternalsJUnitTest {
       QCompiler compiler = new QCompiler();
       List list =
           compiler.compileFromClause("/portfolio p, p.positions,/employees e, /portfolio1 p1");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
 
       qs.createIndex("statusIndex", IndexType.FUNCTIONAL, "status", "/portfolio");
@@ -940,7 +940,7 @@ public class CompiledJunctionInternalsJUnitTest {
       QCompiler compiler = new QCompiler();
       List list = compiler.compileFromClause(
           "/portfolio p, p.positions,/employees e, /employees1 e1, /portfolio p1");
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       context.newScope(context.associateScopeID());
 
       // qs.createIndex("statusIndex",
@@ -1009,7 +1009,7 @@ public class CompiledJunctionInternalsJUnitTest {
   public void testOrganizedOperandsSingleRangeJunctionCreationWithNoIterOperandForAND() {
     LogWriter logger = CacheUtils.getLogger();
     try {
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       CompiledComparison cv[] = null;
       cv = new CompiledComparison[12];
@@ -1059,7 +1059,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       cv = new CompiledComparison[13];
       cv[0] = new CompiledComparison(new CompiledPath(new CompiledID("p"), "ID"),
@@ -1112,7 +1112,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       cv = new CompiledComparison[12];
       cv[0] = new CompiledComparison(new CompiledPath(new CompiledID("p"), "ID"),
@@ -1168,7 +1168,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       cv = new CompiledComparison[3];
       cv[0] = new CompiledComparison(new CompiledPath(new CompiledID("p"), "ID"),
@@ -1209,7 +1209,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       cv = new CompiledComparison[3];
       cv[0] = new CompiledComparison(new CompiledPath(new CompiledID("p"), "ID"),
@@ -1254,7 +1254,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       cv = new CompiledComparison[4];
       cv[0] = new CompiledComparison(new CompiledPath(new CompiledID("p"), "ID"),
@@ -1298,7 +1298,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       cv = new CompiledComparison[5];
       cv[0] = new CompiledComparison(new CompiledPath(new CompiledID("p"), "ID"),
@@ -1345,7 +1345,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       // case1: a <7 and a<=5 and 2>a and 2> createTime and "xyz" > pid
       // and 100 != a and 200 !=a and 1 != a
@@ -1406,7 +1406,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       cv = new CompiledComparison[7];
       cv[0] = new CompiledComparison(new CompiledPath(new CompiledID("p"), "ID"),
@@ -1461,7 +1461,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       /** **********For ALL greater or greater than combinations********* */
       // Case 1 : a >7 and a >=4 and a > 5 and a > 7
@@ -1797,7 +1797,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getCache().getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       /**
        * ******************For all LESS THAN OR LESS THAN EQUAL To ********************
@@ -2139,7 +2139,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       /**
        * ******************For all LESS THAN OR LESS THAN EQUAL To ********************
@@ -2218,7 +2218,7 @@ public class CompiledJunctionInternalsJUnitTest {
   public void testNotEqualCoupledWithUndefinedAndNotNull() {
     LogWriter logger = CacheUtils.getLogger();
     try {
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       // Case 2 : a != 7 and a != null and a != undefined
       CompiledValue[] cv1 = new CompiledValue[3];
@@ -2255,7 +2255,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       /**
        * ******************For all LESS THAN OR LESS THAN EQUAL To ********************
@@ -2451,7 +2451,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getLogger();
     try {
       CompiledValue cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       // Case 1 : a != null and a != null and a != undefined
       cv = new CompiledValue[3];
@@ -2487,7 +2487,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       // Case 1 : a >= 7 and a <=10
       cv = new CompiledComparison[2];
@@ -2687,7 +2687,7 @@ public class CompiledJunctionInternalsJUnitTest {
     LogWriter logger = CacheUtils.getLogger();
     try {
       CompiledComparison cv[] = null;
-      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache());
+      ExecutionContext context = new QueryExecutionContext(null, CacheUtils.getCache(), null);
       this.bindIteratorsAndCreateIndex(context);
       // Case 1 : a >= 7 and a != null
       cv = new CompiledComparison[2];

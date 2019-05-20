@@ -25,7 +25,7 @@ public class QueryExecutionContextJUnitTest {
   @Test
   public void testNullReturnedFromCacheGetWhenNoValueWasPut() {
     Object key = new Object();
-    QueryExecutionContext context = new QueryExecutionContext(null, null);
+    QueryExecutionContext context = new QueryExecutionContext(null, null, null);
     assertNull(context.cacheGet(key));
   }
 
@@ -33,7 +33,7 @@ public class QueryExecutionContextJUnitTest {
   public void testPutValueReturnedFromCacheGet() {
     Object key = new Object();
     Object value = new Object();
-    QueryExecutionContext context = new QueryExecutionContext(null, null);
+    QueryExecutionContext context = new QueryExecutionContext(null, null, null);
     context.cachePut(key, value);
     assertEquals(value, context.cacheGet(key));
   }
@@ -42,7 +42,7 @@ public class QueryExecutionContextJUnitTest {
   public void testDefaultReturnedFromCacheGetWhenNoValueWasPut() {
     Object key = new Object();
     Object value = new Object();
-    QueryExecutionContext context = new QueryExecutionContext(null, null);
+    QueryExecutionContext context = new QueryExecutionContext(null, null, null);
     assertEquals(value, context.cacheGet(key, value));
   }
 
@@ -50,7 +50,7 @@ public class QueryExecutionContextJUnitTest {
   public void testExecCachesCanBePushedAndValuesRetrievedAtTheCorrectLevel() {
     Object key = new Object();
     Object value = new Object();
-    QueryExecutionContext context = new QueryExecutionContext(null, null);
+    QueryExecutionContext context = new QueryExecutionContext(null, null, null);
     context.pushExecCache(1);
     context.cachePut(key, value);
     context.pushExecCache(2);

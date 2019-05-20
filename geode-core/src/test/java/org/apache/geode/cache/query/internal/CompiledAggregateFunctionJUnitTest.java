@@ -69,7 +69,7 @@ public class CompiledAggregateFunctionJUnitTest {
     assertThat(caf3.evaluate(context3)).isInstanceOf(CountPRQueryNode.class);
 
     CompiledAggregateFunction caf4 = new CompiledAggregateFunction(null, OQLLexerTokenTypes.COUNT);
-    QueryExecutionContext context4 = new QueryExecutionContext(null, cache);
+    QueryExecutionContext context4 = new QueryExecutionContext(null, cache, null);
 
     context4.setBucketList(bucketList);
     assertThat(caf4.evaluate(context4)).isInstanceOf(Count.class);
@@ -82,7 +82,7 @@ public class CompiledAggregateFunctionJUnitTest {
 
     CompiledAggregateFunction caf6 =
         new CompiledAggregateFunction(null, OQLLexerTokenTypes.COUNT, true);
-    QueryExecutionContext context6 = new QueryExecutionContext(null, cache);
+    QueryExecutionContext context6 = new QueryExecutionContext(null, cache, null);
     context6.setBucketList(bucketList);
     assertThat(caf6.evaluate(context6)).isInstanceOf(DistinctAggregator.class);
   }
@@ -104,7 +104,7 @@ public class CompiledAggregateFunctionJUnitTest {
     assertThat(caf3.evaluate(context3)).isInstanceOf(Sum.class);
 
     CompiledAggregateFunction caf4 = new CompiledAggregateFunction(null, OQLLexerTokenTypes.SUM);
-    QueryExecutionContext context4 = new QueryExecutionContext(null, cache);
+    QueryExecutionContext context4 = new QueryExecutionContext(null, cache, null);
     context4.setBucketList(bucketList);
     assertThat(caf4.evaluate(context4)).isInstanceOf(Sum.class);
 
@@ -116,7 +116,7 @@ public class CompiledAggregateFunctionJUnitTest {
 
     CompiledAggregateFunction caf6 =
         new CompiledAggregateFunction(null, OQLLexerTokenTypes.SUM, true);
-    QueryExecutionContext context6 = new QueryExecutionContext(null, cache);
+    QueryExecutionContext context6 = new QueryExecutionContext(null, cache, null);
     context6.setBucketList(bucketList);
     assertThat(caf6.evaluate(context6)).isInstanceOf(DistinctAggregator.class);
   }
@@ -138,7 +138,7 @@ public class CompiledAggregateFunctionJUnitTest {
     assertThat(caf3.evaluate(context3)).isInstanceOf(AvgPRQueryNode.class);
 
     CompiledAggregateFunction caf4 = new CompiledAggregateFunction(null, OQLLexerTokenTypes.AVG);
-    QueryExecutionContext context4 = new QueryExecutionContext(null, cache);
+    QueryExecutionContext context4 = new QueryExecutionContext(null, cache, null);
     context4.setBucketList(this.bucketList);
     assertThat(caf4.evaluate(context4)).isInstanceOf(AvgBucketNode.class);
 
@@ -150,7 +150,7 @@ public class CompiledAggregateFunctionJUnitTest {
 
     CompiledAggregateFunction caf6 =
         new CompiledAggregateFunction(null, OQLLexerTokenTypes.AVG, true);
-    QueryExecutionContext context6 = new QueryExecutionContext(null, cache);
+    QueryExecutionContext context6 = new QueryExecutionContext(null, cache, null);
     context6.setBucketList(this.bucketList);
     assertThat(caf6.evaluate(context6)).isInstanceOf(DistinctAggregator.class);
   }

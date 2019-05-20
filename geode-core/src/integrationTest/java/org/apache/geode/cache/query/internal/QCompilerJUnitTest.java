@@ -40,7 +40,7 @@ import org.apache.geode.test.junit.categories.OQLQueryTest;
 @Category({OQLQueryTest.class})
 public class QCompilerJUnitTest {
 
-  QueryExecutionContext context = new QueryExecutionContext(null, null);
+  QueryExecutionContext context = new QueryExecutionContext(null, null, null);
 
   @Test
   public void testStringConditioningForLike_1() {
