@@ -31,7 +31,6 @@ import org.apache.geode.cache.query.Index;
 import org.apache.geode.cache.query.IndexStatistics;
 import org.apache.geode.cache.query.data.Portfolio;
 import org.apache.geode.cache.query.data.Position;
-import org.apache.geode.cache.query.internal.index.AbstractIndex.RegionEntryToValuesMap;
 import org.apache.geode.cache.query.internal.index.IndexStore.IndexStoreEntry;
 import org.apache.geode.cache.query.internal.index.MemoryIndexStore.MemoryIndexStoreEntry;
 import org.apache.geode.cache.query.partitioned.PRQueryDUnitHelper;
@@ -519,7 +518,7 @@ public class ConcurrentIndexUpdateWithInplaceObjectModFalseDUnitTest
 
                   // Check if RegionEntry is present in Index for the key evaluated from
                   // region value.
-                  if (!(valuesForKey instanceof RegionEntryToValuesMap)) {
+                  if (!(valuesForKey instanceof MultiValuedMap)) {
                     assertTrue(
                         "Did not find index value for REgionEntry [key: " + internalEntry.getKey()
                             + " , value: " + value + " ] in index: " + index.getName()
@@ -530,7 +529,7 @@ public class ConcurrentIndexUpdateWithInplaceObjectModFalseDUnitTest
                         "Did not find index value for REgionEntry [key: " + internalEntry.getKey()
                             + " , value: " + value + " ] in index: " + index.getName()
                             + " For index key: " + secId,
-                        (((RegionEntryToValuesMap) valuesForKey).containsEntry(internalEntry)));
+                        (((MultiValuedMap) valuesForKey).containsEntry(internalEntry)));
                   }
 
                   if (secId != null) {
@@ -573,7 +572,7 @@ public class ConcurrentIndexUpdateWithInplaceObjectModFalseDUnitTest
             // for (Object obj: ((RegionEntryToValuesMap)value).map.values()) {
             // getLogWriter().info("Index Values : "+ obj.toString());
             // }
-            actualSize += ((RegionEntryToValuesMap) value).getNumValues();
+            actualSize += ((MultiValuedMap) value).getNumValues();
           }
         }
       }
@@ -597,7 +596,7 @@ public class ConcurrentIndexUpdateWithInplaceObjectModFalseDUnitTest
             .info(" Actual Size of Index is: " + actualSize + " Undefined size is: "
                 + ((RangeIndex) index).undefinedMappedEntries.getNumEntries()
                 + " And NULL size is: " + ((RangeIndex) index).nullMappedEntries.getNumEntries());
-        for (Object obj : ((RangeIndex) index).undefinedMappedEntries.map.keySet()) {
+        for (Object obj : ((RangeIndex) index).undefinedMappedEntries.keySet()) {
           LogWriterUtils.getLogWriter().info(((RegionEntry) obj).getKey() + "");
         }
         LogWriterUtils.getLogWriter()
@@ -712,7 +711,7 @@ public class ConcurrentIndexUpdateWithInplaceObjectModFalseDUnitTest
 
                     // Check if RegionEntry is present in Index for the key evaluated from
                     // region value.
-                    if (!(valuesForKey instanceof RegionEntryToValuesMap)) {
+                    if (!(valuesForKey instanceof MultiValuedMap)) {
                       assertTrue(
                           "Did not find index value for REgionEntry [key: " + internalEntry.getKey()
                               + " , value: " + value + " ] in index: " + index.getName()
@@ -723,7 +722,7 @@ public class ConcurrentIndexUpdateWithInplaceObjectModFalseDUnitTest
                           "Did not find index value for REgionEntry [key: " + internalEntry.getKey()
                               + " , value: " + value + " ] in index: " + index.getName()
                               + " For index key: " + secId,
-                          (((RegionEntryToValuesMap) valuesForKey).containsEntry(internalEntry)));
+                          (((MultiValuedMap) valuesForKey).containsEntry(internalEntry)));
                     }
 
                     if (secId != null) {
@@ -762,7 +761,7 @@ public class ConcurrentIndexUpdateWithInplaceObjectModFalseDUnitTest
             if (value instanceof RegionEntry) {
               actualValueSize++;
             } else {
-              actualValueSize += ((RegionEntryToValuesMap) value).getNumValues();
+              actualValueSize += ((MultiValuedMap) value).getNumValues();
             }
           }
         }

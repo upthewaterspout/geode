@@ -25,7 +25,7 @@ import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.RegionEntry;
 
 public class MapRangeIndex extends AbstractMapIndex {
-  protected final RegionEntryToValuesMap entryToMapKeysMap;
+  protected final MultiValuedMap entryToMapKeysMap;
 
   MapRangeIndex(InternalCache cache, String indexName, Region region, String fromClause,
       String indexedExpression, String projectionAttributes, String origFromClause,
@@ -36,7 +36,7 @@ public class MapRangeIndex extends AbstractMapIndex {
         stats);
     RegionAttributes ra = region.getAttributes();
     this.entryToMapKeysMap =
-        new RegionEntryToValuesMap(
+        new MultiValuedMap(
             new java.util.concurrent.ConcurrentHashMap(ra.getInitialCapacity(), ra.getLoadFactor(),
                 ra.getConcurrencyLevel()),
             true /* user target list as the map keys will be unique */);

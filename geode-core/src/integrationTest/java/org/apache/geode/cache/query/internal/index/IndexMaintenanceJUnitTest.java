@@ -51,7 +51,6 @@ import org.apache.geode.cache.query.internal.DefaultQueryService;
 import org.apache.geode.cache.query.internal.QueryObserver;
 import org.apache.geode.cache.query.internal.QueryObserverAdapter;
 import org.apache.geode.cache.query.internal.QueryObserverHolder;
-import org.apache.geode.cache.query.internal.index.AbstractIndex.RegionEntryToValuesMap;
 import org.apache.geode.cache.query.internal.index.IndexStore.IndexStoreEntry;
 import org.apache.geode.cache.query.internal.index.MemoryIndexStore.MemoryIndexStoreEntry;
 import org.apache.geode.internal.cache.LocalRegion;
@@ -114,23 +113,23 @@ public class IndexMaintenanceJUnitTest {
     Iterator itr = ri.valueToEntriesMap.values().iterator();
     while (itr.hasNext()) {
       RangeIndex.RegionEntryToValuesMap re2ValMap = (RangeIndex.RegionEntryToValuesMap) itr.next();
-      assertEquals(1, re2ValMap.map.size());
-      Object obj = re2ValMap.map.values().iterator().next();
+      assertEquals(1, re2ValMap.keySet().size());
+      Object obj = re2ValMap.values().iterator().next();
       assertFalse(obj instanceof Collection);
       assertTrue(obj instanceof Portfolio);
       Portfolio pf = (Portfolio) obj;
       assertTrue(idSet.contains(String.valueOf(pf.getID())));
     }
-    assertEquals(1, ri.undefinedMappedEntries.map.size());
-    Map.Entry entry = (Map.Entry) ri.undefinedMappedEntries.map.entrySet().iterator().next();
+    assertEquals(1, ri.undefinedMappedEntries.size());
+    Map.Entry entry = (Map.Entry) ri.undefinedMappedEntries.entrySet().iterator().next();
     assertFalse(entry.getValue() instanceof Collection);
     assertTrue(entry.getValue() instanceof Integer);
     assertTrue(entry.getValue().equals(6));
 
     region.put("7", 7);
     idSet.add(7);
-    assertEquals(2, ri.undefinedMappedEntries.map.size());
-    itr = ri.undefinedMappedEntries.map.entrySet().iterator();
+    assertEquals(2, ri.undefinedMappedEntries.size());
+    itr = ri.undefinedMappedEntries.entrySet().iterator();
     while (itr.hasNext()) {
       entry = (Map.Entry) itr.next();
       assertFalse(entry.getValue() instanceof Collection);
@@ -146,23 +145,23 @@ public class IndexMaintenanceJUnitTest {
     itr = ri.valueToEntriesMap.values().iterator();
     while (itr.hasNext()) {
       RangeIndex.RegionEntryToValuesMap re2ValMap = (RangeIndex.RegionEntryToValuesMap) itr.next();
-      assertEquals(1, re2ValMap.map.size());
-      Object obj = re2ValMap.map.values().iterator().next();
+      assertEquals(1, re2ValMap.size());
+      Object obj = re2ValMap.values().iterator().next();
       assertFalse(obj instanceof Collection);
       assertTrue(obj instanceof Portfolio);
       Portfolio pf = (Portfolio) obj;
       assertTrue(idSet.contains(String.valueOf(pf.getID())));
     }
-    assertEquals(1, ri.undefinedMappedEntries.map.size());
-    entry = (Map.Entry) ri.undefinedMappedEntries.map.entrySet().iterator().next();
+    assertEquals(1, ri.undefinedMappedEntries.size());
+    entry = (Map.Entry) ri.undefinedMappedEntries.entrySet().iterator().next();
     assertFalse(entry.getValue() instanceof Collection);
     assertTrue(entry.getValue() instanceof Integer);
     assertTrue(entry.getValue().equals(6));
 
     region.put("7", 7);
     idSet.add(7);
-    assertEquals(2, ri.undefinedMappedEntries.map.size());
-    itr = ri.undefinedMappedEntries.map.entrySet().iterator();
+    assertEquals(2, ri.undefinedMappedEntries.size());
+    itr = ri.undefinedMappedEntries.entrySet().iterator();
     while (itr.hasNext()) {
       entry = (Map.Entry) itr.next();
       assertFalse(entry.getValue() instanceof Collection);
@@ -450,7 +449,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+        MultiValuedMap entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           RegionEntry re = testRgn.basicGetEntry(elem);
@@ -478,7 +477,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+        MultiValuedMap entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           RegionEntry re = testRgn.basicGetEntry(elem);
@@ -503,7 +502,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+        MultiValuedMap entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           RegionEntry re = testRgn.basicGetEntry(elem);
@@ -516,7 +515,7 @@ public class IndexMaintenanceJUnitTest {
     Iterator itr = rng.valueToEntriesMap.values().iterator();
     assertEquals(rng.valueToEntriesMap.size(), 1);
     assertTrue(rng.valueToEntriesMap.containsKey("val7"));
-    RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+    MultiValuedMap entryMap = (MultiValuedMap) itr.next();
     assertEquals(1, entryMap.getNumEntries());
     RegionEntry re = testRgn.basicGetEntry(6);
     entryMap.containsEntry(re);
@@ -535,7 +534,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        entryMap = (RegionEntryToValuesMap) itr.next();
+        entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           re = testRgn.basicGetEntry(elem);
@@ -568,7 +567,7 @@ public class IndexMaintenanceJUnitTest {
       }
       if (keey.equals("key1")) {
         assertEquals(rng.valueToEntriesMap.size(), 2);
-        entryMap = (RegionEntryToValuesMap) rng.valueToEntriesMap.get("val1");
+        entryMap = (MultiValuedMap) rng.valueToEntriesMap.get("val1");
         assertEquals(5, entryMap.getNumEntries());
         expectedElements.remove(1);
         for (Integer elem : expectedElements) {
@@ -576,14 +575,14 @@ public class IndexMaintenanceJUnitTest {
 
           assertTrue(entryMap.containsEntry(re));
         }
-        entryMap = (RegionEntryToValuesMap) rng.valueToEntriesMap.get("val2");
+        entryMap = (MultiValuedMap) rng.valueToEntriesMap.get("val2");
         assertEquals(1, entryMap.getNumEntries());
         re = testRgn.basicGetEntry(1);
         assertTrue(entryMap.containsEntry(re));
 
       } else {
         while (itr.hasNext()) {
-          entryMap = (RegionEntryToValuesMap) itr.next();
+          entryMap = (MultiValuedMap) itr.next();
           assertEquals(ID + 1 - j, entryMap.getNumEntries());
           for (Integer elem : expectedElements) {
             re = testRgn.basicGetEntry(elem);
@@ -618,7 +617,7 @@ public class IndexMaintenanceJUnitTest {
       }
       if (keey.equals("key1")) {
         assertEquals(rng.valueToEntriesMap.size(), 2);
-        entryMap = (RegionEntryToValuesMap) rng.valueToEntriesMap.get("val1");
+        entryMap = (MultiValuedMap) rng.valueToEntriesMap.get("val1");
         assertEquals(4, entryMap.getNumEntries());
         expectedElements.remove(1);
         for (Integer elem : expectedElements) {
@@ -626,14 +625,14 @@ public class IndexMaintenanceJUnitTest {
 
           assertTrue(entryMap.containsEntry(re));
         }
-        entryMap = (RegionEntryToValuesMap) rng.valueToEntriesMap.get("val2");
+        entryMap = (MultiValuedMap) rng.valueToEntriesMap.get("val2");
         assertEquals(1, entryMap.getNumEntries());
         re = testRgn.basicGetEntry(1);
         assertTrue(entryMap.containsEntry(re));
 
       } else {
         while (itr.hasNext()) {
-          entryMap = (RegionEntryToValuesMap) itr.next();
+          entryMap = (MultiValuedMap) itr.next();
           assertEquals(ID + 1 - j, entryMap.getNumEntries());
           for (Integer elem : expectedElements) {
             re = testRgn.basicGetEntry(elem);
@@ -684,7 +683,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+        MultiValuedMap entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           RegionEntry re = testRgn.basicGetEntry(elem);
@@ -715,7 +714,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+        MultiValuedMap entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           RegionEntry re = testRgn.basicGetEntry(elem);
@@ -742,7 +741,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+        MultiValuedMap entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           RegionEntry re = testRgn.basicGetEntry(elem);
@@ -756,7 +755,7 @@ public class IndexMaintenanceJUnitTest {
     Iterator itr = rng.valueToEntriesMap.values().iterator();
     assertEquals(rng.valueToEntriesMap.size(), 1);
     assertTrue(rng.valueToEntriesMap.containsKey("val7"));
-    RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+    MultiValuedMap entryMap = (MultiValuedMap) itr.next();
     assertEquals(1, entryMap.getNumEntries());
     RegionEntry re = testRgn.basicGetEntry(6);
     entryMap.containsEntry(re);
@@ -777,7 +776,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        entryMap = (RegionEntryToValuesMap) itr.next();
+        entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           re = testRgn.basicGetEntry(elem);
@@ -811,21 +810,21 @@ public class IndexMaintenanceJUnitTest {
       }
       if (keey.equals("key1")) {
         assertEquals(rng.valueToEntriesMap.size(), 2);
-        entryMap = (RegionEntryToValuesMap) rng.valueToEntriesMap.get("val1");
+        entryMap = (MultiValuedMap) rng.valueToEntriesMap.get("val1");
         assertEquals(5, entryMap.getNumEntries());
         expectedElements.remove(1);
         for (Integer elem : expectedElements) {
           re = testRgn.basicGetEntry(elem);
           assertTrue(entryMap.containsEntry(re));
         }
-        entryMap = (RegionEntryToValuesMap) rng.valueToEntriesMap.get("val2");
+        entryMap = (MultiValuedMap) rng.valueToEntriesMap.get("val2");
         assertEquals(1, entryMap.getNumEntries());
         re = testRgn.basicGetEntry(1);
         assertTrue(entryMap.containsEntry(re));
 
       } else {
         while (itr.hasNext()) {
-          entryMap = (RegionEntryToValuesMap) itr.next();
+          entryMap = (MultiValuedMap) itr.next();
           assertEquals(ID + 1 - j, entryMap.getNumEntries());
           for (Integer elem : expectedElements) {
             re = testRgn.basicGetEntry(elem);
@@ -853,7 +852,7 @@ public class IndexMaintenanceJUnitTest {
       }
       if (keey.equals("key1")) {
         assertEquals(rng.valueToEntriesMap.size(), 2);
-        entryMap = (RegionEntryToValuesMap) rng.valueToEntriesMap.get("val1");
+        entryMap = (MultiValuedMap) rng.valueToEntriesMap.get("val1");
         assertEquals(4, entryMap.getNumEntries());
 
         for (int k = 2; k <= 6; ++k) {
@@ -864,14 +863,14 @@ public class IndexMaintenanceJUnitTest {
             assertTrue(entryMap.containsEntry(re));
           }
         }
-        entryMap = (RegionEntryToValuesMap) rng.valueToEntriesMap.get("val2");
+        entryMap = (MultiValuedMap) rng.valueToEntriesMap.get("val2");
         assertEquals(1, entryMap.getNumEntries());
         re = testRgn.basicGetEntry(1);
         assertTrue(entryMap.containsEntry(re));
 
       } else {
         while (itr.hasNext()) {
-          entryMap = (RegionEntryToValuesMap) itr.next();
+          entryMap = (MultiValuedMap) itr.next();
           assertEquals(ID - j, entryMap.getNumEntries());
           for (int p = j; p <= ID; ++p) {
             re = testRgn.basicGetEntry(p);
@@ -923,7 +922,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+        MultiValuedMap entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           RegionEntry re = testRgn.basicGetEntry(elem);
@@ -953,7 +952,7 @@ public class IndexMaintenanceJUnitTest {
         expectedElements.add(k);
       }
       while (itr.hasNext()) {
-        RegionEntryToValuesMap entryMap = (RegionEntryToValuesMap) itr.next();
+        MultiValuedMap entryMap = (MultiValuedMap) itr.next();
         assertEquals(ID + 1 - j, entryMap.getNumEntries());
         for (Integer elem : expectedElements) {
           RegionEntry re = testRgn.basicGetEntry(elem);

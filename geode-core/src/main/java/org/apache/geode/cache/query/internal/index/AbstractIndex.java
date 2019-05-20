@@ -20,10 +20,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -53,7 +50,6 @@ import org.apache.geode.cache.query.internal.ExecutionContext;
 import org.apache.geode.cache.query.internal.IndexInfo;
 import org.apache.geode.cache.query.internal.QRegion;
 import org.apache.geode.cache.query.internal.QueryMonitor;
-import org.apache.geode.cache.query.internal.QueryUtils;
 import org.apache.geode.cache.query.internal.RuntimeIterator;
 import org.apache.geode.cache.query.internal.StructFields;
 import org.apache.geode.cache.query.internal.StructImpl;
@@ -89,10 +85,6 @@ import org.apache.geode.pdx.internal.PdxString;
  */
 public abstract class AbstractIndex implements IndexProtocol {
   private static final Logger logger = LogService.getLogger();
-
-  // package-private to avoid synthetic accessor
-  static final AtomicIntegerFieldUpdater<RegionEntryToValuesMap> atomicUpdater =
-      AtomicIntegerFieldUpdater.newUpdater(RegionEntryToValuesMap.class, "numValues");
 
   final InternalCache cache;
 
@@ -1582,345 +1574,6 @@ public abstract class AbstractIndex implements IndexProtocol {
   }
 
   /**
-   * This map is not thread-safe. We rely on the fact that every thread which is trying to update
-   * this kind of map (In Indexes), must have RegionEntry lock before adding OR removing elements.
-   *
-   * This map does NOT provide an iterator. To iterate over its element caller has to get inside the
-   * map itself through addValuesToCollection() calls.
-   */
-  class RegionEntryToValuesMap {
-    protected Map map;
-    private final boolean useList;
-    volatile int numValues;
-
-    RegionEntryToValuesMap(boolean useList) {
-      this.map = new ConcurrentHashMap(2, 0.75f, 1);
-      this.useList = useList;
-    }
-
-    RegionEntryToValuesMap(Map map, boolean useList) {
-      this.map = map;
-      this.useList = useList;
-    }
-
-    /**
-     * We do NOT use any locks here as every add is for a RegionEntry which is locked before coming
-     * here. No two threads can be entering in this method together for a RegionEntry.
-     */
-    public void add(RegionEntry entry, Object value) {
-      assert value != null;
-      // Values must NOT be null and ConcurrentHashMap does not support null values.
-      if (value == null) {
-        return;
-      }
-      Object object = this.map.get(entry);
-      if (object == null) {
-        this.map.put(entry, value);
-      } else if (object instanceof Collection) {
-        Collection coll = (Collection) object;
-        // If its a list query might get ConcurrentModificationException.
-        // This can only happen for Null mapped or Undefined entries in a
-        // RangeIndex. So we are synchronizing on ArrayList.
-        if (this.useList) {
-          synchronized (coll) {
-            coll.add(value);
-          }
-        } else {
-          coll.add(value);
-        }
-      } else {
-        Collection coll = this.useList ? new ArrayList(2) : new IndexConcurrentHashSet(2, 0.75f, 1);
-        coll.add(object);
-        coll.add(value);
-        this.map.put(entry, coll);
-      }
-      atomicUpdater.incrementAndGet(this);
-    }
-
-    public void addAll(RegionEntry entry, Collection values) {
-      Object object = this.map.get(entry);
-      if (object == null) {
-        Collection coll = this.useList ? new ArrayList(values.size())
-            : new IndexConcurrentHashSet(values.size(), 0.75f, 1);
-        coll.addAll(values);
-        this.map.put(entry, coll);
-        atomicUpdater.addAndGet(this, values.size());
-      } else if (object instanceof Collection) {
-        Collection coll = (Collection) object;
-        // If its a list query might get ConcurrentModificationException.
-        // This can only happen for Null mapped or Undefined entries in a
-        // RangeIndex. So we are synchronizing on ArrayList.
-        if (this.useList) {
-          synchronized (coll) {
-            coll.addAll(values);
-          }
-        } else {
-          coll.addAll(values);
-        }
-      } else {
-        Collection coll = this.useList ? new ArrayList(values.size() + 1)
-            : new IndexConcurrentHashSet(values.size() + 1, 0.75f, 1);
-        coll.addAll(values);
-        coll.add(object);
-        this.map.put(entry, coll);
-      }
-      atomicUpdater.addAndGet(this, values.size());
-    }
-
-    public Object get(RegionEntry entry) {
-      return this.map.get(entry);
-    }
-
-    /**
-     * We do NOT use any locks here as every remove is for a RegionEntry which is locked before
-     * coming here. No two threads can be entering in this method together for a RegionEntry.
-     */
-    public void remove(RegionEntry entry, Object value) {
-      Object object = this.map.get(entry);
-      if (object == null)
-        return;
-      if (object instanceof Collection) {
-        Collection coll = (Collection) object;
-        boolean removed;
-        // If its a list query might get ConcurrentModificationException.
-        // This can only happen for Null mapped or Undefined entries in a
-        // RangeIndex. So we are synchronizing on ArrayList.
-        if (this.useList) {
-          synchronized (coll) {
-            removed = coll.remove(value);
-          }
-        } else {
-          removed = coll.remove(value);
-        }
-        if (removed) {
-          if (coll.size() == 0) {
-            this.map.remove(entry);
-          }
-          atomicUpdater.decrementAndGet(this);
-        }
-      } else {
-        if (object.equals(value)) {
-          this.map.remove(entry);
-        }
-        atomicUpdater.decrementAndGet(this);
-      }
-    }
-
-    public Object remove(RegionEntry entry) {
-      Object retVal = this.map.remove(entry);
-      if (retVal != null) {
-        atomicUpdater.addAndGet(this,
-            retVal instanceof Collection ? -((Collection) retVal).size() : -1);
-      }
-      return retVal;
-    }
-
-    int getNumValues(RegionEntry entry) {
-      Object object = this.map.get(entry);
-      if (object == null)
-        return 0;
-      if (object instanceof Collection) {
-        Collection coll = (Collection) object;
-        return coll.size();
-      } else {
-        return 1;
-      }
-    }
-
-    public int getNumValues() {
-      return atomicUpdater.get(this);
-    }
-
-    public int getNumEntries() {
-      return this.map.keySet().size();
-    }
-
-    void addValuesToCollection(Collection result, int limit, ExecutionContext context) {
-      for (final Object o : this.map.entrySet()) {
-        // Check if query execution on this thread is canceled.
-        QueryMonitor.throwExceptionIfQueryOnCurrentThreadIsCanceled();
-        if (this.verifyLimit(result, limit, context)) {
-          return;
-        }
-        Entry e = (Entry) o;
-        Object value = e.getValue();
-        assert value != null;
-
-        RegionEntry re = (RegionEntry) e.getKey();
-        boolean reUpdateInProgress = re.isUpdateInProgress();
-        if (value instanceof Collection) {
-          // If its a list query might get ConcurrentModificationException.
-          // This can only happen for Null mapped or Undefined entries in a
-          // RangeIndex. So we are synchronizing on ArrayList.
-          if (this.useList) {
-            synchronized (value) {
-              for (Object val : (Iterable) value) {
-                // Compare the value in index with in RegionEntry.
-                if (!reUpdateInProgress || verifyEntryAndIndexValue(re, val, context)) {
-                  result.add(val);
-                }
-                if (limit != -1) {
-                  if (result.size() == limit) {
-                    return;
-                  }
-                }
-              }
-            }
-          } else {
-            for (Object val : (Iterable) value) {
-              // Compare the value in index with in RegionEntry.
-              if (!reUpdateInProgress || verifyEntryAndIndexValue(re, val, context)) {
-                result.add(val);
-              }
-              if (limit != -1) {
-                if (this.verifyLimit(result, limit, context)) {
-                  return;
-                }
-              }
-            }
-          }
-        } else {
-          if (!reUpdateInProgress || verifyEntryAndIndexValue(re, value, context)) {
-            if (context.isCqQueryContext()) {
-              result.add(new CqEntry(((RegionEntry) e.getKey()).getKey(), value));
-            } else {
-              result.add(verifyAndGetPdxDomainObject(value));
-            }
-          }
-        }
-      }
-    }
-
-    void addValuesToCollection(Collection result, CompiledValue iterOp, RuntimeIterator runtimeItr,
-        ExecutionContext context, List projAttrib, SelectResults intermediateResults,
-        boolean isIntersection, int limit) throws FunctionDomainException, TypeMismatchException,
-        NameResolutionException, QueryInvocationTargetException {
-
-      if (this.verifyLimit(result, limit, context)) {
-        return;
-      }
-
-      for (Object o : this.map.entrySet()) {
-        // Check if query execution on this thread is canceled.
-        QueryMonitor.throwExceptionIfQueryOnCurrentThreadIsCanceled();
-        Entry e = (Entry) o;
-        Object value = e.getValue();
-        // Key is a RegionEntry here.
-        RegionEntry entry = (RegionEntry) e.getKey();
-        if (value != null) {
-          boolean reUpdateInProgress = false;
-          if (entry.isUpdateInProgress()) {
-            reUpdateInProgress = true;
-          }
-          if (value instanceof Collection) {
-            // If its a list query might get ConcurrentModificationException.
-            // This can only happen for Null mapped or Undefined entries in a
-            // RangeIndex. So we are synchronizing on ArrayList.
-            if (this.useList) {
-              synchronized (value) {
-                for (Object o1 : ((Iterable) value)) {
-                  boolean ok = true;
-                  if (reUpdateInProgress) {
-                    // Compare the value in index with value in RegionEntry.
-                    ok = verifyEntryAndIndexValue(entry, o1, context);
-                  }
-                  if (ok && runtimeItr != null) {
-                    runtimeItr.setCurrent(o1);
-                    ok = QueryUtils.applyCondition(iterOp, context);
-                  }
-                  if (ok) {
-                    applyProjection(projAttrib, context, result, o1, intermediateResults,
-                        isIntersection);
-                    if (limit != -1 && result.size() == limit) {
-                      return;
-                    }
-                  }
-                }
-              }
-            } else {
-              for (Object o1 : ((Iterable) value)) {
-                boolean ok = true;
-                if (reUpdateInProgress) {
-                  // Compare the value in index with value in RegionEntry.
-                  ok = verifyEntryAndIndexValue(entry, o1, context);
-                }
-                if (ok && runtimeItr != null) {
-                  runtimeItr.setCurrent(o1);
-                  ok = QueryUtils.applyCondition(iterOp, context);
-                }
-                if (ok) {
-                  applyProjection(projAttrib, context, result, o1, intermediateResults,
-                      isIntersection);
-                  if (this.verifyLimit(result, limit, context)) {
-                    return;
-                  }
-                }
-              }
-            }
-          } else {
-            boolean ok = true;
-            if (reUpdateInProgress) {
-              // Compare the value in index with in RegionEntry.
-              ok = verifyEntryAndIndexValue(entry, value, context);
-            }
-            if (ok && runtimeItr != null) {
-              runtimeItr.setCurrent(value);
-              ok = QueryUtils.applyCondition(iterOp, context);
-            }
-            if (ok) {
-              if (context.isCqQueryContext()) {
-                result.add(new CqEntry(((RegionEntry) e.getKey()).getKey(), value));
-              } else {
-                applyProjection(projAttrib, context, result, value, intermediateResults,
-                    isIntersection);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    private boolean verifyLimit(Collection result, int limit, ExecutionContext context) {
-      if (limit > 0) {
-        if (!context.isDistinct()) {
-          return result.size() == limit;
-        } else if (result.size() == limit) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    public boolean containsEntry(RegionEntry entry) {
-      return this.map.containsKey(entry);
-    }
-
-    public boolean containsValue(Object value) {
-      throw new RuntimeException(
-          "Not yet implemented");
-    }
-
-    public void clear() {
-      this.map.clear();
-      atomicUpdater.set(this, 0);
-    }
-
-    public Set entrySet() {
-      return this.map.entrySet();
-    }
-
-    /**
-     * This replaces a key's value along with updating the numValues correctly.
-     */
-    public void replace(RegionEntry entry, Object values) {
-      int numOldValues = getNumValues(entry);
-      this.map.put(entry, values);
-      atomicUpdater.addAndGet(this,
-          (values instanceof Collection ? ((Collection) values).size() : 1) - numOldValues);
-    }
-  }
-
-  /**
    * This will populate resultSet from both type of indexes, {@link CompactRangeIndex} and
    * {@link RangeIndex}.
    */
@@ -1938,15 +1591,15 @@ public abstract class AbstractIndex implements IndexProtocol {
     while (j < 2) {
       boolean isRangeIndex = false;
       if (j == 0) {
-        if (outerEntries instanceof RegionEntryToValuesMap) {
-          itr = ((RegionEntryToValuesMap) outerEntries).map.entrySet().iterator();
+        if (outerEntries instanceof MultiValuedMap) {
+          itr = ((MultiValuedMap) outerEntries).entrySet().iterator();
           isRangeIndex = true;
         } else if (outerEntries instanceof CloseableIterator) {
           itr = (Iterator) outerEntries;
         }
       } else {
-        if (innerEntries instanceof RegionEntryToValuesMap) {
-          itr = ((RegionEntryToValuesMap) innerEntries).map.entrySet().iterator();
+        if (innerEntries instanceof MultiValuedMap) {
+          itr = ((MultiValuedMap) innerEntries).entrySet().iterator();
           isRangeIndex = true;
         } else if (innerEntries instanceof CloseableIterator) {
           itr = (Iterator) innerEntries;

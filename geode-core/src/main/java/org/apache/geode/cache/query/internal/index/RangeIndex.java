@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -44,9 +45,12 @@ import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.cache.query.internal.CompiledSortCriterion;
 import org.apache.geode.cache.query.internal.CompiledValue;
+import org.apache.geode.cache.query.internal.CqEntry;
 import org.apache.geode.cache.query.internal.ExecutionContext;
+import org.apache.geode.cache.query.internal.QueryMonitor;
 import org.apache.geode.cache.query.internal.QueryObserver;
 import org.apache.geode.cache.query.internal.QueryObserverHolder;
+import org.apache.geode.cache.query.internal.QueryUtils;
 import org.apache.geode.cache.query.internal.RuntimeIterator;
 import org.apache.geode.cache.query.internal.index.IndexManager.TestHook;
 import org.apache.geode.cache.query.internal.index.IndexStore.IndexStoreEntry;
@@ -109,8 +113,8 @@ public class RangeIndex extends AbstractIndex {
         new java.util.concurrent.ConcurrentHashMap(ra.getInitialCapacity(), ra.getLoadFactor(),
             ra.getConcurrencyLevel()),
         false /* use set */);
-    nullMappedEntries = new RegionEntryToValuesMap(true /* use list */);
-    undefinedMappedEntries = new RegionEntryToValuesMap(true /* use list */);
+    nullMappedEntries = new RegionEntryToValuesMap();
+    undefinedMappedEntries = new RegionEntryToValuesMap();
   }
 
   @Override
@@ -249,7 +253,7 @@ public class RangeIndex extends AbstractIndex {
             RegionEntryToValuesMap rvMap =
                 (RegionEntryToValuesMap) this.valueToEntriesMap.get(newKey);
             if (rvMap == null) {
-              rvMap = new RegionEntryToValuesMap(true /* use target list */);
+              rvMap = new RegionEntryToValuesMap();
               Object oldValue = this.valueToEntriesMap.putIfAbsent(newKey, rvMap);
               if (oldValue != null) {
                 retry = true;
@@ -298,7 +302,7 @@ public class RangeIndex extends AbstractIndex {
               RegionEntryToValuesMap rvMap =
                   (RegionEntryToValuesMap) this.valueToEntriesMap.get(newKey);
               if (rvMap == null) {
-                rvMap = new RegionEntryToValuesMap(true /* use target list */);
+                rvMap = new RegionEntryToValuesMap();
                 Object oldValue = this.valueToEntriesMap.putIfAbsent(newKey, rvMap);
                 if (oldValue != null) {
                   retry = true;
@@ -478,7 +482,7 @@ public class RangeIndex extends AbstractIndex {
         Object newKey = TypeUtils.indexKeyFor(key);
         RegionEntryToValuesMap rvMap = (RegionEntryToValuesMap) this.valueToEntriesMap.get(newKey);
         if (rvMap == null) {
-          rvMap = new RegionEntryToValuesMap(true /* use target list */);
+          rvMap = new RegionEntryToValuesMap();
           this.valueToEntriesMap.put(newKey, rvMap);
           this.internalIndexStats.incNumKeys(1);
           // TODO: non-atomic operation on volatile int
@@ -1627,6 +1631,181 @@ public class RangeIndex extends AbstractIndex {
   @Override
   public Map getValueToEntriesMap() {
     return valueToEntriesMap;
+  }
+
+  /**
+   * This map is not thread-safe. We rely on the fact that every thread which is trying to update
+   * this kind of map (In Indexes), must have RegionEntry lock before adding OR removing elements.
+   *
+   * This map does NOT provide an iterator. To iterate over its element caller has to get inside the
+   * map itself through addValuesToCollection() calls.
+   */
+  class RegionEntryToValuesMap extends MultiValuedMap {
+
+    RegionEntryToValuesMap() {
+      this(new ConcurrentHashMap(2, 0.75f, 1), true);
+    }
+
+    RegionEntryToValuesMap(Map map, boolean useList) {
+      super(map, useList);
+
+    }
+
+    void addValuesToCollection(Collection result, int limit, ExecutionContext context) {
+      for (final Object o : entrySet()) {
+        // Check if query execution on this thread is canceled.
+        QueryMonitor.throwExceptionIfQueryOnCurrentThreadIsCanceled();
+        if (this.verifyLimit(result, limit, context)) {
+          return;
+        }
+        Map.Entry e = (Map.Entry) o;
+        Object value = e.getValue();
+        assert value != null;
+
+        RegionEntry re = (RegionEntry) e.getKey();
+        boolean reUpdateInProgress = re.isUpdateInProgress();
+        if (value instanceof Collection) {
+          // If its a list query might get ConcurrentModificationException.
+          // This can only happen for Null mapped or Undefined entries in a
+          // RangeIndex. So we are synchronizing on ArrayList.
+          if (this.isUseList()) {
+            synchronized (value) {
+              for (Object val : (Iterable) value) {
+                // Compare the value in index with in RegionEntry.
+                if (!reUpdateInProgress || verifyEntryAndIndexValue(re, val, context)) {
+                  result.add(val);
+                }
+                if (limit != -1) {
+                  if (result.size() == limit) {
+                    return;
+                  }
+                }
+              }
+            }
+          } else {
+            for (Object val : (Iterable) value) {
+              // Compare the value in index with in RegionEntry.
+              if (!reUpdateInProgress || verifyEntryAndIndexValue(re, val, context)) {
+                result.add(val);
+              }
+              if (limit != -1) {
+                if (this.verifyLimit(result, limit, context)) {
+                  return;
+                }
+              }
+            }
+          }
+        } else {
+          if (!reUpdateInProgress || verifyEntryAndIndexValue(re, value, context)) {
+            if (context.isCqQueryContext()) {
+              result.add(new CqEntry(((RegionEntry) e.getKey()).getKey(), value));
+            } else {
+              result.add(verifyAndGetPdxDomainObject(value));
+            }
+          }
+        }
+      }
+    }
+
+    void addValuesToCollection(Collection result, CompiledValue iterOp, RuntimeIterator runtimeItr,
+        ExecutionContext context, List projAttrib, SelectResults intermediateResults,
+        boolean isIntersection, int limit) throws FunctionDomainException, TypeMismatchException,
+        NameResolutionException, QueryInvocationTargetException {
+
+      if (this.verifyLimit(result, limit, context)) {
+        return;
+      }
+
+      for (Map.Entry<RegionEntry, Object> e : entrySet()) {
+        // Check if query execution on this thread is canceled.
+        QueryMonitor.throwExceptionIfQueryOnCurrentThreadIsCanceled();
+        Object value = e.getValue();
+        // Key is a RegionEntry here.
+        RegionEntry entry = (RegionEntry) e.getKey();
+        if (value != null) {
+          boolean reUpdateInProgress = false;
+          if (entry.isUpdateInProgress()) {
+            reUpdateInProgress = true;
+          }
+          if (value instanceof Collection) {
+            // If its a list query might get ConcurrentModificationException.
+            // This can only happen for Null mapped or Undefined entries in a
+            // RangeIndex. So we are synchronizing on ArrayList.
+            if (this.isUseList()) {
+              synchronized (value) {
+                for (Object o1 : ((Iterable) value)) {
+                  boolean ok = true;
+                  if (reUpdateInProgress) {
+                    // Compare the value in index with value in RegionEntry.
+                    ok = verifyEntryAndIndexValue(entry, o1, context);
+                  }
+                  if (ok && runtimeItr != null) {
+                    runtimeItr.setCurrent(o1);
+                    ok = QueryUtils.applyCondition(iterOp, context);
+                  }
+                  if (ok) {
+                    applyProjection(projAttrib, context, result, o1, intermediateResults,
+                        isIntersection);
+                    if (limit != -1 && result.size() == limit) {
+                      return;
+                    }
+                  }
+                }
+              }
+            } else {
+              for (Object o1 : ((Iterable) value)) {
+                boolean ok = true;
+                if (reUpdateInProgress) {
+                  // Compare the value in index with value in RegionEntry.
+                  ok = verifyEntryAndIndexValue(entry, o1, context);
+                }
+                if (ok && runtimeItr != null) {
+                  runtimeItr.setCurrent(o1);
+                  ok = QueryUtils.applyCondition(iterOp, context);
+                }
+                if (ok) {
+                  applyProjection(projAttrib, context, result, o1, intermediateResults,
+                      isIntersection);
+                  if (this.verifyLimit(result, limit, context)) {
+                    return;
+                  }
+                }
+              }
+            }
+          } else {
+            boolean ok = true;
+            if (reUpdateInProgress) {
+              // Compare the value in index with in RegionEntry.
+              ok = verifyEntryAndIndexValue(entry, value, context);
+            }
+            if (ok && runtimeItr != null) {
+              runtimeItr.setCurrent(value);
+              ok = QueryUtils.applyCondition(iterOp, context);
+            }
+            if (ok) {
+              if (context.isCqQueryContext()) {
+                result.add(new CqEntry(((RegionEntry) e.getKey()).getKey(), value));
+              } else {
+                applyProjection(projAttrib, context, result, value, intermediateResults,
+                    isIntersection);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    private boolean verifyLimit(Collection result, int limit, ExecutionContext context) {
+      if (limit > 0) {
+        if (!context.isDistinct()) {
+          return result.size() == limit;
+        } else if (result.size() == limit) {
+          return true;
+        }
+      }
+      return false;
+    }
+
   }
 
 }
