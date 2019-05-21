@@ -119,6 +119,7 @@ public class HashIndex extends AbstractIndex {
 
   // used for sorting asc and desc queries
   private HashIndexComparator comparator;
+  private IMQEvaluator evaluator;
 
   /**
    * Create a HashIndex that can be used when executing queries.

@@ -48,7 +48,7 @@ public class CompactMapRangeIndex extends AbstractMapIndex {
 
   @Override
   void instantiateEvaluator(IndexCreationHelper indexCreationHelper) {
-    this.evaluator = new IMQEvaluator(indexCreationHelper);
+    super.instantiateEvaluator(indexCreationHelper);
     this.ich = indexCreationHelper;
   }
 
@@ -165,8 +165,7 @@ public class CompactMapRangeIndex extends AbstractMapIndex {
       rg = new CompactRangeIndex(cache, indexName + "-" + mapKey, region, fromClause,
           indexedExpression, projectionAttributes, this.originalFromClause,
           this.originalIndexedExpression, this.canonicalizedDefinitions, stats);
-      rg.instantiateEvaluator(this.ich,
-          ((AbstractIndex.IMQEvaluator) this.evaluator).getIndexResultSetType());
+      rg.instantiateEvaluator(this.ich, this.evaluator.getIndexResultSetType());
       this.mapKeyToValueIndex.put(mapKey, rg);
       if (!isPr) {
         this.internalIndexStats.incNumMapIndexKeys(1);
@@ -214,7 +213,7 @@ public class CompactMapRangeIndex extends AbstractMapIndex {
           indexedExpression, projectionAttributes, this.originalFromClause,
           this.originalIndexedExpression, this.canonicalizedDefinitions, stats);
       rg.instantiateEvaluator(this.ich,
-          ((AbstractIndex.IMQEvaluator) this.evaluator).getIndexResultSetType());
+          ((RangeIndexEvaluator) this.evaluator).getIndexResultSetType());
       this.mapKeyToValueIndex.put(mapKey, rg);
       if (!isPr) {
         this.internalIndexStats.incNumMapIndexKeys(1);

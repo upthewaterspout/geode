@@ -74,6 +74,9 @@ import org.apache.geode.internal.logging.LogService;
 public class RangeIndex extends AbstractIndex {
   private static final Logger logger = LogService.getLogger();
 
+  protected RangeIndexEvaluator evaluator;
+
+
   protected volatile int valueToEntriesMapSize = 0;
 
   /**
@@ -135,7 +138,7 @@ public class RangeIndex extends AbstractIndex {
 
   @Override
   void instantiateEvaluator(IndexCreationHelper indexCreationHelper) {
-    this.evaluator = new IMQEvaluator(indexCreationHelper);
+    this.evaluator = new RangeIndexEvaluator(this, indexCreationHelper);
   }
 
   @Override
@@ -1436,7 +1439,6 @@ public class RangeIndex extends AbstractIndex {
    */
   // package-private to avoid synthetic accessor
   boolean verifyEntryAndIndexValue(RegionEntry re, Object value, ExecutionContext context) {
-    IMQEvaluator evaluator = (IMQEvaluator) getEvaluator();
     List valuesInRegion = null;
     Object valueInIndex = null;
 

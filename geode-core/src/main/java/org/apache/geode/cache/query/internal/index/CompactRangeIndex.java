@@ -98,6 +98,7 @@ public class CompactRangeIndex extends AbstractIndex {
 
   @MutableForTesting
   static boolean TEST_ALWAYS_UPDATE_IN_PROGRESS = false;
+  private IMQEvaluator evaluator;
 
   public CompactRangeIndex(InternalCache cache, String indexName, Region region, String fromClause,
       String indexedExpression, String projectionAttributes, String origFromClause,

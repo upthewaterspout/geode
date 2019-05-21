@@ -52,6 +52,7 @@ public abstract class AbstractMapIndex extends AbstractIndex {
   protected final Map<Object, AbstractIndex> mapKeyToValueIndex;
 
   protected final Object[] mapKeys;
+  protected RangeIndexEvaluator evaluator;
 
   AbstractMapIndex(InternalCache cache, String indexName, Region region, String fromClause,
       String indexedExpression, String projectionAttributes, String origFromClause,
@@ -246,7 +247,7 @@ public abstract class AbstractMapIndex extends AbstractIndex {
 
   @Override
   void instantiateEvaluator(IndexCreationHelper indexCreationHelper) {
-    this.evaluator = new IMQEvaluator(indexCreationHelper);
+    this.evaluator = new RangeIndexEvaluator(this, indexCreationHelper);
   }
 
   @Override
