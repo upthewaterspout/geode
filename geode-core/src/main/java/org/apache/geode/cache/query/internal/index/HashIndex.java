@@ -1319,11 +1319,6 @@ public class HashIndex extends AbstractIndex {
       return this.indexResultSetType;
     }
 
-    @Override
-    public List getAllDependentIterators() {
-      return fromIterators;
-    }
-
     private ExecutionContext createExecutionContext(RegionEntry target)
         throws NameResolutionException, TypeMismatchException {
       DummyQRegion dQRegion = new DummyQRegion(rgn);

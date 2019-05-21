@@ -1631,10 +1631,6 @@ public class CompactRangeIndex extends AbstractIndex {
       return this.indexResultSetType;
     }
 
-    @Override
-    public List getAllDependentIterators() {
-      return fromIterators;
-    }
   }
 
   @Override

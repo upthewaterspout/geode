@@ -18,6 +18,7 @@ import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Integer.valueOf;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.annotations.internal.MutableForTesting;
 import org.apache.geode.cache.Region;
@@ -42,6 +44,7 @@ import org.apache.geode.cache.query.QueryException;
 import org.apache.geode.cache.query.QueryInvocationTargetException;
 import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.SelectResults;
+import org.apache.geode.cache.query.Struct;
 import org.apache.geode.cache.query.TypeMismatchException;
 import org.apache.geode.cache.query.internal.CompiledSortCriterion;
 import org.apache.geode.cache.query.internal.CompiledValue;
@@ -52,16 +55,24 @@ import org.apache.geode.cache.query.internal.QueryObserver;
 import org.apache.geode.cache.query.internal.QueryObserverHolder;
 import org.apache.geode.cache.query.internal.QueryUtils;
 import org.apache.geode.cache.query.internal.RuntimeIterator;
+import org.apache.geode.cache.query.internal.StructImpl;
 import org.apache.geode.cache.query.internal.index.IndexManager.TestHook;
 import org.apache.geode.cache.query.internal.index.IndexStore.IndexStoreEntry;
 import org.apache.geode.cache.query.internal.parse.OQLLexerTokenTypes;
+import org.apache.geode.cache.query.internal.types.StructTypeImpl;
 import org.apache.geode.cache.query.internal.types.TypeUtils;
 import org.apache.geode.cache.query.types.ObjectType;
+import org.apache.geode.internal.cache.CachedDeserializable;
 import org.apache.geode.internal.cache.InternalCache;
+import org.apache.geode.internal.cache.LocalRegion;
+import org.apache.geode.internal.cache.NonTXEntry;
 import org.apache.geode.internal.cache.RegionEntry;
+import org.apache.geode.internal.cache.RegionEntryContext;
 import org.apache.geode.internal.cache.persistence.query.CloseableIterator;
+import org.apache.geode.internal.logging.LogService;
 
 public class RangeIndex extends AbstractIndex {
+  private static final Logger logger = LogService.getLogger();
 
   protected volatile int valueToEntriesMapSize = 0;
 
@@ -1401,6 +1412,199 @@ public class RangeIndex extends AbstractIndex {
 
     Object lowerBoundKeyToRemove = null;
     addValuesToResult(dataset, results, keysToRemove, limit, context);
+  }
+
+  /**
+   * This will verify the consistency between RegionEntry and IndexEntry. RangeIndex has following
+   * entry structure,
+   *
+   * IndexKey --> [RegionEntry, [Iterator1, Iterator2....., IteratorN]]
+   *
+   * Where Iterator1 to IteratorN are iterators defined in index from clause.
+   *
+   * For example: "/portfolio p, p.positions.values pos" from clause has two iterators where p is
+   * independent iterator and pos is dependent iterator.
+   *
+   * Query iterators can be a subset, superset or exact match of index iterators. But we take query
+   * iterators which are matching with index iterators to evaluate RegionEntry for new value and
+   * compare it with index value which could be a plain object or a Struct.
+   *
+   * Note: Struct evaluated from RegionEntry can NOT have more field values than Index Value Struct
+   * as we filter out iterators in query context before evaluating Struct from RegionEntry.
+   *
+   * @return True if Region and Index entries are consistent.
+   */
+  // package-private to avoid synthetic accessor
+  boolean verifyEntryAndIndexValue(RegionEntry re, Object value, ExecutionContext context) {
+    IMQEvaluator evaluator = (IMQEvaluator) getEvaluator();
+    List valuesInRegion = null;
+    Object valueInIndex = null;
+
+    try {
+      // In a RegionEntry key and Entry itself can not be modified else RegionEntry itself will
+      // change. So no need to verify anything just return true.
+      if (evaluator.isFirstItrOnKey()) {
+        return true;
+      } else if (evaluator.isFirstItrOnEntry()) {
+        valuesInRegion = evaluateIndexIteratorsFromRE(re, context);
+        valueInIndex = verifyAndGetPdxDomainObject(value);
+      } else {
+        RegionEntryContext regionEntryContext = context.getPartitionedRegion() != null
+            ? context.getPartitionedRegion() : (RegionEntryContext) region;
+        Object val = re.getValueInVM(regionEntryContext);
+        if (val instanceof CachedDeserializable) {
+          val = ((CachedDeserializable) val).getDeserializedValue(getRegion(), re);
+        }
+        val = verifyAndGetPdxDomainObject(val);
+        valueInIndex = verifyAndGetPdxDomainObject(value);
+        valuesInRegion = evaluateIndexIteratorsFromRE(val, context);
+      }
+    } catch (Exception e) {
+      if (logger.isDebugEnabled()) {
+        logger.debug(
+            "Exception occurred while verifying a Region Entry value during a Query when the Region Entry is under update operation",
+            e);
+      }
+    }
+
+    // We could have many index keys available in one Region entry or just one.
+    if (!valuesInRegion.isEmpty()) {
+      for (Object valueInRegion : valuesInRegion) {
+        if (compareStructWithNonStruct(valueInRegion, valueInIndex)) {
+          return true;
+        }
+      }
+      return false;
+    } else {
+      // Seems like value has been invalidated.
+      return false;
+    }
+  }
+
+
+
+  /**
+   * This method compares two objects in which one could be StructType and other ObjectType. Fur
+   * conditions are possible, Object1 -> Struct Object2-> Struct Object1 -> Struct Object2-> Object
+   * Object1 -> Object Object2-> Struct Object1 -> Object Object2-> Object
+   *
+   * @return true if valueInRegion's all objects are part of valueInIndex.
+   */
+  private boolean compareStructWithNonStruct(Object valueInRegion, Object valueInIndex) {
+    if (valueInRegion instanceof Struct && valueInIndex instanceof Struct) {
+      Object[] regFields = ((StructImpl) valueInRegion).getFieldValues();
+      List indFields = Arrays.asList(((StructImpl) valueInIndex).getFieldValues());
+      for (Object regField : regFields) {
+        if (!indFields.contains(regField)) {
+          return false;
+        }
+      }
+      return true;
+
+    } else if (valueInRegion instanceof Struct) {
+      Object[] fields = ((StructImpl) valueInRegion).getFieldValues();
+      for (Object field : fields) {
+        if (field.equals(valueInIndex)) {
+          return true;
+        }
+      }
+
+    } else if (valueInIndex instanceof Struct) {
+      Object[] fields = ((StructImpl) valueInIndex).getFieldValues();
+      for (Object field : fields) {
+        if (field.equals(valueInRegion)) {
+          return true;
+        }
+      }
+    } else {
+      return valueInRegion.equals(valueInIndex);
+    }
+    return false;
+  }
+
+  /**
+   * Returns evaluated collection for dependent runtime iterator for this index from clause and
+   * given RegionEntry.
+   *
+   * @param context passed here is query context.
+   * @return Evaluated second level collection.
+   */
+  private List evaluateIndexIteratorsFromRE(Object value, ExecutionContext context)
+      throws FunctionDomainException, TypeMismatchException, NameResolutionException,
+      QueryInvocationTargetException {
+
+    // We need NonTxEntry to call getValue() on it. RegionEntry does
+    // NOT have public getValue() method.
+    if (value instanceof RegionEntry) {
+      value = new NonTXEntry((LocalRegion) getRegion(), (RegionEntry) value);
+    }
+    // Get all Independent and dependent iterators for this Index.
+    List itrs = getAllDependentRuntimeIterators(context);
+
+    return evaluateLastColl(value, context, itrs, 0);
+  }
+
+  /**
+   * Take all independent iterators from context and remove the one which matches for this Index's
+   * independent iterator. Then get all Dependent iterators from given context for this Index's
+   * independent iterator.
+   *
+   * @param context from executing query.
+   * @return List of all iterators pertaining to this Index.
+   */
+  private List getAllDependentRuntimeIterators(ExecutionContext context) {
+    List<RuntimeIterator> indItrs = context
+        .getCurrScopeDpndntItrsBasedOnSingleIndpndntItr(getRuntimeIteratorForThisIndex(context));
+
+    List<String> definitions = Arrays.asList(this.getCanonicalizedIteratorDefinitions());
+    // These are the common iterators between query from clause and index from clause.
+    List itrs = new ArrayList();
+
+    for (RuntimeIterator itr : indItrs) {
+      if (definitions.contains(itr.getDefinition())) {
+        itrs.add(itr);
+      }
+    }
+    return itrs;
+  }
+
+  private List evaluateLastColl(Object value, ExecutionContext context, List itrs, int level)
+      throws FunctionDomainException, TypeMismatchException, NameResolutionException,
+      QueryInvocationTargetException {
+
+    // A tuple is a value generated from RegionEntry value which could be a StructType (Multiple
+    // Dependent Iterators) or ObjectType (Single Iterator) value.
+    List tuples = new ArrayList(1);
+
+    RuntimeIterator currItrator = (RuntimeIterator) itrs.get(level);
+    currItrator.setCurrent(value);
+
+    // If its last iterator then just evaluate final struct.
+    if (itrs.size() - 1 == level) {
+      if (itrs.size() > 1) {
+        Object[] tuple = new Object[itrs.size()];
+        for (int i = 0; i < itrs.size(); i++) {
+          RuntimeIterator iter = (RuntimeIterator) itrs.get(i);
+          tuple[i] = iter.evaluate(context);
+        }
+        // Its ok to pass type as null as we are only interested in values.
+        tuples.add(new StructImpl(new StructTypeImpl(), tuple));
+      } else {
+        tuples.add(currItrator.evaluate(context));
+      }
+    } else {
+      // Not the last iterator.
+      RuntimeIterator nextItr = (RuntimeIterator) itrs.get(level + 1);
+      Collection nextLevelValues = nextItr.evaluateCollection(context);
+
+      // If value is null or INVALID then the evaluated collection would be Null.
+      if (nextLevelValues != null) {
+        for (Object nextLevelValue : nextLevelValues) {
+          tuples.addAll(evaluateLastColl(nextLevelValue, context, itrs, level + 1));
+        }
+      }
+    }
+    return tuples;
   }
 
   @Override
