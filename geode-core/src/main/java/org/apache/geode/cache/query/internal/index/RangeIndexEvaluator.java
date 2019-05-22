@@ -129,9 +129,8 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
     // no-op
   }
 
-  @Override
-  public void evaluate(RegionEntry target, boolean add) throws IMQException {
-    assert add; // ignored, but should be true here
+  public void evaluate(RegionEntry target, IndexUpdateOperation updateOperation)
+      throws IMQException {
     DummyQRegion dQRegion = new DummyQRegion(this.rgn);
     dQRegion.setEntry(target);
     Object[] params = {dQRegion};
@@ -165,7 +164,7 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
       Support.Assert(this.indexResultSetType != null,
           "IMQEvaluator::evaluate:The StrcutType should have been initialized during index creation");
 
-      doNestedIterations(0, context);
+      doNestedIterations(0, context, updateOperation);
     } catch (IMQException imqe) {
       throw imqe;
     } catch (Exception e) {
@@ -178,8 +177,8 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
   /**
    * This function is used for creating Index data at the start
    */
-  @Override
-  public void initializeIndex(boolean loadEntries) throws IMQException {
+  public void initializeIndex(boolean loadEntries,
+      IndexUpdateOperation updateOperation) throws IMQException {
     this.initEntriesUpdated = 0;
     try {
       // Since an index initialization can happen multiple times for a given region, due to clear
@@ -204,7 +203,7 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
         this.indexResultSetType = createIndexResultSetType();
       }
       if (loadEntries) {
-        doNestedIterationsForIndexInit(0, this.initContext.getCurrentIterators());
+        doNestedIterationsForIndexInit(0, this.initContext.getCurrentIterators(), updateOperation);
       }
     } catch (IMQException imqe) {
       throw imqe;
@@ -215,14 +214,15 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
     }
   }
 
-  private void doNestedIterationsForIndexInit(int level, List runtimeIterators)
+  private void doNestedIterationsForIndexInit(int level, List runtimeIterators,
+      IndexUpdateOperation updateOperation)
       throws TypeMismatchException, AmbiguousNameException, FunctionDomainException,
       NameResolutionException, QueryInvocationTargetException, IMQException {
     if (level == 1) {
       ++this.initEntriesUpdated;
     }
     if (level == this.iteratorSize) {
-      applyProjectionForIndexInit(runtimeIterators);
+      applyProjectionForIndexInit(runtimeIterators, updateOperation);
     } else {
       RuntimeIterator rIter = (RuntimeIterator) runtimeIterators.get(level);
       Collection collection = rIter.evaluateCollection(this.initContext);
@@ -231,7 +231,7 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
       }
       for (Object aCollection : collection) {
         rIter.setCurrent(aCollection);
-        doNestedIterationsForIndexInit(level + 1, runtimeIterators);
+        doNestedIterationsForIndexInit(level + 1, runtimeIterators, updateOperation);
       }
     }
   }
@@ -251,7 +251,8 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
    * isFirstItrOnEntry is false, then the first attribute of the Struct object is obtained by
    * evaluating the additional projection attribute.
    */
-  private void applyProjectionForIndexInit(List currrentRuntimeIters)
+  private void applyProjectionForIndexInit(List currrentRuntimeIters,
+      IndexUpdateOperation updateOperation)
       throws FunctionDomainException, TypeMismatchException, NameResolutionException,
       QueryInvocationTargetException, IMQException {
 
@@ -304,16 +305,17 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
       index.setPdxStringFlag(indexKey);
     }
     indexKey = index.getPdxStringForIndexedPdxKeys(indexKey);
-    index.addMapping(indexKey, indxResultSet, re);
+    updateOperation.add(indexKey, indxResultSet, re);
   }
 
-  private void doNestedIterations(int level, ExecutionContext context)
+  private void doNestedIterations(int level, ExecutionContext context,
+      IndexUpdateOperation updateOperation)
       throws TypeMismatchException, AmbiguousNameException, FunctionDomainException,
       NameResolutionException, QueryInvocationTargetException, IMQException {
 
     List iterList = context.getCurrentIterators();
     if (level == this.iteratorSize) {
-      applyProjection(context);
+      applyProjection(context, updateOperation);
     } else {
       RuntimeIterator rIter = (RuntimeIterator) iterList.get(level);
       Collection collection = rIter.evaluateCollection(context);
@@ -322,12 +324,13 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
       }
       for (Object aCollection : collection) {
         rIter.setCurrent(aCollection);
-        doNestedIterations(level + 1, context);
+        doNestedIterations(level + 1, context, updateOperation);
       }
     }
   }
 
-  private void applyProjection(ExecutionContext context)
+  private void applyProjection(ExecutionContext context,
+      IndexUpdateOperation updateOperation)
       throws FunctionDomainException, TypeMismatchException, NameResolutionException,
       QueryInvocationTargetException, IMQException {
 
@@ -357,7 +360,7 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
 
     // Keep Entry value in fly until all keys are evaluated
     RegionEntry entry = ((DummyQRegion) context.getBindArgument(1)).getEntry();
-    index.saveMapping(indexKey, indxResultSet, entry);
+    updateOperation.add(indexKey, indxResultSet, entry);
   }
 
   /**
@@ -392,4 +395,7 @@ class RangeIndexEvaluator implements IndexedExpressionEvaluator {
     return this.isFirstItrOnKey;
   }
 
+  public interface IndexUpdateOperation {
+    void add(Object indexKey, Object value, RegionEntry entry) throws IMQException;
+  }
 }

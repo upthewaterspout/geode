@@ -1098,7 +1098,6 @@ public class HashIndex extends AbstractIndex {
     /**
      * @param add true if adding to index, false if removing
      */
-    @Override
     public void evaluate(RegionEntry target, boolean add) throws IMQException {
       assert !target.isInvalid() : "value in RegionEntry should not be INVALID";
       ExecutionContext context = null;
@@ -1131,7 +1130,6 @@ public class HashIndex extends AbstractIndex {
      * This function is used for creating Index data at the start
      *
      */
-    @Override
     public void initializeIndex(boolean loadEntries) throws IMQException {
       this.initEntriesUpdated = 0;
       try {
@@ -1429,11 +1427,6 @@ public class HashIndex extends AbstractIndex {
   void addMapping(Object key, Object value, RegionEntry entry) throws IMQException {
     // TODO Auto-generated method stub
 
-  }
-
-  @Override
-  void saveMapping(Object key, Object value, RegionEntry entry) throws IMQException {
-    // TODO Auto-generated method stub
   }
 
   @Override

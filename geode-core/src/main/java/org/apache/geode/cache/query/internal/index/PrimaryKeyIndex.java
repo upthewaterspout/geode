@@ -348,11 +348,6 @@ public class PrimaryKeyIndex extends AbstractIndex {
   }
 
   @Override
-  void saveMapping(Object key, Object value, RegionEntry entry) throws IMQException {
-    // Do Nothing; We are not going to call this for PrimaryKeyIndex ever.
-  }
-
-  @Override
   public boolean isEmpty() {
     return createStats("primaryKeyIndex").getNumberOfKeys() == 0 ? true : false;
   }

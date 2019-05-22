@@ -1364,7 +1364,6 @@ public class CompactRangeIndex extends AbstractIndex {
     /**
      * @param add true if adding to index, false if removing
      */
-    @Override
     public void evaluate(RegionEntry target, boolean add) throws IMQException {
       assert !target.isInvalid() : "value in RegionEntry should not be INVALID";
       DummyQRegion dQRegion = new DummyQRegion(rgn);
@@ -1421,7 +1420,6 @@ public class CompactRangeIndex extends AbstractIndex {
     /**
      * This function is used for creating Index data at the start
      */
-    @Override
     public void initializeIndex(boolean loadEntries) throws IMQException {
       this.initEntriesUpdated = 0;
       try {
@@ -1662,11 +1660,6 @@ public class CompactRangeIndex extends AbstractIndex {
   }
 
   @Override
-  void saveMapping(Object key, Object value, RegionEntry entry) throws IMQException {
-    // TODO Auto-generated method stub
-  }
-
-  @Override
   public boolean isEmpty() {
     return indexStore.size() == 0 ? true : false;
   }
@@ -1674,10 +1667,6 @@ public class CompactRangeIndex extends AbstractIndex {
   @Override
   public Map getValueToEntriesMap() {
     throw new UnsupportedOperationException("valuesToEntriesMap should not be accessed directly");
-  }
-
-  public void addSavedMappings(RegionEntry entry) {
-
   }
 
   private class OldKeyValuePair {

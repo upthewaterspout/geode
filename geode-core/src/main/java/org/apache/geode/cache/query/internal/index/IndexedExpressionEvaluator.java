@@ -22,7 +22,6 @@ package org.apache.geode.cache.query.internal.index;
 import java.util.List;
 
 import org.apache.geode.cache.query.types.ObjectType;
-import org.apache.geode.internal.cache.RegionEntry;
 
 public interface IndexedExpressionEvaluator {
 
@@ -31,11 +30,6 @@ public interface IndexedExpressionEvaluator {
   String getFromClause();
 
   String getProjectionAttributes();
-
-  /** @param add true if adding to index, false if removing */
-  void evaluate(RegionEntry target, boolean add) throws IMQException;
-
-  void initializeIndex(boolean loadEntries) throws IMQException;
 
   ObjectType getIndexResultSetType();
 

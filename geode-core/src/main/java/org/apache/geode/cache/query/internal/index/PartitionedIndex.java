@@ -631,13 +631,6 @@ public class PartitionedIndex extends AbstractIndex {
 
   }
 
-  @Override
-  void saveMapping(Object key, Object value, RegionEntry entry) throws IMQException {
-    throw new RuntimeException(
-        "Not supported on partitioned index");
-
-  }
-
   public void incNumMapKeysStats(Object mapKey) {
     if (internalIndexStats != null) {
       if (!mapIndexKeys.contains(mapKey)) {

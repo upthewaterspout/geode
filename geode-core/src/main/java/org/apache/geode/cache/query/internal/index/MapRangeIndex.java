@@ -67,7 +67,7 @@ public class MapRangeIndex extends AbstractMapIndex {
 
   @Override
   void addMapping(RegionEntry entry) throws IMQException {
-    this.evaluator.evaluate(entry, true);
+    this.evaluator.evaluate(entry, this::saveMapping);
     addSavedMappings(entry);
     clearCurrState();
   }

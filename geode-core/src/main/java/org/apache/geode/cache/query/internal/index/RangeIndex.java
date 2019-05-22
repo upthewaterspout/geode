@@ -145,7 +145,7 @@ public class RangeIndex extends AbstractIndex {
   public void initializeIndex(boolean loadEntries) throws IMQException {
     // Collection results = evaluator.initializeIndex();
     long startTime = System.nanoTime();
-    evaluator.initializeIndex(loadEntries);
+    evaluator.initializeIndex(loadEntries, this::addMapping);
     long endTime = System.nanoTime();
     this.internalIndexStats.incUpdateTime(endTime - startTime);
   }
@@ -153,12 +153,11 @@ public class RangeIndex extends AbstractIndex {
   @Override
   void addMapping(RegionEntry entry) throws IMQException {
     // Save oldKeys somewhere first
-    this.evaluator.evaluate(entry, true);
+    this.evaluator.evaluate(entry, this::saveMapping);
     addSavedMappings(entry);
     clearCurrState();
   }
 
-  @Override
   void saveMapping(Object key, Object indxResultSet, RegionEntry entry) {
     if (key == null) {
       List nullSet = nullEntries.get();

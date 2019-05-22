@@ -75,7 +75,7 @@ public abstract class AbstractMapIndex extends AbstractIndex {
 
   @Override
   void addMapping(RegionEntry entry) throws IMQException {
-    this.evaluator.evaluate(entry, true);
+    this.evaluator.evaluate(entry, this::saveMapping);
   }
 
   @Override
@@ -252,7 +252,7 @@ public abstract class AbstractMapIndex extends AbstractIndex {
 
   @Override
   public void initializeIndex(boolean loadEntries) throws IMQException {
-    evaluator.initializeIndex(loadEntries);
+    evaluator.initializeIndex(loadEntries, this::addMapping);
   }
 
   @Override
@@ -350,7 +350,6 @@ public abstract class AbstractMapIndex extends AbstractIndex {
     }
   }
 
-  @Override
   void saveMapping(Object key, Object value, RegionEntry entry) throws IMQException {
     if (key == QueryService.UNDEFINED || !(key instanceof Map)) {
       return;

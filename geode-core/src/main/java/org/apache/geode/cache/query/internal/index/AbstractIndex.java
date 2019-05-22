@@ -803,13 +803,6 @@ public abstract class AbstractIndex implements IndexProtocol {
 
   abstract void addMapping(Object key, Object value, RegionEntry entry) throws IMQException;
 
-  /**
-   * This is used to buffer the index entries evaluated from a RegionEntry which is getting updated
-   * at present. These buffered index entries are replaced into the index later all together to
-   * avoid remove-add sequence.
-   */
-  abstract void saveMapping(Object key, Object value, RegionEntry entry) throws IMQException;
-
   /** Lookup method used when appropriate lock is held */
   abstract void lockedQuery(Object key, int operator, Collection results, CompiledValue iterOps,
       RuntimeIterator indpndntItr, ExecutionContext context, List projAttrib,
