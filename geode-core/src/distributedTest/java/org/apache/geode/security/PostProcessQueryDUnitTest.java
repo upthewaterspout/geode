@@ -24,6 +24,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -54,6 +55,7 @@ import org.apache.geode.cache.query.IndexNameConflictException;
 import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.RegionNotFoundException;
 import org.apache.geode.cache.query.SelectResults;
+import org.apache.geode.cache.query.internal.index.CompactMapRangeIndex;
 import org.apache.geode.cache.query.internal.index.CompactRangeIndex;
 import org.apache.geode.cache.query.internal.index.HashIndex;
 import org.apache.geode.cache.query.internal.index.PartitionedIndex;
@@ -199,12 +201,20 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
     assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
   }
 
+
+  @Test
+  public void queryWithCompactMapRangeIndexShouldRedact()
+      throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
+    QueryService queryService = getCache().getQueryService();
+    Index index = queryService.createIndex("index", "mapField[*]", "/AuthRegion");
+    checkIndexType(index, CompactMapRangeIndex.class);
+    assertPostProcessed(
+        String.format("select %s from /AuthRegion r where r.mapField['%s']='1'", selectExpression,
+            indexedField),
+        IntStream.of(1));
+    assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
+  }
   /*
-   * @Test
-   * public void queryWithCompactMapRangeIndexShouldRedact()
-   * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
-   * fail("Not yet implemented");
-   * }
    *
    * @Test
    * public void queryWithMapRangeIndexShouldRedact()
@@ -271,6 +281,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
     public String id;
     public String secret;
     public HashSet<NestedValue> nested;
+    public HashMap<String, String> mapField;
 
     public Value() {
 
@@ -288,6 +299,9 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
       this.id = id;
       this.secret = secret;
       this.nested = nested;
+      this.mapField = new HashMap<>();
+      mapField.put("secret", secret);
+      mapField.put("id", id);
     }
 
     static Value redacted(int id) {
@@ -325,6 +339,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
       DataSerializer.writeString(id, out);
       DataSerializer.writeString(secret, out);
       DataSerializer.writeHashSet(nested, out);
+      DataSerializer.writeHashMap(mapField, out);
     }
 
     @Override
@@ -332,6 +347,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
       id = DataSerializer.readString(in);
       secret = DataSerializer.readString(in);
       nested = DataSerializer.readHashSet(in);
+      mapField = DataSerializer.readHashMap(in);
     }
   }
 
@@ -353,6 +369,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
         Object value) {
       Value result = (Value) CopyHelper.copy(value);
       result.secret = "XXX";
+      result.mapField.put("secret", "XXX");
       result.nested.forEach(nestedValue -> nestedValue.secret = "XXX");
       return result;
     }
