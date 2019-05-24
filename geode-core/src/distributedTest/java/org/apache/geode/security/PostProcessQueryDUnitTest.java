@@ -58,6 +58,7 @@ import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.cache.query.internal.index.CompactMapRangeIndex;
 import org.apache.geode.cache.query.internal.index.CompactRangeIndex;
 import org.apache.geode.cache.query.internal.index.HashIndex;
+import org.apache.geode.cache.query.internal.index.MapRangeIndex;
 import org.apache.geode.cache.query.internal.index.PartitionedIndex;
 import org.apache.geode.cache.query.internal.index.PrimaryKeyIndex;
 import org.apache.geode.cache.query.internal.index.RangeIndex;
@@ -210,6 +211,20 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
     checkIndexType(index, CompactMapRangeIndex.class);
     assertPostProcessed(
         String.format("select %s from /AuthRegion r where r.mapField['%s']='1'", selectExpression,
+            indexedField),
+        IntStream.of(1));
+    assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
+  }
+
+  @Test
+  public void queryWithMapRangeIndexShouldRedact()
+      throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
+    QueryService queryService = getCache().getQueryService();
+    Index index = queryService.createIndex("index", "n.mapField[*]", "/AuthRegion r, r.nested n");
+    checkIndexType(index, MapRangeIndex.class);
+    String select = selectExpression == "*" ? "r" : selectExpression;
+    assertPostProcessed(
+        String.format("select %s from /AuthRegion r, r.nested n where n.mapField['%s']='1'", select,
             indexedField),
         IntStream.of(1));
     assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
@@ -371,6 +386,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
       result.secret = "XXX";
       result.mapField.put("secret", "XXX");
       result.nested.forEach(nestedValue -> nestedValue.secret = "XXX");
+      result.nested.forEach(nestedValue -> nestedValue.mapField.put("secret", "XXX"));
       return result;
     }
   }
