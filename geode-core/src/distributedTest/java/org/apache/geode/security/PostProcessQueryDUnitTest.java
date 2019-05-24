@@ -58,6 +58,7 @@ import org.apache.geode.cache.query.internal.index.CompactRangeIndex;
 import org.apache.geode.cache.query.internal.index.HashIndex;
 import org.apache.geode.cache.query.internal.index.PartitionedIndex;
 import org.apache.geode.cache.query.internal.index.PrimaryKeyIndex;
+import org.apache.geode.cache.query.internal.index.RangeIndex;
 import org.apache.geode.security.templates.UserPasswordAuthInit;
 import org.apache.geode.test.dunit.DUnitEnv;
 import org.apache.geode.test.dunit.VM;
@@ -184,20 +185,21 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
         IntStream.of(1));
     assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
   }
+
+  @Test
+  public void queryWithRangeIndexShouldRedact()
+      throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
+    QueryService queryService = getCache().getQueryService();
+    Index index =
+        queryService.createIndex("index", "n." + indexedField, "/AuthRegion r, r.nested n");
+    checkIndexType(index, RangeIndex.class);
+    String select = selectExpression == "*" ? "r" : selectExpression;
+    assertPostProcessed(String.format("select %s from /AuthRegion r, r.nested n where n.%s='1'",
+        select, indexedField), IntStream.of(1));
+    assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
+  }
+
   /*
-   *
-   * @Test
-   * public void queryWithRangeIndexShouldRedact()
-   * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
-   * QueryService queryService = getCache().getQueryService();
-   * Index index =
-   * queryService.createIndex("index", "n." + indexedField, "/AuthRegion r, r.nested n");
-   * assertThat(index).isInstanceOf(RangeIndex.class);
-   * assertPostProcessed(String.format("select %s from /AuthRegion r, r.nested n where n.%s='1'",
-   * selectExpression, indexedField), IntStream.of(1));
-   * assertThat(index.getStatistics().getTotalUses()).isGreaterThan(0);
-   * }
-   *
    * @Test
    * public void queryWithCompactMapRangeIndexShouldRedact()
    * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
@@ -268,7 +270,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
   public static class Value implements DataSerializable {
     public String id;
     public String secret;
-    public HashSet<Value> nested;
+    public HashSet<NestedValue> nested;
 
     public Value() {
 
@@ -279,10 +281,10 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
     }
 
     public Value(String id, String secret) {
-      this(id, secret, new HashSet<>(Collections.singleton(new Value(id, secret, null))));
+      this(id, secret, new HashSet<>(Collections.singleton(new NestedValue(id, secret))));
     }
 
-    public Value(String id, String secret, HashSet<Value> nested) {
+    public Value(String id, String secret, HashSet<NestedValue> nested) {
       this.id = id;
       this.secret = secret;
       this.nested = nested;
@@ -312,7 +314,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
 
     @Override
     public String toString() {
-      return "Value{" +
+      return getClass().getSimpleName() + "{" +
           "id=" + id +
           ", secret='" + secret + '\'' +
           '}';
@@ -333,6 +335,17 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
     }
   }
 
+  public static class NestedValue extends Value {
+
+    public NestedValue() {
+
+    }
+
+    public NestedValue(String id, String secret) {
+      super(id, secret, null);
+    }
+  }
+
   public static class TestPostProcessor implements PostProcessor {
 
     @Override
@@ -340,6 +353,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
         Object value) {
       Value result = (Value) CopyHelper.copy(value);
       result.secret = "XXX";
+      result.nested.forEach(nestedValue -> nestedValue.secret = "XXX");
       return result;
     }
   }

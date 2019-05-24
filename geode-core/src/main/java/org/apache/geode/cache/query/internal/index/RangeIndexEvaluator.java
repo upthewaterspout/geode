@@ -24,7 +24,7 @@ import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.NonTXEntry;
 import org.apache.geode.internal.cache.RegionEntry;
 
-class RangeIndexEvaluator implements IndexedExpressionEvaluator {
+public class RangeIndexEvaluator implements IndexedExpressionEvaluator {
   private AbstractIndex index;
   private final InternalCache cache;
 

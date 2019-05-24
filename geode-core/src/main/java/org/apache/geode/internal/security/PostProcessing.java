@@ -2,13 +2,18 @@ package org.apache.geode.internal.security;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.apache.geode.cache.Region;
+import org.apache.geode.cache.query.internal.index.IMQException;
 import org.apache.geode.cache.query.internal.index.IndexStore;
+import org.apache.geode.cache.query.internal.index.RangeIndexEvaluator;
 import org.apache.geode.internal.cache.InternalCache;
+import org.apache.geode.internal.cache.NonLocalRegionEntry;
+import org.apache.geode.internal.cache.RegionEntry;
 
 /**
  * Static utility methods for post processing region entries and values.
@@ -134,4 +139,40 @@ public class PostProcessing {
   }
 
 
+  public static Object getPostProcessedStruct(Region region, RangeIndexEvaluator evaluator,
+      RegionEntry re, Object indexKey, Object originalValue, Object principal) {
+    SecurityService securityService = getSecurityService(region);
+
+    if (!securityService.needPostProcess()) {
+      return originalValue;
+    }
+
+    RegionEntry entry = new NonLocalRegionEntry(null, re.getKey(), securityService
+        .postProcess(principal, region.getFullPath(), re.getKey(), re.getValue(), false));
+
+    CapturingConsumer consumer = new CapturingConsumer(indexKey);
+    try {
+      evaluator.evaluate(entry, consumer);
+    } catch (IMQException e) {
+      // TODO - this should be a better exception!
+      throw new RuntimeException(e);
+    }
+    return consumer.resultForKey;
+  }
+
+  public static class CapturingConsumer implements RangeIndexEvaluator.IndexUpdateOperation {
+    private final Object expectedIndexKey;
+    private Object resultForKey;
+
+    public CapturingConsumer(Object expectedIndexKey) {
+      this.expectedIndexKey = expectedIndexKey;
+    }
+
+    @Override
+    public void add(Object key, Object indxResultSet, RegionEntry entry) {
+      if (Objects.equals(key, expectedIndexKey)) {
+        resultForKey = indxResultSet;
+      }
+    }
+  }
 }
