@@ -75,7 +75,7 @@ import org.apache.geode.internal.security.PostProcessing;
 public class RangeIndex extends AbstractIndex {
   private static final Logger logger = LogService.getLogger();
 
-  protected RangeIndexEvaluator evaluator;
+  protected RangeIndexedExpressionEvaluator evaluator;
 
 
   protected volatile int valueToEntriesMapSize = 0;

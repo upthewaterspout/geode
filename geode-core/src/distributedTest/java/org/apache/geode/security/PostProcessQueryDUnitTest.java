@@ -284,6 +284,7 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
       props.setProperty(UserPasswordAuthInit.PASSWORD, "1234567");
       props.setProperty(SECURITY_CLIENT_AUTH_INIT, UserPasswordAuthInit.class.getName());
       ClientCacheFactory clientCacheFactory = new ClientCacheFactory(props);
+      clientCacheFactory.setPoolReadTimeout(600_000);
       ClientCache cache = getClientCache(clientCacheFactory);
 
       Pool pool = cache.getDefaultPool();

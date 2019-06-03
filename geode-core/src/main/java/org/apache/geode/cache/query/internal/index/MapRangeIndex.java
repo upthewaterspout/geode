@@ -16,10 +16,13 @@ package org.apache.geode.cache.query.internal.index;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionAttributes;
 import org.apache.geode.cache.query.IndexStatistics;
+import org.apache.geode.cache.query.types.ObjectType;
 import org.apache.geode.internal.cache.BucketRegion;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.RegionEntry;
@@ -139,7 +142,7 @@ public class MapRangeIndex extends AbstractMapIndex {
           projectionAttributes, this.originalFromClause, this.originalIndexedExpression,
           this.canonicalizedDefinitions, stats);
       // Shobhit: We need evaluator to verify RegionEntry and IndexEntry inconsistency.
-      rg.evaluator = this.evaluator;
+      rg.evaluator = new RangeIndexEvaluatorForMapKey(evaluator, mapKey);
       this.mapKeyToValueIndex.put(mapKey, rg);
       if (!isPr) {
         this.internalIndexStats.incNumMapIndexKeys(1);
@@ -173,7 +176,7 @@ public class MapRangeIndex extends AbstractMapIndex {
       rg = new RangeIndex(cache, indexName + "-" + mapKey, region, fromClause, indexedExpression,
           projectionAttributes, this.originalFromClause, this.originalIndexedExpression,
           this.canonicalizedDefinitions, stats);
-      rg.evaluator = this.evaluator;
+      rg.evaluator = new RangeIndexEvaluatorForMapKey(evaluator, mapKey);
       this.mapKeyToValueIndex.put(mapKey, rg);
       if (!isPr) {
         this.internalIndexStats.incNumMapIndexKeys(1);
@@ -188,5 +191,83 @@ public class MapRangeIndex extends AbstractMapIndex {
     long end = System.nanoTime() - start;
     this.internalIndexStats.incUpdateTime(end);
     this.entryToMapKeysMap.add(entry, mapKey);
+  }
+
+  public static class RangeIndexEvaluatorForMapKey implements RangeIndexedExpressionEvaluator {
+
+    private final Object mapKey;
+    private final RangeIndexedExpressionEvaluator delegate;
+
+    RangeIndexEvaluatorForMapKey(RangeIndexedExpressionEvaluator delegate,
+        Object mapKey) {
+      this.delegate = delegate;
+      this.mapKey = mapKey;
+    }
+
+    @Override
+    public void evaluate(RegionEntry target,
+        RangeIndexEvaluator.IndexUpdateOperation updateOperation)
+        throws IMQException {
+      delegate.evaluate(target, getIndexUpdateOperation(updateOperation));
+    }
+
+    @Override
+    public void initializeIndex(boolean loadEntries, IndexUpdateOperation updateOperation)
+        throws IMQException {
+      delegate.initializeIndex(loadEntries, getIndexUpdateOperation(updateOperation));
+    }
+
+    @Override
+    public boolean isFirstItrOnKey() {
+      return delegate.isFirstItrOnKey();
+    }
+
+    @Override
+    public boolean isFirstItrOnEntry() {
+      return delegate.isFirstItrOnEntry();
+    }
+
+
+    @Override
+    public String getIndexedExpression() {
+      return delegate.getIndexedExpression();
+    }
+
+    @Override
+    public String getFromClause() {
+      return delegate.getFromClause();
+    }
+
+    @Override
+    public String getProjectionAttributes() {
+      return delegate.getProjectionAttributes();
+    }
+
+    @Override
+    public ObjectType getIndexResultSetType() {
+      return delegate.getIndexResultSetType();
+    }
+
+    @Override
+    public void expansion(List expandedResults, Object lowerBoundKey, Object upperBoundKey,
+        int lowerBoundOperator, int upperBoundOperator, Object value)
+        throws IMQException {
+      delegate.expansion(expandedResults, lowerBoundKey, upperBoundKey, lowerBoundOperator,
+          upperBoundOperator, value);
+    }
+
+    private IndexUpdateOperation getIndexUpdateOperation(
+        IndexUpdateOperation updateOperation) {
+      return (indexKey, value, regionEntry) -> updateOperation.add(extractKey(indexKey), value,
+          regionEntry);
+    }
+
+    private Object extractKey(Object indexKey) {
+      if (!(indexKey instanceof Map)) {
+        return null;
+      }
+      return ((Map) indexKey).get(mapKey);
+    }
+
   }
 }

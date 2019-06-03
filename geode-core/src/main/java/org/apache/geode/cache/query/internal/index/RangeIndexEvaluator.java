@@ -24,7 +24,7 @@ import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.NonTXEntry;
 import org.apache.geode.internal.cache.RegionEntry;
 
-public class RangeIndexEvaluator implements IndexedExpressionEvaluator {
+public class RangeIndexEvaluator implements RangeIndexedExpressionEvaluator {
   private AbstractIndex index;
   private final InternalCache cache;
 
@@ -129,6 +129,7 @@ public class RangeIndexEvaluator implements IndexedExpressionEvaluator {
     // no-op
   }
 
+  @Override
   public void evaluate(RegionEntry target, IndexUpdateOperation updateOperation)
       throws IMQException {
     DummyQRegion dQRegion = new DummyQRegion(this.rgn);
@@ -177,6 +178,7 @@ public class RangeIndexEvaluator implements IndexedExpressionEvaluator {
   /**
    * This function is used for creating Index data at the start
    */
+  @Override
   public void initializeIndex(boolean loadEntries,
       IndexUpdateOperation updateOperation) throws IMQException {
     this.initEntriesUpdated = 0;
@@ -387,15 +389,14 @@ public class RangeIndexEvaluator implements IndexedExpressionEvaluator {
     return this.indexResultSetType;
   }
 
-  boolean isFirstItrOnEntry() {
+  @Override
+  public boolean isFirstItrOnEntry() {
     return this.isFirstItrOnEntry;
   }
 
-  boolean isFirstItrOnKey() {
+  @Override
+  public boolean isFirstItrOnKey() {
     return this.isFirstItrOnKey;
   }
 
-  public interface IndexUpdateOperation {
-    void add(Object indexKey, Object value, RegionEntry entry) throws IMQException;
-  }
 }

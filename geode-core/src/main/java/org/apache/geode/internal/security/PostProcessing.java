@@ -11,6 +11,7 @@ import org.apache.geode.cache.Region;
 import org.apache.geode.cache.query.internal.index.IMQException;
 import org.apache.geode.cache.query.internal.index.IndexStore;
 import org.apache.geode.cache.query.internal.index.RangeIndexEvaluator;
+import org.apache.geode.cache.query.internal.index.RangeIndexedExpressionEvaluator;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.NonLocalRegionEntry;
 import org.apache.geode.internal.cache.RegionEntry;
@@ -139,7 +140,8 @@ public class PostProcessing {
   }
 
 
-  public static Object getPostProcessedStruct(Region region, RangeIndexEvaluator evaluator,
+  public static Object getPostProcessedStruct(Region region,
+      RangeIndexedExpressionEvaluator evaluator,
       RegionEntry re, Object indexKey, Object originalValue, Object principal) {
     SecurityService securityService = getSecurityService(region);
 
