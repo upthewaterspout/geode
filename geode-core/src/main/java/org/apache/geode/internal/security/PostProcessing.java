@@ -5,8 +5,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.query.internal.index.IMQException;
 import org.apache.geode.cache.query.internal.index.IndexStore;
@@ -36,9 +34,9 @@ public class PostProcessing {
     }
     String fullPath = region.getFullPath();
 
-    Function<Map.Entry<K, ?>, Map.Entry<K, Object>> transformation =
+    Function<Region.Entry<K, ?>, Region.Entry<K, Object>> transformation =
         entry -> transformEntry(securityService, entry, fullPath, principal);
-    return new TransformingCollection<>(transformation, region.entrySet());
+    return new TransformingCollection(transformation, region.entrySet());
   }
 
   /**
@@ -103,7 +101,8 @@ public class PostProcessing {
    * the original
    * entry.
    */
-  public static Map.Entry getPostProcessedEntry(Region region, Map.Entry entry, Object principal) {
+  public static Region.Entry getPostProcessedEntry(Region region, Region.Entry entry,
+      Object principal) {
     SecurityService securityService = getSecurityService(region);
 
     if (!securityService.needPostProcess()) {
@@ -118,12 +117,11 @@ public class PostProcessing {
     return cache.getSecurityService();
   }
 
-  private static <K, V> Map.Entry<K, Object> transformEntry(SecurityService securityService,
-      Map.Entry<K, V> entry,
+  private static <K, V> Region.Entry<K, Object> transformEntry(SecurityService securityService,
+      Region.Entry<K, V> entry,
       String regionPath, Object principal) {
     Object value = transformValue(securityService, entry, regionPath, principal);
-    K key = entry.getKey();
-    return Pair.of(key, value);
+    return new PostProcessedEntry(entry, value);
   }
 
   private static <K, V> Object transformValue(SecurityService securityService,

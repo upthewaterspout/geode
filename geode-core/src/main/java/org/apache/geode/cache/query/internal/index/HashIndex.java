@@ -768,7 +768,7 @@ public class HashIndex extends AbstractIndex {
     } else if (this.indexOnRegionKeys) {
       return entry.getKey();
     }
-    Map.Entry nonTXEntry = new NonTXEntry((LocalRegion) getRegion(), entry);
+    Region.Entry nonTXEntry = new NonTXEntry((LocalRegion) getRegion(), entry);
     nonTXEntry = PostProcessing.getPostProcessedEntry(region, nonTXEntry, context.getPrincipal());
     return nonTXEntry;
   }

@@ -268,10 +268,10 @@ public class PrimaryKeyIndex extends AbstractIndex {
 
   private void addResultToResults(ExecutionContext context, Collection results, Object key,
       Object result) {
+    result = PostProcessing.getPostProcessedValue(region, key, result, context.getPrincipal());
     if (context != null && context.isCqQueryContext()) {
       results.add(new CqEntry(key, result));
     } else {
-      result = PostProcessing.getPostProcessedValue(region, key, result, context.getPrincipal());
       results.add(result);
     }
   }

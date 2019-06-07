@@ -232,20 +232,6 @@ public class PostProcessQueryDUnitTest extends CacheTestCase {
   /*
    *
    * @Test
-   * public void queryWithMapRangeIndexShouldRedact()
-   * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
-   * fail("Not yet implemented");
-   * }
-   *
-   *
-   * @Test
-   * public void luceneQueryShouldRedact()
-   * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
-   * // Make sure that a lucene query won't find a restricted field. Is this even possible?
-   * fail("Not yet implemented");
-   * }
-   *
-   * @Test
    * public void cqQueryShoulRedact()
    * throws IndexNameConflictException, IndexExistsException, RegionNotFoundException {
    * // Make sure that a client can't create a CQ to fish for a fields value
