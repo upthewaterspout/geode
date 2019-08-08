@@ -43,7 +43,6 @@ import org.apache.geode.internal.cache.versions.VersionSource;
 import org.apache.geode.internal.cache.versions.VersionTag;
 import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.internal.logging.log4j.LogMarker;
-import org.apache.geode.internal.util.concurrent.ConcurrentMapWithReusableEntries;
 
 /**
  * Code shared by both DiskRegion and RecoveredDiskRegion.
@@ -630,9 +629,9 @@ public abstract class AbstractDiskRegion implements DiskRegionView {
       ds.updateDiskRegion(this);
       entriesMapIncompatible = false;
       if (entries != null) {
-        ConcurrentMapWithReusableEntries<Object, Object> other =
+        Map<Object, Object> other =
             entries.getCustomEntryConcurrentHashMap();
-        for (Map.Entry<Object, Object> me : other.entrySetWithReusableEntries()) {
+        for (Map.Entry<Object, Object> me : other.entrySet()) {
           RegionEntry oldRe = (RegionEntry) me.getValue();
           if (oldRe instanceof OffHeapRegionEntry) {
             ((OffHeapRegionEntry) oldRe).release();

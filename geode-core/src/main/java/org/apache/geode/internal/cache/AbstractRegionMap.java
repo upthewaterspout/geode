@@ -15,6 +15,7 @@
 package org.apache.geode.internal.cache;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -44,7 +45,6 @@ import org.apache.geode.distributed.internal.membership.InternalDistributedMembe
 import org.apache.geode.internal.Assert;
 import org.apache.geode.internal.cache.DiskInitFile.DiskRegionFlag;
 import org.apache.geode.internal.cache.entries.AbstractOplogDiskRegionEntry;
-import org.apache.geode.internal.cache.entries.AbstractRegionEntry;
 import org.apache.geode.internal.cache.entries.DiskEntry;
 import org.apache.geode.internal.cache.entries.OffHeapRegionEntry;
 import org.apache.geode.internal.cache.map.CacheModificationLock;
@@ -71,8 +71,6 @@ import org.apache.geode.internal.offheap.annotations.Released;
 import org.apache.geode.internal.offheap.annotations.Retained;
 import org.apache.geode.internal.sequencelog.EntryLogger;
 import org.apache.geode.internal.size.ReflectionSingleObjectSizer;
-import org.apache.geode.internal.util.concurrent.ConcurrentMapWithReusableEntries;
-import org.apache.geode.internal.util.concurrent.CustomEntryConcurrentHashMap;
 
 /**
  * Abstract implementation of {@link RegionMap}that has all the common behavior.
@@ -85,7 +83,8 @@ public abstract class AbstractRegionMap extends BaseRegionMap
   private final TxCallbackEventFactory txCallbackEventFactory = new TxCallbackEventFactoryImpl();
 
   /** The underlying map for this region. */
-  protected ConcurrentMapWithReusableEntries<Object, Object> map;
+  // protected ConcurrentMapWithReusableEntries<Object, Object> map;
+  protected Map<Object, Object> map;
 
   /**
    * This test hook is used to force the conditions during entry destroy. This hook is used by
@@ -111,8 +110,9 @@ public abstract class AbstractRegionMap extends BaseRegionMap
       InternalRegionArguments internalRegionArgs, boolean isLRU) {
     _setAttributes(attr);
     setOwner(owner);
-    setEntryMap(createConcurrentMapWithReusableEntries(attr.initialCapacity, attr.loadFactor,
-        attr.concurrencyLevel, false, new AbstractRegionEntry.HashRegionEntryCreator()));
+    // setEntryMap(createConcurrentMapWithReusableEntries(attr.initialCapacity, attr.loadFactor,
+    // attr.concurrencyLevel, false, new AbstractRegionEntry.HashRegionEntryCreator()));
+    setEntryMap(new HashMap<>(attr.initialCapacity, attr.loadFactor));
 
     boolean isDisk;
     boolean withVersioning;
@@ -135,17 +135,18 @@ public abstract class AbstractRegionMap extends BaseRegionMap
         withVersioning, offHeap));
   }
 
-  private ConcurrentMapWithReusableEntries<Object, Object> createConcurrentMapWithReusableEntries(
-      int initialCapacity, float loadFactor, int concurrencyLevel, boolean isIdentityMap,
-      CustomEntryConcurrentHashMap.HashEntryCreator<Object, Object> entryCreator) {
-    if (entryCreator != null) {
-      return new CustomEntryConcurrentHashMap<>(initialCapacity, loadFactor, concurrencyLevel,
-          isIdentityMap, entryCreator);
-    } else {
-      return new CustomEntryConcurrentHashMap<>(initialCapacity, loadFactor, concurrencyLevel,
-          isIdentityMap);
-    }
-  }
+  // private ConcurrentMapWithReusableEntries<Object, Object>
+  // createConcurrentMapWithReusableEntries(
+  // int initialCapacity, float loadFactor, int concurrencyLevel, boolean isIdentityMap,
+  // CustomEntryConcurrentHashMap.HashEntryCreator<Object, Object> entryCreator) {
+  // if (entryCreator != null) {
+  // return new CustomEntryConcurrentHashMap<>(initialCapacity, loadFactor, concurrencyLevel,
+  // isIdentityMap, entryCreator);
+  // } else {
+  // return new CustomEntryConcurrentHashMap<>(initialCapacity, loadFactor, concurrencyLevel,
+  // isIdentityMap);
+  // }
+  // }
 
   @Override
   public void changeOwner(LocalRegion r) {
@@ -194,7 +195,7 @@ public abstract class AbstractRegionMap extends BaseRegionMap
   }
 
   @Override
-  public ConcurrentMapWithReusableEntries<Object, Object> getCustomEntryConcurrentHashMap() {
+  public Map<Object, Object> getCustomEntryConcurrentHashMap() {
     return map;
   }
 
@@ -204,7 +205,7 @@ public abstract class AbstractRegionMap extends BaseRegionMap
   }
 
   @Override
-  public void setEntryMap(ConcurrentMapWithReusableEntries<Object, Object> map) {
+  public void setEntryMap(Map<Object, Object> map) {
     this.map = map;
   }
 
@@ -358,7 +359,7 @@ public abstract class AbstractRegionMap extends BaseRegionMap
         executor = manager.getWaitingThreadPool();
       }
     }
-    getCustomEntryConcurrentHashMap().clearWithExecutor(executor);
+    getCustomEntryConcurrentHashMap().clear();
   }
 
   @Override
@@ -551,8 +552,8 @@ public abstract class AbstractRegionMap extends BaseRegionMap
     // so that they will be in the correct order.
     OrderedTombstoneMap<RegionEntry> tombstones = new OrderedTombstoneMap<RegionEntry>();
     if (rm != null) {
-      ConcurrentMapWithReusableEntries<Object, Object> other = rm.getCustomEntryConcurrentHashMap();
-      Iterator<Map.Entry<Object, Object>> it = other.entrySetWithReusableEntries().iterator();
+      Map<Object, Object> other = rm.getCustomEntryConcurrentHashMap();
+      Iterator<Map.Entry<Object, Object>> it = other.entrySet().iterator();
       while (it.hasNext()) {
         Map.Entry<Object, Object> me = it.next();
         it.remove(); // This removes the RegionEntry from "rm" but it does not decrement its

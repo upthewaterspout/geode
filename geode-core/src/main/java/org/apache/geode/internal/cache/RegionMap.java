@@ -16,6 +16,7 @@ package org.apache.geode.internal.cache;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.geode.cache.CacheCallback;
@@ -34,7 +35,6 @@ import org.apache.geode.internal.cache.versions.RegionVersionVector;
 import org.apache.geode.internal.cache.versions.VersionHolder;
 import org.apache.geode.internal.cache.versions.VersionSource;
 import org.apache.geode.internal.cache.versions.VersionTag;
-import org.apache.geode.internal.util.concurrent.ConcurrentMapWithReusableEntries;
 
 /**
  * Internal interface used by {@link LocalRegion} to access the map that holds its entries. Note
@@ -388,7 +388,7 @@ public interface RegionMap extends EvictableMap {
 
   void updateEvictionCounter();
 
-  ConcurrentMapWithReusableEntries<Object, Object> getCustomEntryConcurrentHashMap();
+  Map<Object, Object> getCustomEntryConcurrentHashMap();
 
-  void setEntryMap(ConcurrentMapWithReusableEntries<Object, Object> map);
+  void setEntryMap(Map<Object, Object> map);
 }

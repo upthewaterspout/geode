@@ -18,6 +18,7 @@ package org.apache.geode.internal.cache;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.geode.annotations.Immutable;
@@ -44,7 +45,6 @@ import org.apache.geode.internal.cache.versions.VersionSource;
 import org.apache.geode.internal.cache.versions.VersionStamp;
 import org.apache.geode.internal.cache.versions.VersionTag;
 import org.apache.geode.internal.offheap.annotations.Released;
-import org.apache.geode.internal.util.concurrent.ConcurrentMapWithReusableEntries;
 
 /**
  * Internal implementation of {@link RegionMap}for regions whose DataPolicy is proxy. Proxy maps are
@@ -818,10 +818,10 @@ class ProxyRegionMap extends BaseRegionMap {
   }
 
   @Override
-  public ConcurrentMapWithReusableEntries<Object, Object> getCustomEntryConcurrentHashMap() {
+  public Map<Object, Object> getCustomEntryConcurrentHashMap() {
     return null;
   }
 
   @Override
-  public void setEntryMap(ConcurrentMapWithReusableEntries<Object, Object> map) {}
+  public void setEntryMap(Map<Object, Object> map) {}
 }

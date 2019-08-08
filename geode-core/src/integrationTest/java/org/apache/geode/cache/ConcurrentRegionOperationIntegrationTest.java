@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.junit.After;
@@ -33,7 +34,6 @@ import org.apache.geode.internal.cache.RegionClearedException;
 import org.apache.geode.internal.cache.RegionEntry;
 import org.apache.geode.internal.offheap.MemoryAllocator;
 import org.apache.geode.internal.offheap.MemoryAllocatorImpl;
-import org.apache.geode.internal.util.concurrent.ConcurrentMapWithReusableEntries;
 
 public class ConcurrentRegionOperationIntegrationTest {
 
@@ -63,7 +63,7 @@ public class ConcurrentRegionOperationIntegrationTest {
     DiskStore diskStore = cache.findDiskStore(DiskStoreFactory.DEFAULT_DISK_STORE_NAME);
     diskStore.flush();
 
-    ConcurrentMapWithReusableEntries<Object, Object> underlyingMap =
+    Map<Object, Object> underlyingMap =
         ((LocalRegion) region).getRegionMap().getCustomEntryConcurrentHashMap();
     RegionEntry spyEntry = spy((RegionEntry) underlyingMap.get(1));
     underlyingMap.remove(1);
