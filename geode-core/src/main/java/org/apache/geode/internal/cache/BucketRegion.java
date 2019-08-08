@@ -524,7 +524,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
   public boolean virtualPut(EntryEventImpl event, boolean ifNew, boolean ifOld,
       Object expectedOldValue, boolean requireOldValue, long lastModified,
       boolean overwriteDestroyed) throws TimeoutException, CacheWriterException {
-    boolean locked = lockKeysAndPrimary(event);
+    // boolean locked = lockKeysAndPrimary(event);
 
     try {
       if (partitionedRegion.isParallelWanEnabled()) {
@@ -556,9 +556,9 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       }
       return true;
     } finally {
-      if (locked) {
-        releaseLockForKeysAndPrimary(event);
-      }
+      // if (locked) {
+      // releaseLockForKeysAndPrimary(event);
+      // }
     }
   }
 

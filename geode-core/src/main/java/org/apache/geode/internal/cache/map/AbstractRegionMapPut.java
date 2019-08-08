@@ -114,13 +114,13 @@ public abstract class AbstractRegionMapPut {
   protected abstract void serializeNewValueIfNeeded();
 
   protected void runWhileLockedForCacheModification(Runnable r) {
-    final boolean locked = getOwner().lockWhenRegionIsInitializing();
+    // final boolean locked = getOwner().lockWhenRegionIsInitializing();
     try {
       r.run();
     } finally {
-      if (locked) {
-        getOwner().unlockWhenRegionIsInitializing();
-      }
+      // if (locked) {
+      // getOwner().unlockWhenRegionIsInitializing();
+      // }
     }
   }
 
@@ -246,10 +246,10 @@ public abstract class AbstractRegionMapPut {
    * @return false if caller should retry
    */
   private boolean addRegionEntryToMapAndDoPut() {
-    synchronized (getRegionEntry()) {
-      putIfAbsentNewEntry();
-      return doPutOnRegionEntryInMap();
-    }
+    // synchronized (getRegionEntry()) {
+    putIfAbsentNewEntry();
+    return doPutOnRegionEntryInMap();
+    // }
   }
 
   private void putIfAbsentNewEntry() {
@@ -266,13 +266,13 @@ public abstract class AbstractRegionMapPut {
    * @return false if caller should retry because entry is no longer in the map
    */
   private boolean doPutOnRegionEntryInMap() {
-    synchronized (getRegionEntry()) {
-      if (isRegionEntryRemoved()) {
-        return false;
-      }
-      doPutOnSynchronizedRegionEntry();
-      return true;
+    // synchronized (getRegionEntry()) {
+    if (isRegionEntryRemoved()) {
+      return false;
     }
+    doPutOnSynchronizedRegionEntry();
+    return true;
+    // }
   }
 
   private void doPutOnSynchronizedRegionEntry() {
