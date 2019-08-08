@@ -1197,27 +1197,28 @@ public class PartitionedRegionDataStore implements HasCachePerfStats {
   public boolean putLocally(final BucketRegion bucketRegion, final EntryEventImpl event,
       boolean ifNew, boolean ifOld, Object expectedOldValue, boolean requireOldValue,
       final long lastModified) throws PrimaryBucketException, ForceReattemptException {
-    boolean didPut = false; // false if entry put fails
 
-    // final BucketRegion bucketRegion = getInitializedBucketForId(event.getKey(), bucketId);
+    return bucketRegion.inExecutor(() -> {
+      boolean didPut = false; // false if entry put fails
 
-    try {
-      event.setRegion(bucketRegion);
+      try {
+        event.setRegion(bucketRegion);
 
-      if (event.isOriginRemote()) {
-        didPut = bucketRegion.basicUpdate(event, ifNew, ifOld, lastModified, false);
-      } else {
-        // Skip yet another validation
-        didPut = bucketRegion.virtualPut(event, ifNew, ifOld, expectedOldValue, requireOldValue,
-            lastModified, false);
+        if (event.isOriginRemote()) {
+          didPut = bucketRegion.basicUpdate(event, ifNew, ifOld, lastModified, false);
+        } else {
+          // Skip yet another validation
+          didPut = bucketRegion.virtualPut(event, ifNew, ifOld, expectedOldValue, requireOldValue,
+              lastModified, false);
+        }
+        // bug 34361: don't send a reply if bucket was destroyed during the op
+        bucketRegion.checkReadiness();
+      } catch (RegionDestroyedException rde) {
+        checkRegionDestroyedOnBucket(bucketRegion, event.isOriginRemote(), rde);
       }
-      // bug 34361: don't send a reply if bucket was destroyed during the op
-      bucketRegion.checkReadiness();
-    } catch (RegionDestroyedException rde) {
-      checkRegionDestroyedOnBucket(bucketRegion, event.isOriginRemote(), rde);
-    }
 
-    return didPut;
+      return didPut;
+    });
   }
 
   protected boolean hasClientInterest(EntryEventImpl event) {
@@ -2237,27 +2238,29 @@ public class PartitionedRegionDataStore implements HasCachePerfStats {
   public boolean createLocally(final BucketRegion bucketRegion, final EntryEventImpl event,
       boolean ifNew, boolean ifOld, boolean requireOldValue, final long lastModified)
       throws ForceReattemptException {
-    boolean result = false;
-    try {
-      event.setRegion(bucketRegion); // convert to the bucket region
-      if (event.isOriginRemote()) {
-        result = bucketRegion.basicUpdate(event, ifNew, ifOld, lastModified, true);
-      } else {
-        // Skip validating again
-        result = bucketRegion.virtualPut(event, ifNew, ifOld, null, // expectedOldValue
-            requireOldValue, lastModified, false);
+
+    return bucketRegion.inExecutor(() -> {
+      boolean result = false;
+      try {
+        event.setRegion(bucketRegion); // convert to the bucket region
+        if (event.isOriginRemote()) {
+          result = bucketRegion.basicUpdate(event, ifNew, ifOld, lastModified, true);
+        } else {
+          // Skip validating again
+          result = bucketRegion.virtualPut(event, ifNew, ifOld, null, // expectedOldValue
+              requireOldValue, lastModified, false);
+        }
+        // if (shouldThrowExists && !posDup) {
+        // throw new EntryExistsException(event.getKey().toString());
+        // }
+        // bug 34361: don't send a reply if bucket was destroyed during the op
+        bucketRegion.checkReadiness();
+      } catch (RegionDestroyedException rde) {
+        checkRegionDestroyedOnBucket(bucketRegion, event.isOriginRemote(), rde);
       }
-      // if (shouldThrowExists && !posDup) {
-      // throw new EntryExistsException(event.getKey().toString());
-      // }
-      // bug 34361: don't send a reply if bucket was destroyed during the op
-      bucketRegion.checkReadiness();
-    } catch (RegionDestroyedException rde) {
-      checkRegionDestroyedOnBucket(bucketRegion, event.isOriginRemote(), rde);
-    }
 
-
-    return result;
+      return result;
+    });
 
     // this is now done elsewhere
     // event.setRegion(this.partitionedRegion);

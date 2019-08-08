@@ -23,6 +23,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
@@ -125,6 +129,8 @@ public class BucketRegion extends DistributedRegion implements Bucket {
   private final AtomicLong evictions = new AtomicLong();
   // For GII
   private CreateRegionReplyProcessor createRegionReplyProcessor;
+
+  private ExecutorService executor = Executors.newSingleThreadExecutor();
 
   /**
    * Contains size in bytes of the values stored in theRealMap. Sizes are tallied during put and
@@ -2428,6 +2434,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       dr.statsClear(this);
     }
     super.postDestroyRegion(destroyDiskRegion, event);
+    executor.shutdown();
   }
 
   @Override
@@ -2464,5 +2471,15 @@ public class BucketRegion extends DistributedRegion implements Bucket {
   @Override
   void checkSameSenderIdsAvailableOnAllNodes() {
     // nothing needed on a bucket region
+  }
+
+  public <T> T inExecutor(Callable<T> callable) {
+    try {
+      return executor.submit(callable).get();
+    } catch (InterruptedException e) {
+      throw new IllegalStateException(e);
+    } catch (ExecutionException e) {
+      throw new IllegalStateException(e);
+    }
   }
 }
