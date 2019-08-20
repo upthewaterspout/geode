@@ -57,6 +57,8 @@ import org.apache.geode.distributed.internal.membership.gms.GMSMember;
 import org.apache.geode.distributed.internal.membership.gms.GMSMembershipView;
 import org.apache.geode.distributed.internal.membership.gms.ServiceConfig;
 import org.apache.geode.distributed.internal.membership.gms.Services;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipManager;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipManagerFactory;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.JoinLeave;
 import org.apache.geode.distributed.internal.membership.gms.membership.GMSJoinLeave;
 import org.apache.geode.internal.AvailablePortHelper;
@@ -115,7 +117,7 @@ public class MembershipJUnitTest {
   private List<String> doTestMultipleManagersInSameProcessWithGroups(String groups)
       throws Exception {
 
-    MembershipManager m1 = null, m2 = null;
+    InternalMembershipManager m1 = null, m2 = null;
     Locator l = null;
     // int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
 
@@ -244,8 +246,8 @@ public class MembershipJUnitTest {
     final InternalDistributedSystem mockSystem = mock(InternalDistributedSystem.class);
     System.out.println("creating 1st membership manager");
     final SecurityService securityService = SecurityServiceFactory.create();
-    final MembershipManager m1 =
-        MemberFactory.newMembershipManager(listener, transport, stats1,
+    final InternalMembershipManager m1 =
+        MembershipManagerFactory.newMembershipManager(listener, transport, stats1,
             new GMSAuthenticator(config.getSecurityProps(), securityService,
                 mockSystem.getSecurityLogWriter(), mockSystem.getInternalLogWriter()),
             config);
@@ -265,7 +267,7 @@ public class MembershipJUnitTest {
   @Test
   public void testLocatorAndTwoServersJoinUsingDiffeHellman() throws Exception {
 
-    MembershipManager m1 = null, m2 = null;
+    InternalMembershipManager m1 = null, m2 = null;
     Locator l = null;
     int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
 

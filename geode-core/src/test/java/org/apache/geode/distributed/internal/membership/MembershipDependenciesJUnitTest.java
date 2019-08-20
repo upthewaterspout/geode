@@ -17,6 +17,7 @@ package org.apache.geode.distributed.internal.membership;
 import static com.tngtech.archunit.base.DescribedPredicate.not;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.type;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
@@ -64,7 +65,7 @@ import org.apache.geode.internal.util.Breadcrumbs;
 import org.apache.geode.internal.util.JavaWorkarounds;
 
 @RunWith(ArchUnitRunner.class)
-@AnalyzeClasses(packages = "org.apache.geode.distributed.internal.membership.gms..")
+@AnalyzeClasses(packages = "org.apache.geode")
 public class MembershipDependenciesJUnitTest {
 
   /*
@@ -183,4 +184,13 @@ public class MembershipDependenciesJUnitTest {
 
   );
 
+  @ArchTest
+  public static final ArchRule coreDoesNotUseMembershipInternalClasses = classes()
+      .that()
+      .resideInAPackage("org.apache.geode.distributed.internal.membership.gms..")
+      .and(not(resideInAnyPackage("org.apache.geode.distributed.internal.membership.gms.api..")))
+
+      .should()
+      .onlyHaveDependentClassesThat()
+      .resideInAPackage("org.apache.geode.distributed.internal.membership.gms..");
 }
