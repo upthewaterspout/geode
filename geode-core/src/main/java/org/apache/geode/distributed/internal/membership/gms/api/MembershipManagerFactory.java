@@ -23,7 +23,7 @@ import org.apache.geode.distributed.internal.membership.InternalMembershipManage
 import org.apache.geode.distributed.internal.membership.MemberServices;
 import org.apache.geode.distributed.internal.membership.NetMember;
 import org.apache.geode.distributed.internal.membership.adapter.GMSMemberFactory;
-import org.apache.geode.distributed.internal.membership.gms.interfaces.Authenticator;
+import org.apache.geode.distributed.internal.membership.gms.MembershipManagerFactoryImpl;
 import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 
 /**
@@ -36,6 +36,10 @@ public interface MembershipManagerFactory {
 
   @Immutable
   public static final MemberServices services = new GMSMemberFactory();
+
+  MembershipManagerFactory setAuthenticator(Authenticator authenticator);
+
+  InternalMembershipManager create();
 
   /**
    * Create a new MembershipManager. Be sure to send the manager a postConnect() message before you
@@ -53,7 +57,16 @@ public interface MembershipManagerFactory {
       final DMStats stats,
       final Authenticator authenticator,
       final DistributionConfig config) {
-    return services.newMembershipManager(listener, transport, stats, authenticator,
+    return newMembershipManagerFactory(listener, transport, stats, config)
+        .setAuthenticator(authenticator)
+        .create();
+  }
+
+  static MembershipManagerFactory newMembershipManagerFactory(
+      DistributedMembershipListener listener, RemoteTransportConfig transport, DMStats stats,
+      DistributionConfig config) {
+
+    return new MembershipManagerFactoryImpl(listener, transport, stats,
         config);
   }
 

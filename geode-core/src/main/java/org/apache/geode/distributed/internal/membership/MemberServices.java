@@ -20,7 +20,7 @@ import java.nio.file.Path;
 import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.LocatorStats;
-import org.apache.geode.distributed.internal.membership.gms.interfaces.Authenticator;
+import org.apache.geode.distributed.internal.membership.gms.api.Authenticator;
 import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 
 /**
