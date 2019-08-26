@@ -59,9 +59,9 @@ import org.apache.geode.distributed.DistributedSystem;
 import org.apache.geode.distributed.Locator;
 import org.apache.geode.distributed.internal.InternalDistributedSystem.ConnectListener;
 import org.apache.geode.distributed.internal.membership.NetLocator;
+import org.apache.geode.distributed.internal.membership.NetLocatorFactory;
 import org.apache.geode.distributed.internal.membership.QuorumChecker;
 import org.apache.geode.distributed.internal.membership.adapter.GMSMembershipManager;
-import org.apache.geode.distributed.internal.membership.gms.api.MembershipManagerFactory;
 import org.apache.geode.distributed.internal.membership.gms.locator.PeerLocatorRequest;
 import org.apache.geode.distributed.internal.tcpserver.LocatorCancelException;
 import org.apache.geode.distributed.internal.tcpserver.TcpClient;
@@ -606,7 +606,7 @@ public class InternalLocator extends Locator implements ConnectListener, LogConf
       }
     }
 
-    netLocator = MembershipManagerFactory.newLocatorHandler(bindAddress, locatorsConfigValue,
+    netLocator = NetLocatorFactory.newLocatorHandler(bindAddress, locatorsConfigValue,
         locatorsAreCoordinators, networkPartitionDetectionEnabled, locatorStats, securityUDPDHAlgo,
         workingDirectory);
     handler.addHandler(PeerLocatorRequest.class, netLocator);

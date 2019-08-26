@@ -14,17 +14,13 @@
  */
 package org.apache.geode.distributed.internal.membership.gms.api;
 
-import java.net.InetAddress;
-import java.nio.file.Path;
 
 import org.apache.geode.annotations.Immutable;
 import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
-import org.apache.geode.distributed.internal.LocatorStats;
 import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
 import org.apache.geode.distributed.internal.membership.MemberServices;
-import org.apache.geode.distributed.internal.membership.NetLocator;
 import org.apache.geode.distributed.internal.membership.NetMember;
 import org.apache.geode.distributed.internal.membership.adapter.GMSMemberFactory;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.Authenticator;
@@ -36,7 +32,7 @@ import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
  *
  * @see NetMember
  */
-public class MembershipManagerFactory {
+public interface MembershipManagerFactory {
 
   @Immutable
   public static final MemberServices services = new GMSMemberFactory();
@@ -59,17 +55,6 @@ public class MembershipManagerFactory {
       final DistributionConfig config) {
     return services.newMembershipManager(listener, transport, stats, authenticator,
         config);
-  }
-
-  /**
-   * currently this is a test method but it ought to be used by InternalLocator to create the peer
-   * location TcpHandler
-   */
-  public static NetLocator newLocatorHandler(InetAddress bindAddress, String locatorString,
-      boolean usePreferredCoordinators, boolean networkPartitionDetectionEnabled,
-      LocatorStats stats, String securityUDPDHAlgo, Path workingDirectory) {
-    return services.newLocatorHandler(bindAddress, locatorString, usePreferredCoordinators,
-        networkPartitionDetectionEnabled, stats, securityUDPDHAlgo, workingDirectory);
   }
 
 }
