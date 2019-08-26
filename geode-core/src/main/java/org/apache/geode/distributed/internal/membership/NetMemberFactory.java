@@ -15,8 +15,13 @@
 package org.apache.geode.distributed.internal.membership;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
-import org.apache.geode.distributed.internal.membership.gms.api.MembershipManagerFactory;
+import org.apache.geode.distributed.DurableClientAttributes;
+import org.apache.geode.distributed.internal.membership.adapter.GMSMemberAdapter;
+import org.apache.geode.distributed.internal.membership.gms.GMSMember;
+import org.apache.geode.internal.Version;
+import org.apache.geode.internal.net.SocketCreator;
 
 public class NetMemberFactory {
   /**
@@ -34,9 +39,19 @@ public class NetMemberFactory {
       boolean splitBrainEnabled,
       boolean canBeCoordinator, short version,
       MemberAttributes payload) {
-    return MembershipManagerFactory.services.newNetMember(i, hostName, p, splitBrainEnabled,
-        canBeCoordinator, payload,
-        version);
+    DurableClientAttributes durableClientAttributes = payload.getDurableClientAttributes();
+    String durableId = null;
+    int durableTimeout = 0;
+    if (durableClientAttributes != null) {
+      durableId = durableClientAttributes.getId();
+      durableTimeout = durableClientAttributes.getTimeout();
+    }
+    GMSMemberAdapter result =
+        new GMSMemberAdapter(
+            new GMSMember(i, hostName, p, payload.getVmPid(), (byte) payload.getVmKind(),
+                payload.getPort(), payload.getVmViewId(), payload.getName(), payload.getGroups(),
+                durableId, durableTimeout, splitBrainEnabled, canBeCoordinator, version, 0, 0));
+    return result;
   }
 
   /**
@@ -47,7 +62,25 @@ public class NetMemberFactory {
    * @return the new NetMember
    */
   public static NetMember newNetMember(InetAddress i, int p) {
-    NetMember result = MembershipManagerFactory.services.newNetMember(i, p);
+    DurableClientAttributes durableClientAttributes =
+        MemberAttributes.DEFAULT.getDurableClientAttributes();
+    String durableId = null;
+    int durableTimeout = 0;
+    if (durableClientAttributes != null) {
+      durableId = durableClientAttributes.getId();
+      durableTimeout = durableClientAttributes.getTimeout();
+    }
+    GMSMemberAdapter result11 =
+        new GMSMemberAdapter(new GMSMember(i, i.getHostName(), p,
+            MemberAttributes.DEFAULT.getVmPid(), (byte) MemberAttributes.DEFAULT
+                .getVmKind(),
+            MemberAttributes.DEFAULT.getPort(), MemberAttributes.DEFAULT.getVmViewId(),
+            MemberAttributes.DEFAULT
+                .getName(),
+            MemberAttributes.DEFAULT.getGroups(),
+            durableId, durableTimeout, false, true, Version.CURRENT_ORDINAL, 0, 0));
+    NetMember result =
+        result11;
     return result;
   }
 
@@ -59,6 +92,28 @@ public class NetMemberFactory {
    * @return the new member
    */
   public static NetMember newNetMember(String s, int p) {
-    return MembershipManagerFactory.services.newNetMember(s, p);
+    InetAddress inetAddr = null;
+    try {
+      inetAddr = SocketCreator.getLocalHost();
+    } catch (UnknownHostException e2) {
+      throw new RuntimeException("Unable to create an identifier for testing for " + s, e2);
+    }
+    DurableClientAttributes durableClientAttributes =
+        MemberAttributes.DEFAULT.getDurableClientAttributes();
+    String durableId = null;
+    int durableTimeout = 0;
+    if (durableClientAttributes != null) {
+      durableId = durableClientAttributes.getId();
+      durableTimeout = durableClientAttributes.getTimeout();
+    }
+    GMSMemberAdapter result =
+        new GMSMemberAdapter(new GMSMember(inetAddr, inetAddr.getHostName(),
+            p, MemberAttributes.DEFAULT.getVmPid(), (byte) MemberAttributes.DEFAULT.getVmKind(),
+            MemberAttributes.DEFAULT.getPort(), MemberAttributes.DEFAULT.getVmViewId(),
+            MemberAttributes.DEFAULT
+                .getName(),
+            MemberAttributes.DEFAULT.getGroups(),
+            durableId, durableTimeout, false, true, Version.CURRENT_ORDINAL, 0, 0));
+    return result;
   }
 }

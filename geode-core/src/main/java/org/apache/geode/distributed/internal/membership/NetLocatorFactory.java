@@ -18,7 +18,7 @@ import java.net.InetAddress;
 import java.nio.file.Path;
 
 import org.apache.geode.distributed.internal.LocatorStats;
-import org.apache.geode.distributed.internal.membership.gms.api.MembershipManagerFactory;
+import org.apache.geode.distributed.internal.membership.adapter.GMSLocatorAdapter;
 
 public class NetLocatorFactory {
   /**
@@ -28,8 +28,8 @@ public class NetLocatorFactory {
   public static NetLocator newLocatorHandler(InetAddress bindAddress, String locatorString,
       boolean usePreferredCoordinators, boolean networkPartitionDetectionEnabled,
       LocatorStats stats, String securityUDPDHAlgo, Path workingDirectory) {
-    return MembershipManagerFactory.services.newLocatorHandler(bindAddress, locatorString,
-        usePreferredCoordinators,
+
+    return new GMSLocatorAdapter(bindAddress, locatorString, usePreferredCoordinators,
         networkPartitionDetectionEnabled, stats, securityUDPDHAlgo, workingDirectory);
   }
 }

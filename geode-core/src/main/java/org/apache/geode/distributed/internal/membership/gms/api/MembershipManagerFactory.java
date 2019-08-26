@@ -15,14 +15,11 @@
 package org.apache.geode.distributed.internal.membership.gms.api;
 
 
-import org.apache.geode.annotations.Immutable;
 import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
-import org.apache.geode.distributed.internal.membership.MemberServices;
 import org.apache.geode.distributed.internal.membership.NetMember;
-import org.apache.geode.distributed.internal.membership.adapter.GMSMemberFactory;
 import org.apache.geode.distributed.internal.membership.gms.MembershipManagerFactoryImpl;
 import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 
@@ -33,9 +30,6 @@ import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
  * @see NetMember
  */
 public interface MembershipManagerFactory {
-
-  @Immutable
-  public static final MemberServices services = new GMSMemberFactory();
 
   MembershipManagerFactory setAuthenticator(Authenticator authenticator);
 

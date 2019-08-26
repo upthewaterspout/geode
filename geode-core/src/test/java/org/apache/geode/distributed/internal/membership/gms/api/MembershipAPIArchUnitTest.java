@@ -20,9 +20,7 @@ import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
-import org.apache.geode.distributed.internal.membership.MemberServices;
 import org.apache.geode.distributed.internal.membership.MembershipView;
-import org.apache.geode.distributed.internal.membership.adapter.GMSMemberFactory;
 import org.apache.geode.distributed.internal.membership.gms.GMSMember;
 import org.apache.geode.distributed.internal.membership.gms.MembershipManagerFactoryImpl;
 import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
@@ -45,14 +43,12 @@ public class MembershipAPIArchUnitTest {
               .or(type(DistributedMembershipListener.class))
               .or(type(MembershipView.class))
               .or(type(GMSMember.class))
-              .or(type(MemberServices.class))
               .or(type(DistributedMember.class))
               .or(type(InternalDistributedMember[].class))
               .or(type(DistributionMessage.class))
               .or(type(InternalMembershipManager.class))
               .or(type(DistributionConfig.class))
               .or(type(RemoteTransportConfig.class))
-              .or(type(GMSMemberFactory.class))
               .or(type(DMStats.class)));
 
 

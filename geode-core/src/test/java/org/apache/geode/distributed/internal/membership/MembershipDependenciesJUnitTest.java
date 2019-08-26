@@ -41,7 +41,7 @@ import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.FlowControlParams;
 import org.apache.geode.distributed.internal.LocatorStats;
 import org.apache.geode.distributed.internal.OverflowQueueWithDMStats;
-import org.apache.geode.distributed.internal.membership.adapter.GMSMemberFactory;
+import org.apache.geode.distributed.internal.membership.adapter.GMSMembershipManager;
 import org.apache.geode.distributed.internal.tcpserver.TcpClient;
 import org.apache.geode.internal.ClassPathLoader;
 import org.apache.geode.internal.ConnectionWatcher;
@@ -139,9 +139,7 @@ public class MembershipDependenciesJUnitTest {
               .or(type(DistributionConfigImpl.class))
               .or(type(RemoteTransportConfig.class))
               .or(type(FlowControlParams.class))
-              .or(type(MemberServices.class))
               .or(type(DistributedMembershipListener.class))
-              .or(type(GMSMemberFactory.class))
               .or(type(InternalMembershipManager.class))
 
 
@@ -195,6 +193,8 @@ public class MembershipDependenciesJUnitTest {
               .or(type(InternalDistributedMember[].class))
               .or(type(DistributedMember.class))
               .or(type(MembershipView.class))
+
+              .or(type(GMSMembershipManager.class))
 
   );
 }
