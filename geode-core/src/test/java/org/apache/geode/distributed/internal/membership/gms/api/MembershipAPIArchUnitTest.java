@@ -4,8 +4,10 @@ import static com.tngtech.archunit.base.DescribedPredicate.not;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.type;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
 import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchIgnore;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.junit.ArchUnitRunner;
 import com.tngtech.archunit.lang.ArchRule;
@@ -26,7 +28,7 @@ import org.apache.geode.distributed.internal.membership.gms.MembershipManagerFac
 import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 
 @RunWith(ArchUnitRunner.class)
-@AnalyzeClasses(packages = "org.apache.geode.distributed.internal.membership.gms.api")
+@AnalyzeClasses(packages = "org.apache.geode..")
 public class MembershipAPIArchUnitTest {
 
   @ArchTest
@@ -52,4 +54,15 @@ public class MembershipAPIArchUnitTest {
               .or(type(RemoteTransportConfig.class))
               .or(type(GMSMemberFactory.class))
               .or(type(DMStats.class)));
+
+
+  @ArchIgnore
+  @ArchTest
+  public static final ArchRule gmsOnlyAccessedByAPILayer = layeredArchitecture()
+      .layer("gms")
+      .definedBy("org.apache.geode.distributed.internal.membership.gms..")
+      .layer("api")
+      .definedBy("org.apache.geode.distributed.internal.membership.gms.api")
+      .whereLayer("gms")
+      .mayOnlyBeAccessedByLayers("api");
 }
