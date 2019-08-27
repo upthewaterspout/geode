@@ -2846,7 +2846,7 @@ public class ClusterDistributionManager implements DistributionManager {
       Collections.addAll(result, destinations);
       return result;
     }
-    return membershipManager.send(destinations, content, stats);
+    return membershipManager.send(destinations, content);
   }
 
 

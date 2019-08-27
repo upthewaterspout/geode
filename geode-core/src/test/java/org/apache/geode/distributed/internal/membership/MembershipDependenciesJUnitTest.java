@@ -34,7 +34,6 @@ import org.apache.geode.InternalGemFireError;
 import org.apache.geode.SystemFailure;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.Locator;
-import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.DistributionConfigImpl;
 import org.apache.geode.distributed.internal.DistributionMessage;
@@ -114,7 +113,6 @@ public class MembershipDependenciesJUnitTest {
               .or(resideInAPackage("org.apache.geode.test.."))
 
               // TODO: Create a new stats interface for membership
-              .or(assignableTo(DMStats.class))
               .or(type(LocatorStats.class))
               .or(type(OverflowQueueWithDMStats.class))
 

@@ -54,12 +54,12 @@ import org.jgroups.util.UUID;
 import org.apache.geode.CancelException;
 import org.apache.geode.GemFireConfigException;
 import org.apache.geode.SystemConnectException;
-import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.membership.gms.GMSMember;
 import org.apache.geode.distributed.internal.membership.gms.GMSMembershipView;
 import org.apache.geode.distributed.internal.membership.gms.ServiceConfig;
 import org.apache.geode.distributed.internal.membership.gms.Services;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipStatistics;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.HealthMonitor;
 import org.apache.geode.distributed.internal.membership.gms.messages.AbstractGMSMessage;
 import org.apache.geode.distributed.internal.membership.gms.messages.FinalCheckPassedMessage;
@@ -191,7 +191,7 @@ public class GMSHealthMonitor implements HealthMonitor {
   /**
    * Statistics about health monitor
    */
-  private DMStats stats;
+  private MembershipStatistics stats;
 
   /**
    * Interval to run the Monitor task
@@ -1484,7 +1484,7 @@ public class GMSHealthMonitor implements HealthMonitor {
 
   }
 
-  public DMStats getStats() {
+  public MembershipStatistics getStats() {
     return this.stats;
   }
 }

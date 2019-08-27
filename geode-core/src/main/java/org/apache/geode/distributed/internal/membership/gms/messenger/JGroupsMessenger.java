@@ -73,13 +73,12 @@ import org.apache.geode.InternalGemFireError;
 import org.apache.geode.SystemConnectException;
 import org.apache.geode.annotations.internal.MutableForTesting;
 import org.apache.geode.distributed.DistributedSystemDisconnectedException;
-import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
-import org.apache.geode.distributed.internal.DistributionStats;
 import org.apache.geode.distributed.internal.membership.gms.GMSMember;
 import org.apache.geode.distributed.internal.membership.gms.GMSMembershipView;
 import org.apache.geode.distributed.internal.membership.gms.GMSUtil;
 import org.apache.geode.distributed.internal.membership.gms.Services;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipStatistics;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.GMSMessage;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.HealthMonitor;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.MessageHandler;
@@ -665,7 +664,7 @@ public class JGroupsMessenger implements Messenger {
     // localAddress at the beginning of the message. These should be used in the receiver
     // code to create a versioned input stream, read the sender address, then read the message
     // and set its sender address
-    DMStats theStats = services.getStatistics();
+    MembershipStatistics theStats = services.getStatistics();
     GMSMembershipView oldView = this.view;
 
     if (!myChannel.isConnected()) {
@@ -1245,7 +1244,7 @@ public class JGroupsMessenger implements Messenger {
     }
 
     private void receive(Message jgmsg, boolean fromQuorumChecker) {
-      long startTime = DistributionStats.getStatTime();
+      long startTime = services.getStatistics().startUDPDispatchRequest();
       try {
         if (services.getManager().shutdownInProgress()) {
           return;
@@ -1316,8 +1315,7 @@ public class JGroupsMessenger implements Messenger {
         }
 
       } finally {
-        long delta = DistributionStats.getStatTime() - startTime;
-        JGroupsMessenger.this.services.getStatistics().incUDPDispatchRequestTime(delta);
+        JGroupsMessenger.this.services.getStatistics().endUDPDispatchRequest(startTime);
       }
     }
 

@@ -53,7 +53,6 @@ import org.apache.geode.distributed.DistributedSystemDisconnectedException;
 import org.apache.geode.distributed.Locator;
 import org.apache.geode.distributed.internal.AdminMessageType;
 import org.apache.geode.distributed.internal.ClusterDistributionManager;
-import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.DistributionException;
 import org.apache.geode.distributed.internal.DistributionMessage;
@@ -76,6 +75,7 @@ import org.apache.geode.distributed.internal.membership.gms.GMSMember;
 import org.apache.geode.distributed.internal.membership.gms.GMSMembershipView;
 import org.apache.geode.distributed.internal.membership.gms.Services;
 import org.apache.geode.distributed.internal.membership.gms.SuspectMember;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipStatistics;
 import org.apache.geode.distributed.internal.membership.gms.fd.GMSHealthMonitor;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.GMSMessage;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.Manager;
@@ -1529,13 +1529,13 @@ public class GMSMembershipManager implements InternalMembershipManager {
    *
    * @param destinations the list of destinations
    * @param content the message
-   * @param theStats the statistics object to update
    * @return all recipients who did not receive the message (null if all received it)
    * @throws NotSerializableException if the message is not serializable
    */
   Set<InternalDistributedMember> directChannelSend(
-      InternalDistributedMember[] destinations, DistributionMessage content, DMStats theStats)
+      InternalDistributedMember[] destinations, DistributionMessage content)
       throws NotSerializableException {
+    MembershipStatistics theStats = services.getStatistics();
     boolean allDestinations;
     InternalDistributedMember[] keys;
     if (content.forAll()) {
@@ -1667,7 +1667,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
 
   @Override
   public Set<InternalDistributedMember> send(InternalDistributedMember[] destinations,
-      DistributionMessage msg, DMStats theStats) throws NotSerializableException {
+      DistributionMessage msg) throws NotSerializableException {
     Set<InternalDistributedMember> result;
     boolean allDestinations = msg.forAll();
 
@@ -1737,7 +1737,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
       }
       return gmsMemberCollectionToInternalDistributedMemberSet(failures);
     } else {
-      result = directChannelSend(destinations, msg, theStats);
+      result = directChannelSend(destinations, msg);
     }
 
     // If the message was a broadcast, don't enumerate failures.

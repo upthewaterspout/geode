@@ -21,9 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.apache.geode.CancelCriterion;
 import org.apache.geode.ForcedDisconnectException;
 import org.apache.geode.distributed.DistributedSystemDisconnectedException;
-import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.membership.gms.api.Authenticator;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipStatistics;
 import org.apache.geode.distributed.internal.membership.gms.fd.GMSHealthMonitor;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.HealthMonitor;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.JoinLeave;
@@ -46,7 +46,7 @@ public class Services {
   private final Messenger messenger;
   private final Authenticator auth;
   private final ServiceConfig config;
-  private final DMStats stats;
+  private final MembershipStatistics stats;
   private final Stopper cancelCriterion;
 
   private volatile boolean stopping;
@@ -90,7 +90,7 @@ public class Services {
   }
 
   public Services(Manager membershipManager,
-      RemoteTransportConfig transport, DMStats stats,
+      RemoteTransportConfig transport, MembershipStatistics stats,
       final Authenticator authenticator, DistributionConfig config) {
     this.cancelCriterion = new Stopper();
     this.stats = stats;
@@ -277,7 +277,7 @@ public class Services {
     return this.messenger;
   }
 
-  public DMStats getStatistics() {
+  public MembershipStatistics getStatistics() {
     return this.stats;
   }
 

@@ -197,7 +197,7 @@ public class GMSMembershipManagerJUnitTest {
             Collectors.toList());
     manager.getGMSManager().installView(new GMSMembershipView(myGMSMemberId, 1, gmsMembers));
     Set<InternalDistributedMember> failures =
-        manager.send(m.getRecipients(), m, this.services.getStatistics());
+        manager.send(m.getRecipients(), m);
     verify(messenger).send(isA(GMSMessageAdapter.class));
     if (failures != null) {
       assertEquals(0, failures.size());
@@ -225,7 +225,7 @@ public class GMSMembershipManagerJUnitTest {
     manager.getGMSManager().installView(createView(myMemberId, 1, members));
     manager.setShutdown();
     Set<InternalDistributedMember> failures =
-        manager.send(new InternalDistributedMember[] {mockMembers[0]}, m, null);
+        manager.send(new InternalDistributedMember[] {mockMembers[0]}, m);
     verify(messenger, never()).send(isA(GMSMessage.class));
     assertEquals(1, failures.size());
     assertEquals(mockMembers[0], failures.iterator().next());
@@ -239,10 +239,10 @@ public class GMSMembershipManagerJUnitTest {
     manager.getGMSManager().start();
     manager.getGMSManager().started();
     manager.getGMSManager().installView(createView(myMemberId, 1, members));
-    Set<InternalDistributedMember> failures = manager.send(null, m, null);
+    Set<InternalDistributedMember> failures = manager.send(null, m);
     verify(messenger, never()).send(isA(GMSMessage.class));
     reset(messenger);
-    failures = manager.send(emptyList, m, null);
+    failures = manager.send(emptyList, m);
     verify(messenger, never()).send(isA(GMSMessage.class));
   }
 
@@ -346,7 +346,7 @@ public class GMSMembershipManagerJUnitTest {
     InternalDistributedMember[] recipients =
         new InternalDistributedMember[] {mockMembers[2], mockMembers[3]};
     m.setRecipients(Arrays.asList(recipients));
-    Set<InternalDistributedMember> failures = manager.directChannelSend(recipients, m, null);
+    Set<InternalDistributedMember> failures = manager.directChannelSend(recipients, m);
     assertTrue(failures == null);
     verify(dc).send(isA(GMSMembershipManager.class), isA(mockMembers.getClass()),
         isA(DistributionMessage.class), anyLong(), anyLong());
@@ -359,13 +359,13 @@ public class GMSMembershipManagerJUnitTest {
     InternalDistributedMember[] recipients =
         new InternalDistributedMember[] {mockMembers[2], mockMembers[3]};
     m.setRecipients(Arrays.asList(recipients));
-    Set<InternalDistributedMember> failures = manager.directChannelSend(recipients, m, null);
+    Set<InternalDistributedMember> failures = manager.directChannelSend(recipients, m);
 
     ConnectExceptions exception = new ConnectExceptions();
     exception.addFailure(recipients[0], new Exception("testing"));
     when(dc.send(any(GMSMembershipManager.class), any(mockMembers.getClass()),
         any(DistributionMessage.class), anyLong(), anyLong())).thenThrow(exception);
-    failures = manager.directChannelSend(recipients, m, null);
+    failures = manager.directChannelSend(recipients, m);
     assertTrue(failures != null);
     assertEquals(1, failures.size());
     assertEquals(recipients[0], failures.iterator().next());
@@ -378,12 +378,12 @@ public class GMSMembershipManagerJUnitTest {
     InternalDistributedMember[] recipients =
         new InternalDistributedMember[] {mockMembers[2], mockMembers[3]};
     m.setRecipients(Arrays.asList(recipients));
-    Set<InternalDistributedMember> failures = manager.directChannelSend(recipients, m, null);
+    Set<InternalDistributedMember> failures = manager.directChannelSend(recipients, m);
     when(dc.send(any(GMSMembershipManager.class), any(mockMembers.getClass()),
         any(DistributionMessage.class), anyInt(), anyInt())).thenReturn(0);
     when(stopper.isCancelInProgress()).thenReturn(Boolean.TRUE);
     try {
-      manager.directChannelSend(recipients, m, null);
+      manager.directChannelSend(recipients, m);
       fail("expected directChannelSend to throw an exception");
     } catch (DistributedSystemDisconnectedException expected) {
     }
@@ -395,7 +395,7 @@ public class GMSMembershipManagerJUnitTest {
     HighPriorityAckedMessage m = new HighPriorityAckedMessage();
     m.setRecipient(DistributionMessage.ALL_RECIPIENTS);
     assertTrue(m.forAll());
-    Set<InternalDistributedMember> failures = manager.directChannelSend(null, m, null);
+    Set<InternalDistributedMember> failures = manager.directChannelSend(null, m);
     assertTrue(failures == null);
     verify(dc).send(isA(GMSMembershipManager.class), isA(mockMembers.getClass()),
         isA(DistributionMessage.class), anyLong(), anyLong());
@@ -408,14 +408,14 @@ public class GMSMembershipManagerJUnitTest {
     InternalDistributedMember[] recipients =
         new InternalDistributedMember[] {mockMembers[2], mockMembers[3]};
     m.setRecipients(Arrays.asList(recipients));
-    Set<InternalDistributedMember> failures = manager.directChannelSend(recipients, m, null);
+    Set<InternalDistributedMember> failures = manager.directChannelSend(recipients, m);
     manager.setShutdown();
     ConnectExceptions exception = new ConnectExceptions();
     exception.addFailure(recipients[0], new Exception("testing"));
     when(dc.send(any(GMSMembershipManager.class), any(mockMembers.getClass()),
         any(DistributionMessage.class), anyLong(), anyLong())).thenThrow(exception);
     Assertions.assertThatThrownBy(() -> {
-      manager.directChannelSend(recipients, m, null);
+      manager.directChannelSend(recipients, m);
     }).isInstanceOf(DistributedSystemDisconnectedException.class);
   }
 

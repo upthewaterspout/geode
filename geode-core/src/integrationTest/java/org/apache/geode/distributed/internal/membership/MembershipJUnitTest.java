@@ -192,7 +192,7 @@ public class MembershipJUnitTest {
       SerialAckedMessage msg = new SerialAckedMessage();
       msg.setRecipient(m2.getLocalMember());
       msg.setMulticast(false);
-      m1.send(new InternalDistributedMember[] {m2.getLocalMember()}, msg, null);
+      m1.send(new InternalDistributedMember[] {m2.getLocalMember()}, msg);
       giveUp = System.currentTimeMillis() + 15000;
       boolean verified = false;
       Throwable problem = null;
@@ -338,7 +338,7 @@ public class MembershipJUnitTest {
       SerialAckedMessage msg = new SerialAckedMessage();
       msg.setRecipient(m2.getLocalMember());
       msg.setMulticast(true);
-      m1.send(new InternalDistributedMember[] {m2.getLocalMember()}, msg, null);
+      m1.send(new InternalDistributedMember[] {m2.getLocalMember()}, msg);
       giveUp = System.currentTimeMillis() + 5000;
       boolean verified = false;
       Throwable problem = null;

@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.geode.distributed.DistributedMember;
-import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.MembershipView;
@@ -43,7 +42,6 @@ public interface MembershipManager {
    * @param destinations list of members to send the message to. A list of length 1 with
    *        <em>null</em> as a single element broadcasts to all members of the system.
    * @param content the message to send
-   * @param stats the statistics object to update
    * @return list of members who did not receive the message. If
    *         {@link DistributionMessage#ALL_RECIPIENTS} is given as thelist of recipients, this
    *         return list is null (empty). Otherwise, this list is all of those recipients that did
@@ -51,7 +49,7 @@ public interface MembershipManager {
    * @throws NotSerializableException If content cannot be serialized
    */
   Set<InternalDistributedMember> send(InternalDistributedMember[] destinations,
-      DistributionMessage content, DMStats stats)
+      DistributionMessage content)
       throws NotSerializableException;
 
   /**

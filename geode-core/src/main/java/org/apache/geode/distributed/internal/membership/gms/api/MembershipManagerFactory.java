@@ -15,7 +15,6 @@
 package org.apache.geode.distributed.internal.membership.gms.api;
 
 
-import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
@@ -33,6 +32,8 @@ public interface MembershipManagerFactory {
 
   MembershipManagerFactory setAuthenticator(Authenticator authenticator);
 
+  MembershipManagerFactory setStatistics(MembershipStatistics statistics);
+
   InternalMembershipManager create();
 
   /**
@@ -48,19 +49,20 @@ public interface MembershipManagerFactory {
   public static InternalMembershipManager newMembershipManager(
       final DistributedMembershipListener listener,
       final RemoteTransportConfig transport,
-      final DMStats stats,
+      final MembershipStatistics stats,
       final Authenticator authenticator,
       final DistributionConfig config) {
-    return newMembershipManagerFactory(listener, transport, stats, config)
+    return newMembershipManagerFactory(listener, transport, config)
         .setAuthenticator(authenticator)
+        .setStatistics(stats)
         .create();
   }
 
   static MembershipManagerFactory newMembershipManagerFactory(
-      DistributedMembershipListener listener, RemoteTransportConfig transport, DMStats stats,
+      DistributedMembershipListener listener, RemoteTransportConfig transport,
       DistributionConfig config) {
 
-    return new MembershipManagerFactoryImpl(listener, transport, stats,
+    return new MembershipManagerFactoryImpl(listener, transport,
         config);
   }
 
