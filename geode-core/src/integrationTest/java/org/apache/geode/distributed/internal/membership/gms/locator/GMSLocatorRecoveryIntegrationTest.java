@@ -164,7 +164,7 @@ public class GMSLocatorRecoveryIntegrationTest {
         mockDmStats,
         new GMSAuthenticator(mockSystem.getSecurityProperties(), mockSystem.getSecurityService(),
             mockSystem.getSecurityLogWriter(), mockSystem.getInternalLogWriter()),
-        mockSystem.getConfig());
+        mockSystem.getConfig(), null);
 
     GMSLocator gmsLocator = new GMSLocator(localHost,
         membershipManager.getLocalMember().getHost() + "[" + port + "]", true, true,

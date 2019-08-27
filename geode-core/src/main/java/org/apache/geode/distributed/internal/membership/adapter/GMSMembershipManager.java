@@ -96,6 +96,7 @@ import org.apache.geode.internal.util.Breadcrumbs;
 
 public class GMSMembershipManager implements InternalMembershipManager {
   private static final Logger logger = Services.getLogger();
+  private final ClusterDistributionManager dm;
 
   /** product version to use for multicast serialization */
   private volatile boolean disableMulticastForRollingUpgrade;
@@ -411,11 +412,6 @@ public class GMSMembershipManager implements InternalMembershipManager {
       services.getHealthMonitor()
           .contactedBy(((GMSMemberAdapter) msg.getSender().getNetMember()).getGmsMember());
       handleOrDeferMessage(msg);
-    }
-
-    @Override
-    public ClusterDistributionManager getDM() {
-      return upCall.getDM();
     }
 
   }
@@ -743,10 +739,12 @@ public class GMSMembershipManager implements InternalMembershipManager {
 
 
 
-  public GMSMembershipManager(DistributedMembershipListener listener) {
+  public GMSMembershipManager(DistributedMembershipListener listener,
+      ClusterDistributionManager dm) {
     Assert.assertTrue(listener != null);
     this.listener = listener;
     this.gmsManager = new ManagerImpl();
+    this.dm = dm;
   }
 
   public Manager getGMSManager() {
@@ -915,10 +913,10 @@ public class GMSMembershipManager implements InternalMembershipManager {
 
   /** starts periodic task to perform cleanup chores such as expire surprise members */
   private void startCleanupTimer() {
-    if (this.listener == null || listener.getDM() == null) {
+    if (dm == null) {
       return;
     }
-    DistributedSystem ds = this.listener.getDM().getSystem();
+    DistributedSystem ds = dm.getSystem();
     this.cleanupTimer = new SystemTimer(ds, true);
     SystemTimer.SystemTimerTask st = new SystemTimer.SystemTimerTask() {
       @Override
@@ -1058,7 +1056,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
       sender.setIsPartial(false);
     } else {
       // the DM's view also has surprise members, so let's check it as well
-      sender = this.dcReceiver.getDM().getCanonicalId(sender);
+      sender = dm.getCanonicalId(sender);
     }
     if (!sender.isPartial()) {
       msg.setSender(sender);
@@ -2150,7 +2148,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
     // run a message through the member's serial execution queue to ensure that all of its
     // current messages have been processed
     boolean result = false;
-    OverflowQueueWithDMStats<Runnable> serialQueue = listener.getDM().getSerialQueue(idm);
+    OverflowQueueWithDMStats<Runnable> serialQueue = dm.getSerialQueue(idm);
     if (serialQueue != null) {
       final boolean done[] = new boolean[1];
       final FlushingMessage msg = new FlushingMessage(done);
@@ -2178,7 +2176,6 @@ public class GMSMembershipManager implements InternalMembershipManager {
   public boolean shutdownInProgress() {
     // Impossible condition (bug36329): make sure that we check DM's
     // view of shutdown here
-    ClusterDistributionManager dm = listener.getDM();
     return shutdownInProgress || (dm != null && dm.shutdownInProgress());
   }
 
@@ -2445,7 +2442,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
 
       int dcPort = 0;
       if (!tcpDisabled) {
-        directChannel = new DirectChannel(GMSMembershipManager.this, dcReceiver, config);
+        directChannel = new DirectChannel(GMSMembershipManager.this, dcReceiver, config, dm);
         dcPort = directChannel.getPort();
       }
       services.getMessenger().getMemberID().setDirectPort(dcPort);
@@ -2681,7 +2678,6 @@ public class GMSMembershipManager implements InternalMembershipManager {
     public boolean shutdownInProgress() {
       // Impossible condition (bug36329): make sure that we check DM's
       // view of shutdown here
-      ClusterDistributionManager dm = listener.getDM();
       return shutdownInProgress || (dm != null && dm.shutdownInProgress());
     }
 
@@ -2692,7 +2688,6 @@ public class GMSMembershipManager implements InternalMembershipManager {
 
     @Override
     public boolean isShutdownStarted() {
-      ClusterDistributionManager dm = listener.getDM();
       return shutdownInProgress || (dm != null && dm.isCloseInProgress());
     }
 

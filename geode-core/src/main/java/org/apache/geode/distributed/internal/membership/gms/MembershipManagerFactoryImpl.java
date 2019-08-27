@@ -2,6 +2,7 @@ package org.apache.geode.distributed.internal.membership.gms;
 
 import org.apache.geode.GemFireConfigException;
 import org.apache.geode.SystemConnectException;
+import org.apache.geode.distributed.internal.ClusterDistributionManager;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.DistributionException;
 import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
@@ -20,13 +21,16 @@ public class MembershipManagerFactoryImpl implements MembershipManagerFactory {
   private MembershipStatistics statistics;
   private Authenticator authenticator;
   private final DistributionConfig config;
+  private ClusterDistributionManager dm;
 
   public MembershipManagerFactoryImpl(DistributedMembershipListener listener,
-      RemoteTransportConfig transport, DistributionConfig config) {
+      RemoteTransportConfig transport, DistributionConfig config,
+      ClusterDistributionManager dm) {
 
     this.listener = listener;
     this.transport = transport;
     this.config = config;
+    this.dm = dm;
   }
 
   @Override
@@ -43,7 +47,7 @@ public class MembershipManagerFactoryImpl implements MembershipManagerFactory {
 
   @Override
   public InternalMembershipManager create() {
-    GMSMembershipManager gmsMembershipManager = new GMSMembershipManager(listener);
+    GMSMembershipManager gmsMembershipManager = new GMSMembershipManager(listener, dm);
     Services services1 =
         new Services(gmsMembershipManager.getGMSManager(), transport, statistics, authenticator,
             config);

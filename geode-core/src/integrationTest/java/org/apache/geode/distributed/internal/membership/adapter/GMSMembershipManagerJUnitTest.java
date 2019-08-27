@@ -171,8 +171,8 @@ public class GMSMembershipManagerJUnitTest {
     members = new ArrayList<>(Arrays.asList(mockMembers));
 
     listener = mock(DistributedMembershipListener.class);
-
-    manager = new GMSMembershipManager(listener);
+    ClusterDistributionManager dm = mock(ClusterDistributionManager.class);
+    manager = new GMSMembershipManager(listener, dm);
     manager.getGMSManager().init(services);
     when(services.getManager()).thenReturn(manager.getGMSManager());
   }

@@ -14,7 +14,6 @@
  */
 package org.apache.geode.distributed.internal.direct;
 
-import org.apache.geode.distributed.internal.ClusterDistributionManager;
 import org.apache.geode.distributed.internal.DistributionMessage;
 
 public interface DirectChannelListener {
@@ -26,12 +25,5 @@ public interface DirectChannelListener {
    */
   void messageReceived(DistributionMessage o);
 
-
-  /**
-   * Return the distribution manager for this receiver
-   *
-   * @return the distribution manager
-   */
-  ClusterDistributionManager getDM();
 
 }

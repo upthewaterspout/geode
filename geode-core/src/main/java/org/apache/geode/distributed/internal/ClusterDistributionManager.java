@@ -781,7 +781,7 @@ public class ClusterDistributionManager implements DistributionManager {
           stats,
           new GMSAuthenticator(system.getSecurityProperties(), system.getSecurityService(),
               system.getSecurityLogWriter(), system.getInternalLogWriter()),
-          system.getConfig());
+          system.getConfig(), this);
 
       sb.append(System.currentTimeMillis() - start);
 
@@ -3433,11 +3433,6 @@ public class ClusterDistributionManager implements DistributionManager {
     public void quorumLost(Set<InternalDistributedMember> failures,
         List<InternalDistributedMember> remaining) {
       dm.handleQuorumLost(failures, remaining);
-    }
-
-    @Override
-    public ClusterDistributionManager getDM() {
-      return dm;
     }
 
     @Override

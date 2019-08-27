@@ -249,7 +249,7 @@ public class MembershipJUnitTest {
         MembershipManagerFactory.newMembershipManager(listener, transport, stats1,
             new GMSAuthenticator(config.getSecurityProps(), securityService,
                 mockSystem.getSecurityLogWriter(), mockSystem.getInternalLogWriter()),
-            config);
+            config, null);
     m1.startEventProcessing();
     return Pair.of(m1, listener);
   }

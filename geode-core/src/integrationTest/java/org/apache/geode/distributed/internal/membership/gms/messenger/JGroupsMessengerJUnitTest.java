@@ -28,6 +28,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -845,7 +846,8 @@ public class JGroupsMessengerJUnitTest {
     when(manager.shutdownInProgress()).thenReturn(Boolean.TRUE);
     receiver.receive(msg);
     verify(manager, never()).processMessage(isA(GMSMessage.class));
-    verify(services.getStatistics(), times(3)).incUDPDispatchRequestTime(isA(Long.class));
+    verify(services.getStatistics(), times(3)).startUDPDispatchRequest();
+    verify(services.getStatistics(), times(3)).endUDPDispatchRequest(anyLong());
   }
 
   @Test

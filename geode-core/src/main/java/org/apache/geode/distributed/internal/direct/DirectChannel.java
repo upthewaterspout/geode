@@ -36,6 +36,7 @@ import org.apache.geode.SystemFailure;
 import org.apache.geode.cache.TimeoutException;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.DistributedSystemDisconnectedException;
+import org.apache.geode.distributed.internal.ClusterDistributionManager;
 import org.apache.geode.distributed.internal.DMStats;
 import org.apache.geode.distributed.internal.DirectReplyProcessor;
 import org.apache.geode.distributed.internal.DistributionConfig;
@@ -71,6 +72,7 @@ public class DirectChannel {
 
   /** this is the conduit used for communications */
   private final transient TCPConduit conduit;
+  private final ClusterDistributionManager dm;
 
   private volatile boolean disconnected = true;
 
@@ -109,9 +111,10 @@ public class DirectChannel {
   }
 
   public DirectChannel(InternalMembershipManager mgr, DirectChannelListener listener,
-      DistributionConfig dc)
+      DistributionConfig dc, ClusterDistributionManager dm)
       throws ConnectionException {
     this.receiver = listener;
+    this.dm = dm;
 
     this.address = initAddress(dc);
     boolean isBindAddress = dc.getBindAddress() != null;
@@ -215,9 +218,8 @@ public class DirectChannel {
    * Returns true if calling thread owns its own communication resources.
    */
   boolean threadOwnsResources() {
-    DistributionManager d = getDM();
-    if (d != null) {
-      return d.getSystem().threadOwnsResources() && !AlertingAction.isThreadAlerting();
+    if (dm != null) {
+      return dm.getSystem().threadOwnsResources() && !AlertingAction.isThreadAlerting();
     }
     return false;
 
@@ -608,7 +610,6 @@ public class DirectChannel {
    * Returns null if no stats available.
    */
   public DMStats getDMStats() {
-    DistributionManager dm = getDM();
     if (dm != null) {
       return dm.getStats(); // fix for bug#34004
     } else {
@@ -622,7 +623,6 @@ public class DirectChannel {
    * @since GemFire 4.2.2
    */
   public DistributionConfig getDMConfig() {
-    DistributionManager dm = getDM();
     if (dm != null) {
       return dm.getConfig();
     } else {
@@ -634,7 +634,7 @@ public class DirectChannel {
    * Returns null if no dm available.
    */
   public DistributionManager getDM() {
-    return this.receiver.getDM();
+    return dm;
   }
 
   /**
@@ -644,7 +644,6 @@ public class DirectChannel {
    */
   private void handleAckTimeout(long ackTimeout, long ackSATimeout, Connection c,
       DirectReplyProcessor processor) throws ConnectionException {
-    DistributionManager dm = getDM();
     Set activeMembers = dm.getDistributionManagerIds();
 
     // Increment the stat
