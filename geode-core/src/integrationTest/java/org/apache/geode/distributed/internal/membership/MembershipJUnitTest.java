@@ -57,7 +57,9 @@ import org.apache.geode.distributed.internal.membership.gms.GMSMember;
 import org.apache.geode.distributed.internal.membership.gms.GMSMembershipView;
 import org.apache.geode.distributed.internal.membership.gms.ServiceConfig;
 import org.apache.geode.distributed.internal.membership.gms.Services;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipListener;
 import org.apache.geode.distributed.internal.membership.gms.api.MembershipManagerFactory;
+import org.apache.geode.distributed.internal.membership.gms.api.MessageListener;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.JoinLeave;
 import org.apache.geode.distributed.internal.membership.gms.membership.GMSJoinLeave;
 import org.apache.geode.internal.AvailablePortHelper;
@@ -153,10 +155,10 @@ public class MembershipJUnitTest {
       }
 
       // start the second membership manager
-      final Pair<InternalMembershipManager, DistributedMembershipListener> pair =
+      final Pair<InternalMembershipManager, MessageListener> pair =
           createMembershipManager(config, transport);
       m2 = pair.getLeft();
-      final DistributedMembershipListener listener2 = pair.getRight();
+      final MessageListener listener2 = pair.getRight();
 
       // we have to check the views with JoinLeave because the membership
       // manager queues new views for processing through the DM listener,
@@ -237,21 +239,22 @@ public class MembershipJUnitTest {
     }
   }
 
-  private Pair<InternalMembershipManager, DistributedMembershipListener> createMembershipManager(
+  private Pair<InternalMembershipManager, MessageListener> createMembershipManager(
       final DistributionConfigImpl config,
       final RemoteTransportConfig transport) {
-    final DistributedMembershipListener listener = mock(DistributedMembershipListener.class);
+    final MembershipListener listener = mock(MembershipListener.class);
+    final MessageListener messageListener = mock(MessageListener.class);
     final DMStats stats1 = mock(DMStats.class);
     final InternalDistributedSystem mockSystem = mock(InternalDistributedSystem.class);
     System.out.println("creating 1st membership manager");
     final SecurityService securityService = SecurityServiceFactory.create();
     final InternalMembershipManager m1 =
-        MembershipManagerFactory.newMembershipManager(listener, transport, stats1,
+        MembershipManagerFactory.newMembershipManager(listener, messageListener, transport, stats1,
             new GMSAuthenticator(config.getSecurityProps(), securityService,
                 mockSystem.getSecurityLogWriter(), mockSystem.getInternalLogWriter()),
             config, null);
     m1.startEventProcessing();
-    return Pair.of(m1, listener);
+    return Pair.of(m1, messageListener);
   }
 
   /**
@@ -305,10 +308,10 @@ public class MembershipJUnitTest {
       }
 
       // start the second membership manager
-      final Pair<InternalMembershipManager, DistributedMembershipListener> pair =
+      final Pair<InternalMembershipManager, MessageListener> pair =
           createMembershipManager(config, transport);
       m2 = pair.getLeft();
-      final DistributedMembershipListener listener2 = pair.getRight();
+      final MessageListener listener2 = pair.getRight();
 
       // we have to check the views with JoinLeave because the membership
       // manager queues new views for processing through the DM listener,

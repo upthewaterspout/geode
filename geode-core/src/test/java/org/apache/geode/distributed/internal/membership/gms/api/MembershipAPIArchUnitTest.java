@@ -16,7 +16,6 @@ import org.junit.runner.RunWith;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.DistributionMessage;
-import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
 import org.apache.geode.distributed.internal.membership.MembershipView;
@@ -39,7 +38,6 @@ public class MembershipAPIArchUnitTest {
 
               // to be extracted as Interfaces
               .or(type(InternalDistributedMember.class))
-              .or(type(DistributedMembershipListener.class))
               .or(type(MembershipView.class))
               .or(type(GMSMember.class))
               .or(type(DistributedMember.class))

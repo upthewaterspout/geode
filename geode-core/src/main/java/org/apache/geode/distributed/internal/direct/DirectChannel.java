@@ -45,6 +45,7 @@ import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.ReplyProcessor21;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
+import org.apache.geode.distributed.internal.membership.gms.api.MessageListener;
 import org.apache.geode.internal.alerting.AlertingAction;
 import org.apache.geode.internal.cache.DirectReplyMessage;
 import org.apache.geode.internal.logging.LogService;
@@ -80,7 +81,7 @@ public class DirectChannel {
   private volatile boolean disconnectCompleted = true;
 
   /** this is the DistributionManager, most of the time */
-  private final DirectChannelListener receiver;
+  private final MessageListener receiver;
 
   private final InetAddress address;
 
@@ -110,7 +111,7 @@ public class DirectChannel {
     return conduit.getCancelCriterion();
   }
 
-  public DirectChannel(InternalMembershipManager mgr, DirectChannelListener listener,
+  public DirectChannel(InternalMembershipManager mgr, MessageListener listener,
       DistributionConfig dc, ClusterDistributionManager dm)
       throws ConnectionException {
     this.receiver = listener;
@@ -759,7 +760,7 @@ public class DirectChannel {
   }
 
   /** returns the receiver to which this DirectChannel is delivering messages */
-  protected DirectChannelListener getReceiver() {
+  protected MessageListener getReceiver() {
     return receiver;
   }
 

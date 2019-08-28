@@ -63,9 +63,7 @@ import org.apache.geode.distributed.internal.ShutdownMessage;
 import org.apache.geode.distributed.internal.SizeableRunnable;
 import org.apache.geode.distributed.internal.StartupMessage;
 import org.apache.geode.distributed.internal.direct.DirectChannel;
-import org.apache.geode.distributed.internal.direct.DirectChannelListener;
 import org.apache.geode.distributed.internal.direct.ShunnedMemberException;
-import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
 import org.apache.geode.distributed.internal.membership.MembershipTestHook;
@@ -75,7 +73,9 @@ import org.apache.geode.distributed.internal.membership.gms.GMSMember;
 import org.apache.geode.distributed.internal.membership.gms.GMSMembershipView;
 import org.apache.geode.distributed.internal.membership.gms.Services;
 import org.apache.geode.distributed.internal.membership.gms.SuspectMember;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipListener;
 import org.apache.geode.distributed.internal.membership.gms.api.MembershipStatistics;
+import org.apache.geode.distributed.internal.membership.gms.api.MessageListener;
 import org.apache.geode.distributed.internal.membership.gms.fd.GMSHealthMonitor;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.GMSMessage;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.Manager;
@@ -270,7 +270,12 @@ public class GMSMembershipManager implements InternalMembershipManager {
   /**
    * This is the listener that accepts our membership events
    */
-  private final DistributedMembershipListener listener;
+  private final MembershipListener listener;
+
+  /**
+   * This is the listener that accepts our membership events
+   */
+  private final MessageListener messageListener;
 
   /**
    * Membership failure listeners - for testing
@@ -389,9 +394,9 @@ public class GMSMembershipManager implements InternalMembershipManager {
    *
    *
    */
-  class MyDCReceiver implements DirectChannelListener {
+  class MyDCReceiver implements MessageListener {
 
-    final DirectChannelListener upCall;
+    final MessageListener upCall;
 
     /**
      * Don't provide events until the caller has told us we are ready.
@@ -402,7 +407,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
      * this check before every call...
      *
      */
-    MyDCReceiver(DirectChannelListener up) {
+    MyDCReceiver(MessageListener up) {
       upCall = up;
     }
 
@@ -739,10 +744,11 @@ public class GMSMembershipManager implements InternalMembershipManager {
 
 
 
-  public GMSMembershipManager(DistributedMembershipListener listener,
+  public GMSMembershipManager(MembershipListener listener, MessageListener messageListener,
       ClusterDistributionManager dm) {
     Assert.assertTrue(listener != null);
     this.listener = listener;
+    this.messageListener = messageListener;
     this.gmsManager = new ManagerImpl();
     this.dm = dm;
   }
@@ -1038,7 +1044,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
       throw new MemberShunnedException(m);
     }
 
-    listener.messageReceived(msg);
+    messageListener.messageReceived(msg);
   }
 
   /**
@@ -1092,7 +1098,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
       long newId = viewArg.getViewId();
       LocalViewMessage v = new LocalViewMessage(address, newId, viewArg, GMSMembershipManager.this);
 
-      listener.messageReceived(v);
+      messageListener.messageReceived(v);
     } finally {
       latestViewWriteLock.unlock();
     }
@@ -2424,7 +2430,7 @@ public class GMSMembershipManager implements InternalMembershipManager {
       ackWaitThreshold = config.getAckWaitThreshold();
 
       if (!tcpDisabled) {
-        dcReceiver = new MyDCReceiver(listener);
+        dcReceiver = new MyDCReceiver(messageListener);
       }
 
       surpriseMemberTimeout =

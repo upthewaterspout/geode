@@ -65,10 +65,8 @@ import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.HighPriorityAckedMessage;
 import org.apache.geode.distributed.internal.InternalDistributedSystem;
-import org.apache.geode.distributed.internal.MembershipListener;
 import org.apache.geode.distributed.internal.ReplyProcessor21;
 import org.apache.geode.distributed.internal.direct.DirectChannel;
-import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.MembershipView;
 import org.apache.geode.distributed.internal.membership.adapter.GMSMembershipManager.StartupEvent;
@@ -79,6 +77,8 @@ import org.apache.geode.distributed.internal.membership.gms.Services;
 import org.apache.geode.distributed.internal.membership.gms.Services.Stopper;
 import org.apache.geode.distributed.internal.membership.gms.SuspectMember;
 import org.apache.geode.distributed.internal.membership.gms.api.Authenticator;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipListener;
+import org.apache.geode.distributed.internal.membership.gms.api.MessageListener;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.GMSMessage;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.HealthMonitor;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.JoinLeave;
@@ -105,10 +105,11 @@ public class GMSMembershipManagerJUnitTest {
   private Messenger messenger;
   private JoinLeave joinLeave;
   private Stopper stopper;
-  private DistributedMembershipListener listener;
+  private MembershipListener listener;
   private GMSMembershipManager manager;
   private List<InternalDistributedMember> members;
   private DirectChannel dc;
+  private MessageListener messageListener;
 
   @Before
   public void initMocks() throws Exception {
@@ -170,9 +171,9 @@ public class GMSMembershipManagerJUnitTest {
     }
     members = new ArrayList<>(Arrays.asList(mockMembers));
 
-    listener = mock(DistributedMembershipListener.class);
-    ClusterDistributionManager dm = mock(ClusterDistributionManager.class);
-    manager = new GMSMembershipManager(listener, dm);
+    listener = mock(MembershipListener.class);
+    messageListener = mock(MessageListener.class);
+    manager = new GMSMembershipManager(listener, messageListener, null);
     manager.getGMSManager().init(services);
     when(services.getManager()).thenReturn(manager.getGMSManager());
   }
@@ -328,7 +329,7 @@ public class GMSMembershipManagerJUnitTest {
     reset(listener);
     manager.handleOrDeferViewEvent(new MembershipView(myMemberId, 5, viewmembers));
     assertEquals(0, manager.getStartupEvents().size());
-    verify(listener).messageReceived(isA(LocalViewMessage.class));
+    verify(messageListener).messageReceived(isA(LocalViewMessage.class));
 
     // process a suspect now - it will be passed to the listener
     reset(listener);
@@ -466,8 +467,9 @@ public class GMSMembershipManagerJUnitTest {
     when(dm.getMembershipManager()).thenReturn(manager);
     when(dm.getViewMembers()).thenReturn(members);
     when(dm.getDistributionManagerIds()).thenReturn(new HashSet(members));
-    when(dm.addMembershipListenerAndGetDistributionManagerIds(any(MembershipListener.class)))
-        .thenReturn(new HashSet(members));
+    when(dm.addMembershipListenerAndGetDistributionManagerIds(any(
+        org.apache.geode.distributed.internal.MembershipListener.class)))
+            .thenReturn(new HashSet(members));
 
     manager.getGMSManager().start();
     manager.getGMSManager().started();

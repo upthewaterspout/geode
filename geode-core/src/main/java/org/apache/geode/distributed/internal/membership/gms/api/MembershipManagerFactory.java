@@ -17,7 +17,6 @@ package org.apache.geode.distributed.internal.membership.gms.api;
 
 import org.apache.geode.distributed.internal.ClusterDistributionManager;
 import org.apache.geode.distributed.internal.DistributionConfig;
-import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
 import org.apache.geode.distributed.internal.membership.NetMember;
 import org.apache.geode.distributed.internal.membership.gms.MembershipManagerFactoryImpl;
@@ -35,37 +34,47 @@ public interface MembershipManagerFactory {
 
   MembershipManagerFactory setStatistics(MembershipStatistics statistics);
 
+  MembershipManagerFactory setMembershipListener(MembershipListener membershipListener);
+
+  MembershipManagerFactory setMessageListener(MessageListener messageListener);
+
   InternalMembershipManager create();
 
   /**
    * Create a new MembershipManager. Be sure to send the manager a postConnect() message before you
    * start using it.
    *
-   * @param listener the listener to notify for callbacks
+   * @param membershipListener the listener to notify for callbacks
    * @param transport holds configuration information that can be used by the manager to configure
    *        itself
    * @param stats are used for recording statistical communications information
    * @return a MembershipManager
    */
   public static InternalMembershipManager newMembershipManager(
-      final DistributedMembershipListener listener,
+      final MembershipListener membershipListener,
+      final MessageListener messageListener,
       final RemoteTransportConfig transport,
       final MembershipStatistics stats,
       final Authenticator authenticator,
       final DistributionConfig config,
       ClusterDistributionManager dm) {
-    return newMembershipManagerFactory(listener, transport, config, dm)
+    return newMembershipManagerFactory(membershipListener, messageListener, transport, config, dm)
         .setAuthenticator(authenticator)
         .setStatistics(stats)
+        .setMessageListener(messageListener)
+        .setMembershipListener(membershipListener)
         .create();
   }
 
+
   static MembershipManagerFactory newMembershipManagerFactory(
-      DistributedMembershipListener listener, RemoteTransportConfig transport,
+      MembershipListener membershipListener,
+      MessageListener messageListener,
+      RemoteTransportConfig transport,
       DistributionConfig config,
       ClusterDistributionManager dm) {
 
-    return new MembershipManagerFactoryImpl(listener, transport,
+    return new MembershipManagerFactoryImpl(transport,
         config, dm);
   }
 

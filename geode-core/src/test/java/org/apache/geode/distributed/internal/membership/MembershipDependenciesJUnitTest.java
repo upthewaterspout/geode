@@ -137,7 +137,6 @@ public class MembershipDependenciesJUnitTest {
               .or(type(DistributionConfigImpl.class))
               .or(type(RemoteTransportConfig.class))
               .or(type(FlowControlParams.class))
-              .or(type(DistributedMembershipListener.class))
               .or(type(InternalMembershipManager.class))
 
 

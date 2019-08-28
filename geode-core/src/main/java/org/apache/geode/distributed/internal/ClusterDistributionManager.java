@@ -62,7 +62,6 @@ import org.apache.geode.distributed.DistributedSystemDisconnectedException;
 import org.apache.geode.distributed.Locator;
 import org.apache.geode.distributed.Role;
 import org.apache.geode.distributed.internal.locks.ElderState;
-import org.apache.geode.distributed.internal.membership.DistributedMembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
 import org.apache.geode.distributed.internal.membership.MembershipView;
@@ -776,8 +775,9 @@ public class ClusterDistributionManager implements DistributionManager {
       // connect to the cluster
       long start = System.currentTimeMillis();
 
-      DMListener l = new DMListener(this);
-      membershipManager = MembershipManagerFactory.newMembershipManager(l, transport,
+      DMListener listener = new DMListener(this);
+      membershipManager = MembershipManagerFactory.newMembershipManager(listener,
+          this::handleIncomingDMsg, transport,
           stats,
           new GMSAuthenticator(system.getSecurityProperties(), system.getSecurityService(),
               system.getSecurityLogWriter(), system.getInternalLogWriter()),
@@ -2174,7 +2174,8 @@ public class ClusterDistributionManager implements DistributionManager {
   }
 
   @Override
-  public Set<InternalDistributedMember> addAllMembershipListenerAndGetAllIds(MembershipListener l) {
+  public Set<InternalDistributedMember> addAllMembershipListenerAndGetAllIds(
+      MembershipListener l) {
     InternalMembershipManager mgr = membershipManager;
     mgr.getViewLock().writeLock().lock();
     try {
@@ -3369,7 +3370,8 @@ public class ClusterDistributionManager implements DistributionManager {
    * This is the listener implementation for responding from events from the Membership Manager.
    *
    */
-  private class DMListener implements DistributedMembershipListener {
+  private class DMListener implements
+      org.apache.geode.distributed.internal.membership.gms.api.MembershipListener {
     ClusterDistributionManager dm;
 
     DMListener(ClusterDistributionManager dm) {
@@ -3381,11 +3383,6 @@ public class ClusterDistributionManager implements DistributionManager {
       exceptionInThreads = true;
       rootCause = t;
       getSystem().disconnect(reason, true);
-    }
-
-    @Override
-    public void messageReceived(DistributionMessage message) {
-      handleIncomingDMsg(message);
     }
 
     @Override
