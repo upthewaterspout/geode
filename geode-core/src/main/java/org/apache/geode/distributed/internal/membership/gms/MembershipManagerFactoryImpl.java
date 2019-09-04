@@ -3,32 +3,29 @@ package org.apache.geode.distributed.internal.membership.gms;
 import org.apache.geode.GemFireConfigException;
 import org.apache.geode.SystemConnectException;
 import org.apache.geode.distributed.internal.ClusterDistributionManager;
-import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.DistributionException;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
 import org.apache.geode.distributed.internal.membership.adapter.GMSMembershipManager;
 import org.apache.geode.distributed.internal.membership.gms.api.Authenticator;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipConfig;
 import org.apache.geode.distributed.internal.membership.gms.api.MembershipListener;
 import org.apache.geode.distributed.internal.membership.gms.api.MembershipManagerFactory;
 import org.apache.geode.distributed.internal.membership.gms.api.MembershipStatistics;
 import org.apache.geode.distributed.internal.membership.gms.api.MessageListener;
-import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 import org.apache.geode.internal.tcp.ConnectionException;
 import org.apache.geode.security.GemFireSecurityException;
 
 public class MembershipManagerFactoryImpl implements MembershipManagerFactory {
   private MembershipListener membershipListener;
   private MessageListener messageListener;
-  private final RemoteTransportConfig transport;
   private MembershipStatistics statistics;
   private Authenticator authenticator;
-  private final DistributionConfig config;
+  private MembershipConfig config;
   private ClusterDistributionManager dm;
 
-  public MembershipManagerFactoryImpl(RemoteTransportConfig transport, DistributionConfig config,
+  public MembershipManagerFactoryImpl(MembershipConfig config,
       ClusterDistributionManager dm) {
 
-    this.transport = transport;
     this.config = config;
     this.dm = dm;
   }
@@ -58,11 +55,18 @@ public class MembershipManagerFactoryImpl implements MembershipManagerFactory {
   }
 
   @Override
+  public MembershipManagerFactory setConfig(MembershipConfig config) {
+    this.config = config;
+    return this;
+  }
+
+  @Override
   public InternalMembershipManager create() {
     GMSMembershipManager gmsMembershipManager =
         new GMSMembershipManager(membershipListener, messageListener, dm);
     Services services1 =
-        new Services(gmsMembershipManager.getGMSManager(), transport, statistics, authenticator,
+        new Services(gmsMembershipManager.getGMSManager(), statistics,
+            authenticator,
             config);
     try {
       services1.init();

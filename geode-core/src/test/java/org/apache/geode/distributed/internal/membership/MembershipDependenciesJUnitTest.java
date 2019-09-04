@@ -34,8 +34,6 @@ import org.apache.geode.InternalGemFireError;
 import org.apache.geode.SystemFailure;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.Locator;
-import org.apache.geode.distributed.internal.DistributionConfig;
-import org.apache.geode.distributed.internal.DistributionConfigImpl;
 import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.FlowControlParams;
 import org.apache.geode.distributed.internal.LocatorStats;
@@ -52,7 +50,6 @@ import org.apache.geode.internal.Version;
 import org.apache.geode.internal.VersionedDataInputStream;
 import org.apache.geode.internal.VersionedObjectInput;
 import org.apache.geode.internal.admin.remote.DistributionLocatorId;
-import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 import org.apache.geode.internal.alerting.AlertingAction;
 import org.apache.geode.internal.concurrent.ConcurrentHashSet;
 import org.apache.geode.internal.logging.LogService;
@@ -133,9 +130,9 @@ public class MembershipDependenciesJUnitTest {
               .or(type(DistributionMessage.class))
 
               // TODO: Membership needs its own config object
-              .or(type(DistributionConfig.class))
-              .or(type(DistributionConfigImpl.class))
-              .or(type(RemoteTransportConfig.class))
+              // .or(type(DistributionConfig.class))
+              // .or(type(DistributionConfigImpl.class))
+              // .or(type(RemoteTransportConfig.class))
               .or(type(FlowControlParams.class))
               .or(type(InternalMembershipManager.class))
 

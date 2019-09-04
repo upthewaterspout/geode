@@ -14,14 +14,12 @@ import com.tngtech.archunit.lang.ArchRule;
 import org.junit.runner.RunWith;
 
 import org.apache.geode.distributed.DistributedMember;
-import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
 import org.apache.geode.distributed.internal.membership.MembershipView;
 import org.apache.geode.distributed.internal.membership.gms.GMSMember;
 import org.apache.geode.distributed.internal.membership.gms.MembershipManagerFactoryImpl;
-import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 
 @RunWith(ArchUnitRunner.class)
 @AnalyzeClasses(packages = "org.apache.geode..")
@@ -44,8 +42,9 @@ public class MembershipAPIArchUnitTest {
               .or(type(InternalDistributedMember[].class))
               .or(type(DistributionMessage.class))
               .or(type(InternalMembershipManager.class))
-              .or(type(DistributionConfig.class))
-              .or(type(RemoteTransportConfig.class)));
+  // .or(type(DistributionConfig.class))
+  // .or(type(RemoteTransportConfig.class))
+  );
 
 
   @ArchIgnore

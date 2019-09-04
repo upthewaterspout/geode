@@ -18,10 +18,13 @@ package org.apache.geode.distributed.internal.membership.gms;
 import org.apache.geode.distributed.Locator;
 import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.InternalLocator;
-import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipConfig;
+import org.apache.geode.distributed.internal.membership.gms.api.RemoteTransportConfig;
+//import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 import org.apache.geode.internal.net.SocketCreator;
 
-public class ServiceConfig {
+public class ServiceConfig
+    implements MembershipConfig {
 
   /** stall time to wait for concurrent join/leave/remove requests to be received */
   public static final long MEMBER_REQUEST_COLLECTION_INTERVAL =
@@ -48,51 +51,62 @@ public class ServiceConfig {
   private final RemoteTransportConfig transport;
 
 
+  @Override
   public boolean isReconnecting() {
     return isReconnecting;
   }
 
+  @Override
   public int getLocatorWaitTime() {
     return locatorWaitTime;
   }
 
 
+  @Override
   public long getJoinTimeout() {
     return joinTimeout;
   }
 
 
+  @Override
   public int[] getMembershipPortRange() {
     return membershipPortRange;
   }
 
 
+  @Override
   public long getMemberTimeout() {
     return memberTimeout;
   }
 
 
+  @Override
   public int getLossThreshold() {
     return lossThreshold;
   }
 
 
+  @Override
   public int getMemberWeight() {
     return memberWeight;
   }
 
+  @Override
   public boolean isMulticastEnabled() {
     return transport.isMcastEnabled();
   }
 
+  @Override
   public boolean isNetworkPartitionDetectionEnabled() {
     return networkPartitionDetectionEnabled;
   }
 
+  @Override
   public boolean isUDPSecurityEnabled() {
     return !dconfig.getSecurityUDPDHAlgo().isEmpty();
   }
 
+  @Override
   public boolean areLocatorsPreferredAsCoordinators() {
     boolean locatorsAreCoordinators;
 
@@ -110,11 +124,13 @@ public class ServiceConfig {
     return locatorsAreCoordinators;
   }
 
+  @Override
   public DistributionConfig getDistributionConfig() {
     return this.dconfig;
   }
 
 
+  @Override
   public RemoteTransportConfig getTransport() {
     return this.transport;
   }
@@ -166,6 +182,7 @@ public class ServiceConfig {
     networkPartitionDetectionEnabled = theConfig.getEnableNetworkPartitionDetection();
   }
 
+  @Override
   public void setIsReconnecting(boolean b) {
     this.isReconnecting = false;
   }

@@ -16,12 +16,12 @@ package org.apache.geode.distributed.internal.membership.gms;
 
 import java.util.Timer;
 
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipConfig;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.CancelCriterion;
 import org.apache.geode.ForcedDisconnectException;
 import org.apache.geode.distributed.DistributedSystemDisconnectedException;
-import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.membership.gms.api.Authenticator;
 import org.apache.geode.distributed.internal.membership.gms.api.MembershipStatistics;
 import org.apache.geode.distributed.internal.membership.gms.fd.GMSHealthMonitor;
@@ -32,7 +32,6 @@ import org.apache.geode.distributed.internal.membership.gms.interfaces.Manager;
 import org.apache.geode.distributed.internal.membership.gms.interfaces.Messenger;
 import org.apache.geode.distributed.internal.membership.gms.membership.GMSJoinLeave;
 import org.apache.geode.distributed.internal.membership.gms.messenger.JGroupsMessenger;
-import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 import org.apache.geode.internal.logging.LogService;
 
 @SuppressWarnings("ConstantConditions")
@@ -45,7 +44,7 @@ public class Services {
   private final HealthMonitor healthMon;
   private final Messenger messenger;
   private final Authenticator auth;
-  private final ServiceConfig config;
+  private final MembershipConfig config;
   private final MembershipStatistics stats;
   private final Stopper cancelCriterion;
 
@@ -90,11 +89,11 @@ public class Services {
   }
 
   public Services(Manager membershipManager,
-      RemoteTransportConfig transport, MembershipStatistics stats,
-      final Authenticator authenticator, DistributionConfig config) {
+                  MembershipStatistics stats,
+                  final Authenticator authenticator, MembershipConfig config) {
     this.cancelCriterion = new Stopper();
     this.stats = stats;
-    this.config = new ServiceConfig(transport, config);
+    this.config = config;
     this.manager = membershipManager;
     this.joinLeave = new GMSJoinLeave();
     this.healthMon = new GMSHealthMonitor();
@@ -269,7 +268,7 @@ public class Services {
     return this.healthMon;
   }
 
-  public ServiceConfig getConfig() {
+  public MembershipConfig getConfig() {
     return this.config;
   }
 

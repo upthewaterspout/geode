@@ -37,6 +37,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipConfig;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.CancelException;
@@ -2417,8 +2418,8 @@ public class GMSMembershipManager implements InternalMembershipManager {
 
       Assert.assertTrue(services != null);
 
-      DistributionConfig config = services.getConfig().getDistributionConfig();
-      RemoteTransportConfig transport = services.getConfig().getTransport();
+      MembershipConfig config = services.getConfig();
+      MembershipConfig transport = services.getConfig();
 
       membershipCheckTimeout = config.getSecurityPeerMembershipTimeout();
       wasReconnectingSystem = transport.getIsReconnectingDS();

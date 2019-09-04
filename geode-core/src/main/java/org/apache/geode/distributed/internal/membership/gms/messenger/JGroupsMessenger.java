@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import org.apache.geode.distributed.internal.membership.gms.api.MembershipConfig;
 import org.apache.logging.log4j.Logger;
 import org.jgroups.Address;
 import org.jgroups.Event;
@@ -186,8 +187,8 @@ public class JGroupsMessenger implements Messenger {
   public void init(Services s) {
     this.services = s;
 
-    RemoteTransportConfig transport = services.getConfig().getTransport();
-    DistributionConfig dc = services.getConfig().getDistributionConfig();
+    MembershipConfig transport = services.getConfig();
+    MembershipConfig dc = services.getConfig();
 
 
     boolean b = dc.getEnableNetworkPartitionDetection();

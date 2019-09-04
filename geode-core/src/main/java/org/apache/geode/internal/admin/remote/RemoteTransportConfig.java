@@ -37,12 +37,12 @@ import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.membership.gms.messenger.MembershipInformation;
 import org.apache.geode.internal.Assert;
 import org.apache.geode.internal.admin.SSLConfig;
-import org.apache.geode.internal.admin.TransportConfig;
 
 /**
  * Tranport config for RemoteGfManagerAgent.
  */
-public class RemoteTransportConfig implements TransportConfig {
+public class RemoteTransportConfig
+    implements org.apache.geode.distributed.internal.membership.gms.api.RemoteTransportConfig {
 
   private final boolean mcastEnabled;
   private final boolean tcpDisabled;
@@ -185,6 +185,7 @@ public class RemoteTransportConfig implements TransportConfig {
    * Returns the set of DistributionLocatorId instances that define this transport. The set is
    * unmodifiable.
    */
+  @Override
   public Set getIds() {
     return this.ids;
   }
@@ -193,50 +194,62 @@ public class RemoteTransportConfig implements TransportConfig {
    * Returns true iff multicast is enabled in this transport. Multicast must be enabled in order to
    * use multicast discovery.
    */
+  @Override
   public boolean isMcastEnabled() {
     return this.mcastEnabled;
   }
 
+  @Override
   public DistributionLocatorId getMcastId() {
     return this.mcastId;
   }
 
+  @Override
   public int getVmKind() {
     return this.vmKind;
   }
 
+  @Override
   public boolean isTcpDisabled() {
     return this.tcpDisabled;
   }
 
+  @Override
   public String getBindAddress() {
     return this.bindAddress;
   }
 
+  @Override
   public SSLConfig getSSLConfig() {
     return this.sslConfig;
   }
 
+  @Override
   public String getMembershipPortRange() {
     return this.membershipPortRange;
   }
 
+  @Override
   public int getTcpPort() {
     return this.tcpPort;
   }
 
+  @Override
   public boolean getIsReconnectingDS() {
     return isReconnectingDS;
   }
 
+  @Override
   public void setIsReconnectingDS(boolean isReconnectingDS) {
     this.isReconnectingDS = isReconnectingDS;
   }
 
+  @Override
   public MembershipInformation getOldDSMembershipInfo() {
     return oldDSMembershipInfo;
   }
 
+  @Override
   public void setOldDSMembershipInfo(MembershipInformation oldDSMembershipInfo) {
     this.oldDSMembershipInfo = oldDSMembershipInfo;
   }
@@ -323,6 +336,7 @@ public class RemoteTransportConfig implements TransportConfig {
   /**
    * returns a locators string suitable for use in locators= in gemfire.properties
    */
+  @Override
   public String locatorsString() {
     return this.toString(true);
   }

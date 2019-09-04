@@ -42,6 +42,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.geode.distributed.internal.membership.gms.ServiceConfig;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.CancelCriterion;
@@ -777,11 +778,11 @@ public class ClusterDistributionManager implements DistributionManager {
 
       DMListener listener = new DMListener(this);
       membershipManager = MembershipManagerFactory.newMembershipManager(listener,
-          this::handleIncomingDMsg, transport,
+          this::handleIncomingDMsg,
           stats,
           new GMSAuthenticator(system.getSecurityProperties(), system.getSecurityService(),
               system.getSecurityLogWriter(), system.getInternalLogWriter()),
-          system.getConfig(), this);
+              new ServiceConfig(transport, system.getConfig()), this);
 
       sb.append(System.currentTimeMillis() - start);
 

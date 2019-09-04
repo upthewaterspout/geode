@@ -16,11 +16,9 @@ package org.apache.geode.distributed.internal.membership.gms.api;
 
 
 import org.apache.geode.distributed.internal.ClusterDistributionManager;
-import org.apache.geode.distributed.internal.DistributionConfig;
 import org.apache.geode.distributed.internal.membership.InternalMembershipManager;
 import org.apache.geode.distributed.internal.membership.NetMember;
 import org.apache.geode.distributed.internal.membership.gms.MembershipManagerFactoryImpl;
-import org.apache.geode.internal.admin.remote.RemoteTransportConfig;
 
 /**
  * Create a new Member based on the given inputs. TODO: need to implement a real factory
@@ -38,6 +36,8 @@ public interface MembershipManagerFactory {
 
   MembershipManagerFactory setMessageListener(MessageListener messageListener);
 
+  MembershipManagerFactory setConfig(MembershipConfig config);
+
   InternalMembershipManager create();
 
   /**
@@ -45,24 +45,21 @@ public interface MembershipManagerFactory {
    * start using it.
    *
    * @param membershipListener the listener to notify for callbacks
-   * @param transport holds configuration information that can be used by the manager to configure
-   *        itself
    * @param stats are used for recording statistical communications information
    * @return a MembershipManager
    */
   public static InternalMembershipManager newMembershipManager(
       final MembershipListener membershipListener,
       final MessageListener messageListener,
-      final RemoteTransportConfig transport,
       final MembershipStatistics stats,
       final Authenticator authenticator,
-      final DistributionConfig config,
+      final MembershipConfig config,
       ClusterDistributionManager dm) {
-    return newMembershipManagerFactory(membershipListener, messageListener, transport, config, dm)
+    return newMembershipManagerFactory(membershipListener, messageListener, config, dm)
         .setAuthenticator(authenticator)
         .setStatistics(stats)
         .setMessageListener(messageListener)
-        .setMembershipListener(membershipListener)
+        .setMembershipListener(membershipListener).setConfig(config)
         .create();
   }
 
@@ -70,11 +67,10 @@ public interface MembershipManagerFactory {
   static MembershipManagerFactory newMembershipManagerFactory(
       MembershipListener membershipListener,
       MessageListener messageListener,
-      RemoteTransportConfig transport,
-      DistributionConfig config,
+      MembershipConfig config,
       ClusterDistributionManager dm) {
 
-    return new MembershipManagerFactoryImpl(transport,
+    return new MembershipManagerFactoryImpl(
         config, dm);
   }
 
