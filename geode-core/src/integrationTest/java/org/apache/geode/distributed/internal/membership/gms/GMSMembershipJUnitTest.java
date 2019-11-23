@@ -88,7 +88,7 @@ public class GMSMembershipJUnitTest {
   private JoinLeave joinLeave;
   private Stopper stopper;
   private MembershipListener listener;
-  private GMSMembership manager;
+  private GMSMembership<InternalDistributedMember> manager;
   private List<InternalDistributedMember> members;
   private DirectChannel dc;
   private MessageListener messageListener;
