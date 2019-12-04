@@ -42,7 +42,7 @@ public class MembershipBuilderImpl implements MembershipBuilder {
   private ClusterDistributionManager dm;
   private MembershipConfig membershipConfig;
   private DSFIDSerializer serializer;
-  private MemberIdentifierFactory memberFactory = new MemberIdentifierFactoryImpl();
+  private MemberIdentifierFactory memberFactory;
   private LifecycleListener lifecycleListener;
 
   public MembershipBuilderImpl(ClusterDistributionManager dm) {
