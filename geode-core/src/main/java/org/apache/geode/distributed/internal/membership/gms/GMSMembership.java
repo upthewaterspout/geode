@@ -129,7 +129,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
 
     // Miscellaneous state depending on the kind of event
     ID member;
-    Message dmsg;
+    Message<ID> dmsg;
     MembershipView<ID> gmsView;
 
     @Override
@@ -621,41 +621,41 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     }
   }
 
-  private MembershipView createGeodeView(GMSMembershipView view) {
-    MembershipView result = createGeodeView(view.getCreator(), view.getViewId(), view.getMembers(),
+  private MembershipView<ID> createGeodeView(GMSMembershipView<ID> view) {
+    MembershipView<ID> result = createGeodeView(view.getCreator(), view.getViewId(), view.getMembers(),
         view.getShutdownMembers(),
         view.getCrashedMembers());
     result.makeUnmodifiable();
     return result;
   }
 
-  private MembershipView createGeodeView(MemberIdentifier gmsCreator, int viewId,
-      List<MemberIdentifier> gmsMembers,
-      Set<MemberIdentifier> gmsShutdowns, Set<MemberIdentifier> gmsCrashes) {
-    ID geodeCreator = (ID) gmsCreator;
+  private MembershipView<ID> createGeodeView(ID gmsCreator, int viewId,
+      List<ID> gmsMembers,
+      Set<ID> gmsShutdowns, Set<ID> gmsCrashes) {
+    ID geodeCreator = gmsCreator;
     List<ID> geodeMembers = new ArrayList<>(gmsMembers.size());
-    for (MemberIdentifier member : gmsMembers) {
-      geodeMembers.add((ID) member);
+    for (ID member : gmsMembers) {
+      geodeMembers.add(member);
     }
     Set<ID> geodeShutdownMembers =
         gmsMemberCollectionToIDSet(gmsShutdowns);
     Set<ID> geodeCrashedMembers =
         gmsMemberCollectionToIDSet(gmsCrashes);
-    return new MembershipView(geodeCreator, viewId, geodeMembers, geodeShutdownMembers,
+    return new MembershipView<>(geodeCreator, viewId, geodeMembers, geodeShutdownMembers,
         geodeCrashedMembers);
   }
 
   private Set<ID> gmsMemberCollectionToIDSet(
-      Collection<MemberIdentifier> gmsMembers) {
+      Collection<ID> gmsMembers) {
     if (gmsMembers.size() == 0) {
       return Collections.emptySet();
     } else if (gmsMembers.size() == 1) {
       return Collections.singleton(
-          (ID) gmsMembers.iterator().next());
+              gmsMembers.iterator().next());
     } else {
       Set<ID> idmMembers = new HashSet<>(gmsMembers.size());
-      for (MemberIdentifier member : gmsMembers) {
-        idmMembers.add((ID) member);
+      for (ID member : gmsMembers) {
+        idmMembers.add(member);
       }
       return idmMembers;
     }
@@ -663,16 +663,16 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
 
 
   private List<ID> gmsMemberListToIDList(
-      List<MemberIdentifier> gmsMembers) {
+      List<ID> gmsMembers) {
     if (gmsMembers.size() == 0) {
       return Collections.emptyList();
     } else if (gmsMembers.size() == 1) {
       return Collections
-          .singletonList((ID) gmsMembers.get(0));
+          .singletonList(gmsMembers.get(0));
     } else {
       List<ID> idmMembers = new ArrayList<>(gmsMembers.size());
-      for (MemberIdentifier member : gmsMembers) {
-        idmMembers.add((ID) member);
+      for (ID member : gmsMembers) {
+        idmMembers.add(member);
       }
       return idmMembers;
     }
@@ -734,7 +734,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     if (!processingEvents) {
       synchronized (startupLock) {
         if (!startupMessagesDrained) {
-          startupMessages.add(new StartupEvent(member));
+          startupMessages.add(new StartupEvent<>(member));
           return;
         }
       }
@@ -745,10 +745,10 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
   @Override
   public void startupMessageFailed(ID mbr, String failureMessage) {
     // fix for bug #40666
-    addShunnedMember((ID) mbr);
+    addShunnedMember(mbr);
     // fix for bug #41329, hang waiting for replies
     try {
-      listener.memberDeparted((ID) mbr, true,
+      listener.memberDeparted(mbr, true,
           "failed to pass startup checks");
     } catch (DistributedSystemDisconnectedException se) {
       // let's not get huffy about it
@@ -767,7 +767,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
    */
   @Override
   public boolean addSurpriseMember(ID dm) {
-    final ID member = (ID) dm;
+    final ID member = dm;
     boolean warn = false;
 
     latestViewWriteLock.lock();
@@ -832,7 +832,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
         // should ensure it is not chosen as an elder.
         // This will get corrected when the member finally shows up in the
         // view.
-        MembershipView newMembers = new MembershipView(latestView, latestView.getViewId());
+        MembershipView newMembers = new MembershipView<>(latestView, latestView.getViewId());
         newMembers.add(member);
         newMembers.makeUnmodifiable();
         latestView = newMembers;
@@ -868,12 +868,12 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     latestViewWriteLock.lock();
     try {
       long oldestAllowed = System.currentTimeMillis() - surpriseMemberTimeout;
-      for (Iterator it = surpriseMembers.entrySet().iterator(); it.hasNext();) {
-        Map.Entry entry = (Map.Entry) it.next();
-        Long birthtime = (Long) entry.getValue();
+      for (Iterator<Map.Entry<ID, Long>> it = surpriseMembers.entrySet().iterator(); it.hasNext();) {
+        Map.Entry<ID, Long> entry = it.next();
+        Long birthtime = entry.getValue();
         if (birthtime.longValue() < oldestAllowed) {
           it.remove();
-          ID m = (ID) entry.getKey();
+          ID m = entry.getKey();
           logger.info("Membership: expiring membership of surprise member <{}>",
               m);
           removeWithViewLock(m, true,
@@ -894,7 +894,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     if (!processingEvents) {
       synchronized (startupLock) {
         if (!startupMessagesDrained) {
-          startupMessages.add(new StartupEvent(msg));
+          startupMessages.add(new StartupEvent<>(msg));
           return;
         }
       }
@@ -929,8 +929,8 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
    *
    * @param msg the message
    */
-  private void dispatchMessage(Message msg) {
-    ID m = (ID) msg.getSender();
+  private void dispatchMessage(Message<ID> msg) {
+    ID m = msg.getSender();
     boolean shunned = false;
 
     // If this member is shunned or new, grab the latestViewWriteLock: update the appropriate data
@@ -977,10 +977,10 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
    *
    * @param msg the message holding the sender ID
    */
-  public void replacePartialIdentifierInMessage(Message msg) {
-    ID sender = (ID) msg.getSender();
-    MemberIdentifier oldID = sender;
-    MemberIdentifier newID = this.services.getJoinLeave().getMemberID(oldID);
+  public void replacePartialIdentifierInMessage(Message<ID> msg) {
+    ID sender = msg.getSender();
+    ID oldID = sender;
+    ID newID = this.services.getJoinLeave().getMemberID(oldID);
     if (newID != null && newID != oldID) {
       sender.setMemberData(newID.getMemberData());
       sender.setIsPartial(false);
@@ -989,7 +989,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
       sender = getView().getCanonicalID(sender);
     }
     if (!sender.isPartial()) {
-      msg.setSender((InternalDistributedMember) sender);
+      msg.setSender(sender);
     }
   }
 
@@ -1005,7 +1005,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
       // This is done under the latestViewLock, but we can't block here because
       // we're sitting in the UDP reader thread.
       synchronized (startupLock) {
-        startupMessages.add(new StartupEvent(viewArg));
+        startupMessages.add(new StartupEvent<>(viewArg));
         return;
       }
     }
@@ -1014,7 +1014,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
       if (!processingEvents) {
         synchronized (startupLock) {
           if (!startupMessagesDrained) {
-            startupMessages.add(new StartupEvent(viewArg));
+            startupMessages.add(new StartupEvent<>(viewArg));
             return;
           }
         }
@@ -1031,8 +1031,8 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     }
   }
 
-  private ID gmsMemberToDMember(MemberIdentifier gmsMember) {
-    return (ID) gmsMember;
+  private ID gmsMemberToDMember(ID gmsMember) {
+    return gmsMember;
   }
 
   /**
@@ -1040,7 +1040,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
    *
    * @param suspectInfo the suspectee and suspector
    */
-  protected void handleOrDeferSuspect(SuspectMember suspectInfo) {
+  protected void handleOrDeferSuspect(SuspectMember<ID> suspectInfo) {
     latestViewWriteLock.lock();
     try {
       if (!processingEvents) {
@@ -1081,7 +1081,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     if (o.isDistributionMessage()) { // normal message
       try {
         o.dmsg.setSender(
-            (InternalDistributedMember) latestView.getCanonicalID((ID) o.dmsg.getSender()));
+                latestView.getCanonicalID(o.dmsg.getSender()));
         dispatchMessage(o.dmsg);
       } catch (MemberShunnedException e) {
         // message from non-member - ignore
@@ -1247,7 +1247,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
   }
 
   @Override
-  public void processMessage(final Message msg) {
+  public void processMessage(final Message<ID> msg) {
     // notify failure detection that we've had contact from a member
     services.getHealthMonitor().contactedBy(msg.getSender());
     handleOrDeferMessage(msg);
@@ -1643,7 +1643,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     }
     latestViewWriteLock.lock();
     try {
-      surpriseMembers.put((ID) m, Long.valueOf(birthTime));
+      surpriseMembers.put(m, Long.valueOf(birthTime));
     } finally {
       latestViewWriteLock.unlock();
     }
@@ -1688,16 +1688,16 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
 
     Set<ID> removedMembers = new HashSet<>();
 
-    for (final Object oldMember : oldMembers) {
-      Entry e = (Entry) oldMember;
+    for (final Map.Entry<ID, Long> oldMember : oldMembers) {
+      Entry<ID, Long> e = oldMember;
 
       // Key is the member. Value is the time to remove it.
-      long ll = ((Long) e.getValue()).longValue();
+      long ll = e.getValue().longValue();
       if (ll >= deathTime) {
         continue; // too new.
       }
 
-      ID mm = (ID) e.getKey();
+      ID mm = e.getKey();
 
       if (latestView.contains(mm)) {
         // Fault tolerance: a shunned member can conceivably linger but never
@@ -1717,8 +1717,8 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
 
     // removed timed-out entries from the shunned-members collections
     if (removedMembers.size() > 0) {
-      for (final Object removedMember : removedMembers) {
-        ID idm = (ID) removedMember;
+      for (final ID removedMember : removedMembers) {
+        ID idm = removedMember;
         endShun(idm);
       }
     }
@@ -1956,16 +1956,16 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
   }
 
 
-  class ManagerImpl implements Manager {
+  class ManagerImpl implements Manager<ID> {
 
     @Override
-    public Services getServices() {
+    public Services<ID> getServices() {
       return services;
     }
 
     @Override
     /* Service interface */
-    public void init(Services services) {
+    public void init(Services<ID> services) {
       GMSMembership.this.services = services;
 
       MembershipConfig config = services.getConfig();
@@ -2033,7 +2033,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
 
     /* Service interface */
     @Override
-    public void installView(GMSMembershipView v) {
+    public void installView(GMSMembershipView<ID> v) {
       MembershipView currentView = latestView;
       if (currentView.getViewId() < 0 && !isConnected()) {
         latestView = createGeodeView(v);
@@ -2076,7 +2076,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
       }
 
       GMSMembership.this.address =
-          (ID) services.getMessenger().getMemberID();
+              services.getMessenger().getMemberID();
 
       lifecycleListener.setLocalAddress(address);
 
@@ -2090,9 +2090,8 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     }
 
     @Override
-    public void memberSuspected(MemberIdentifier initiator,
-        MemberIdentifier suspect, String reason) {
-      SuspectMember s = new SuspectMember(initiator, suspect, reason);
+    public void memberSuspected(ID initiator, ID suspect, String reason) {
+      SuspectMember<ID> s = new SuspectMember<>(initiator, suspect, reason);
       handleOrDeferSuspect(s);
     }
 
@@ -2136,7 +2135,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
 
     /** this is invoked by JoinLeave when there is a loss of quorum in the membership system */
     @Override
-    public void quorumLost(Collection<MemberIdentifier> failures, GMSMembershipView view) {
+    public void quorumLost(Collection<ID> failures, GMSMembershipView<ID> view) {
       // notify of quorum loss if split-brain detection is enabled (meaning we'll shut down) or
       // if the loss is more than one member
 
@@ -2177,7 +2176,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     }
 
     @Override
-    public void processMessage(Message msg) {
+    public void processMessage(Message<ID> msg) {
       // UDP messages received from surprise members will have partial IDs.
       // Attempt to replace these with full IDs from the Membership's view.
       if (msg.getSender().isPartial()) {

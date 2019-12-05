@@ -29,7 +29,7 @@ public interface Membership<ID extends MemberIdentifier> {
    *
    * @return list of members
    */
-  MembershipView getView();
+  MembershipView<ID> getView();
 
   /**
    * Return a {@link ID} representing the current system
@@ -305,7 +305,7 @@ public interface Membership<ID extends MemberIdentifier> {
    * takes care of queueing up the message during startup and filtering out messages
    * from shunned members, before calling the message listener.
    */
-  void processMessage(Message msg);
+  void processMessage(Message<ID> msg);
 
   void checkCancelled();
 
