@@ -16,16 +16,16 @@ package org.apache.geode.distributed.internal.membership.gms.messages;
 
 import org.apache.geode.distributed.internal.membership.gms.api.MemberIdentifier;
 
-public class SuspectRequest {
-  final MemberIdentifier suspectMember;
+public class SuspectRequest<ID extends MemberIdentifier> {
+  final ID suspectMember;
   final String reason;
 
-  public SuspectRequest(MemberIdentifier m, String r) {
+  public SuspectRequest(ID m, String r) {
     suspectMember = m;
     reason = r;
   }
 
-  public MemberIdentifier getSuspectMember() {
+  public ID getSuspectMember() {
     return suspectMember;
   }
 

@@ -329,7 +329,7 @@ public class Services<ID extends MemberIdentifier> {
     this.locator = locator;
   }
 
-  public JoinLeave getJoinLeave() {
+  public JoinLeave<ID> getJoinLeave() {
     return this.joinLeave;
   }
 
