@@ -17,12 +17,23 @@ package org.apache.geode.distributed.internal.membership.gms;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.EOFException;
+import java.io.Externalizable;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.net.InetAddress;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.jgroups.util.UUID;
 
-import org.apache.geode.distributed.internal.membership.api.MemberData;
+import org.apache.geode.annotations.Immutable;
+import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
+import org.apache.geode.internal.serialization.DataSerializableFixedID;
 import org.apache.geode.internal.serialization.DeserializationContext;
 import org.apache.geode.internal.serialization.SerializationContext;
 import org.apache.geode.internal.serialization.StaticSerialization;
@@ -34,7 +45,7 @@ import org.apache.geode.internal.serialization.Version;
  * Unfortunately it is also used in identifying client caches in a client/server
  * configuration and so contains weird things like a durable-id and a durable-timeout.
  */
-public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
+public class GMSMemberData implements MemberIdentifier, DataSerializableFixedID {
   /** The type for regular members */
   public static final int NORMAL_DM_TYPE = 10;
 
@@ -56,6 +67,12 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
   /** product version bit flag */
   public static final int VERSION_BIT = 0x8;
 
+  /** The versions in which this message was modified */
+  @Immutable
+  private static final Version[] dsfidVersions = new Version[] {
+      Version.GFE_71, Version.GFE_90};
+
+
   private String hostName;
 
   private int udpPort = 0;
@@ -64,7 +81,7 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
   private byte memberWeight;
   private InetAddress inetAddr;
   private int processId;
-  private byte vmKind;
+  private int vmKind;
   private int vmViewId = -1;
   private int directPort;
   private String name;
@@ -152,34 +169,38 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
     this.vmViewId = viewId;
   }
 
-
   /**
    * Clone a GMSMemberInfo
    *
    * @param other the member to create a copy of
    */
   public GMSMemberData(GMSMemberData other) {
-    this.hostName = other.hostName;
-    this.udpPort = other.udpPort;
-    this.preferredForCoordinator = other.preferredForCoordinator;
-    this.networkPartitionDetectionEnabled = other.networkPartitionDetectionEnabled;
-    this.memberWeight = other.memberWeight;
-    this.inetAddr = other.inetAddr;
-    this.processId = other.processId;
-    this.vmKind = other.vmKind;
-    this.vmViewId = other.vmViewId;
-    this.directPort = other.directPort;
-    this.name = other.name;
-    this.durableId = other.durableId;
-    this.durableTimeout = other.durableTimeout;
-    this.groups = other.groups;
-    this.versionObj = other.versionObj;
-    this.uuidLSBs = other.uuidLSBs;
-    this.uuidMSBs = other.uuidMSBs;
-    this.isPartial = other.isPartial;
-    this.uniqueTag = other.uniqueTag;
+    setAll(other);
   }
 
+  @Override
+  public void setAll(MemberIdentifier other) {
+    this.hostName = other.getHostName();
+    this.udpPort = other.getMembershipPort();
+    this.preferredForCoordinator = other.preferredForCoordinator();
+    this.networkPartitionDetectionEnabled = other.isNetworkPartitionDetectionEnabled();
+    this.memberWeight = other.getMemberWeight();
+    this.inetAddr = other.getInetAddr();
+    this.processId = other.getProcessId();
+    this.vmKind = other.getVmKind();
+    this.vmViewId = other.getVmViewId();
+    this.directPort = other.getDirectChannelPort();
+    this.name = other.getName();
+    this.durableId = other.getDurableId();
+    this.durableTimeout = other.getDurableTimeout();
+    this.groups = other.getGroups().toArray(new String[0]);
+    this.versionObj = other.getVersion();
+    this.uuidLSBs = other.getUuidLeastSignificantBits();
+    this.uuidMSBs = other.getUuidMostSignificantBits();
+    this.isPartial = other.isPartial();
+    this.uniqueTag = other.getUniqueTag();
+
+  }
 
   @Override
   public int getMembershipPort() {
@@ -188,14 +209,9 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
 
 
   @Override
-  public boolean isPreferredForCoordinator() {
-    return this.preferredForCoordinator;
-  }
-
-
-  @Override
   public void setPreferredForCoordinator(boolean preferred) {
     this.preferredForCoordinator = preferred;
+    cachedToString = null;
   }
 
 
@@ -282,86 +298,26 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
    */
 
   @Override
-  public int compareTo(GMSMemberData o) {
+  public int compareWith(MemberIdentifier o) {
     return compareTo(o, true);
   }
 
   @Override
-  public int compareTo(MemberData o, boolean compareUUIDs) {
+  public int compareTo(MemberIdentifier o, boolean compareUUIDs) {
     return compareTo(o, compareUUIDs, true);
   }
 
   @Override
-  public int compareTo(MemberData o, boolean compareUUIDs, boolean compareViewIds) {
-    if (o == this) {
-      return 0;
-    }
-    // obligatory type check
-    if (o == null) {
-      throw new ClassCastException(
-          "GMSMember.compareTo(): comparison between different classes");
-    }
-    byte[] myAddr = inetAddr.getAddress();
-    GMSMemberData his = (GMSMemberData) o;
-    byte[] hisAddr = his.inetAddr.getAddress();
-    if (myAddr != hisAddr) {
-      for (int idx = 0; idx < myAddr.length; idx++) {
-        if (idx >= hisAddr.length) {
-          return 1;
-        } else if (myAddr[idx] > hisAddr[idx]) {
-          return 1;
-        } else if (myAddr[idx] < hisAddr[idx]) {
-          return -1;
-        }
-      }
-      // After checking both addresses we have only gone up to myAddr.length, their address could be
-      // longer
-      if (hisAddr.length > myAddr.length) {
-        return -1;
-      }
-    }
-    if (udpPort < his.udpPort)
-      return -1;
-    if (his.udpPort < udpPort)
-      return 1;
+  public int compareAdditionalData(MemberIdentifier o) {
     int result = 0;
-
-    // bug #41983, address of kill-9'd member is reused
-    // before it can be ejected from membership
-    if (compareViewIds && this.vmViewId >= 0 && his.vmViewId >= 0) {
-      if (this.vmViewId < his.vmViewId) {
+    if (this.uuidMSBs != 0 && o.getUuidMostSignificantBits() != 0) {
+      if (this.uuidMSBs < o.getUuidMostSignificantBits()) {
         result = -1;
-      } else if (his.vmViewId < this.vmViewId) {
+      } else if (o.getUuidMostSignificantBits() < this.uuidMSBs) {
         result = 1;
-      }
-    }
-    if (compareUUIDs && result == 0 && this.uuidMSBs != 0 && his.uuidMSBs != 0) {
-      if (this.uuidMSBs < his.uuidMSBs) {
+      } else if (this.uuidLSBs < o.getUuidLeastSignificantBits()) {
         result = -1;
-      } else if (his.uuidMSBs < this.uuidMSBs) {
-        result = 1;
-      } else if (this.uuidLSBs < his.uuidLSBs) {
-        result = -1;
-      } else if (his.uuidLSBs < this.uuidLSBs) {
-        result = 1;
-      }
-    }
-    return result;
-  }
-
-
-  @Override
-  public int compareAdditionalData(MemberData o) {
-    GMSMemberData his = (GMSMemberData) o;
-    int result = 0;
-    if (this.uuidMSBs != 0 && his.uuidMSBs != 0) {
-      if (this.uuidMSBs < his.uuidMSBs) {
-        result = -1;
-      } else if (his.uuidMSBs < this.uuidMSBs) {
-        result = 1;
-      } else if (this.uuidLSBs < his.uuidLSBs) {
-        result = -1;
-      } else if (his.uuidLSBs < this.uuidLSBs) {
+      } else if (o.getUuidLeastSignificantBits() < this.uuidLSBs) {
         result = 1;
       }
     }
@@ -372,42 +328,6 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
   public int getVmPid() {
     return processId;
   }
-
-  @Override
-  public boolean equals(Object obj) {
-    // GemStone fix for 29125
-    if ((obj == null) || !(obj instanceof GMSMemberData)) {
-      return false;
-    }
-    return compareTo((GMSMemberData) obj) == 0;
-  }
-
-  @Override
-  public int hashCode() {
-    if (this.inetAddr == null) {
-      return this.udpPort;
-    }
-    return this.udpPort + inetAddr.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder(100);
-
-    sb.append("MemberData[");
-    if (name != null && name.length() > 0) {
-      sb.append("name=").append(name);
-    }
-    sb.append(";addr=").append(inetAddr).append(";port=").append(udpPort)
-        .append(";kind=").append(vmKind).append(";processId=").append(processId)
-        .append(";viewId=").append(vmViewId);
-    if (getVersionOrdinal() != Version.CURRENT_ORDINAL) {
-      sb.append(";version=").append(getVersionOrdinal());
-    }
-    sb.append("]");
-    return sb.toString();
-  }
-
 
   @Override
   public boolean isNetworkPartitionDetectionEnabled() {
@@ -433,7 +353,7 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
 
 
   @Override
-  public byte getVmKind() {
+  public int getVmKind() {
     return vmKind;
   }
 
@@ -447,6 +367,7 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
   @Override
   public void setVmViewId(int id) {
     this.vmViewId = id;
+    cachedToString = null;
   }
 
 
@@ -458,18 +379,14 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
 
   @Override
   public String getName() {
-    return name;
+    return name == null ? "" : name;
   }
 
 
   @Override
-  public String[] getRoles() {
-    return groups;
-  }
-
-  @Override
-  public void setUdpPort(int udpPort) {
+  public void setMembershipPort(int udpPort) {
     this.udpPort = udpPort;
+    cachedToString = null;
   }
 
 
@@ -498,6 +415,7 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
   @Override
   public void setVmKind(int vmKind) {
     this.vmKind = (byte) vmKind;
+    cachedToString = null;
   }
 
 
@@ -509,6 +427,7 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
   @Override
   public void setDirectChannelPort(int directPort) {
     this.directPort = directPort;
+    cachedToString = null;
   }
 
 
@@ -519,19 +438,14 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
 
 
   @Override
-  public String[] getGroups() {
-    return groups;
+  public List<String> getGroups() {
+    return Collections.unmodifiableList(Arrays.asList(groups));
   }
 
   @Override
   public void setGroups(String[] groups) {
     this.groups = groups;
-  }
-
-
-  @Override
-  public void setPort(int p) {
-    this.udpPort = p;
+    cachedToString = null;
   }
 
   /**
@@ -642,5 +556,745 @@ public class GMSMemberData implements MemberData, Comparable<GMSMemberData> {
   @Override
   public void setUniqueTag(String tag) {
     uniqueTag = tag;
+  }
+
+  public int compare(MemberIdentifier other) {
+    return this.compareTo(other, false, true);
+  }
+
+  public int compareTo(MemberIdentifier other, boolean compareMemberData,
+      boolean compareViewIds) {
+    int myPort = getMembershipPort();
+    int otherPort = other.getMembershipPort();
+    if (myPort < otherPort)
+      return -1;
+    if (myPort > otherPort)
+      return 1;
+
+    InetAddress myAddr = getInetAddress();
+    InetAddress otherAddr = other.getInetAddress();
+
+    // Discard null cases
+    if (myAddr == null && otherAddr == null) {
+      return 0;
+    } else if (myAddr == null) {
+      return -1;
+    } else if (otherAddr == null)
+      return 1;
+
+    byte[] myBytes = myAddr.getAddress();
+    byte[] otherBytes = otherAddr.getAddress();
+
+    if (myBytes != otherBytes) {
+      for (int i = 0; i < myBytes.length; i++) {
+        if (i >= otherBytes.length)
+          return -1; // same as far as they go, but shorter...
+        if (myBytes[i] < otherBytes[i])
+          return -1;
+        if (myBytes[i] > otherBytes[i])
+          return 1;
+      }
+      if (myBytes.length > otherBytes.length)
+        return 1; // same as far as they go, but longer...
+    }
+
+    String myName = getName();
+    String otherName = other.getName();
+    if (!(other.isPartial() || this.isPartial())) {
+      if (myName == null && otherName == null) {
+        // do nothing
+      } else if (myName == null) {
+        return -1;
+      } else if (otherName == null) {
+        return 1;
+      } else {
+        int i = myName.compareTo(otherName);
+        if (i != 0) {
+          return i;
+        }
+      }
+    }
+
+    if (this.getUniqueTag() == null && other.getUniqueTag() == null) {
+      if (compareViewIds) {
+        // not loners, so look at P2P view ID
+        int thisViewId = getVmViewId();
+        int otherViewId = other.getVmViewId();
+        if (thisViewId >= 0 && otherViewId >= 0) {
+          if (thisViewId < otherViewId) {
+            return -1;
+          } else if (thisViewId > otherViewId) {
+            return 1;
+          } // else they're the same, so continue
+        }
+      }
+    } else if (this.getUniqueTag() == null) {
+      return -1;
+    } else if (other.getUniqueTag() == null) {
+      return 1;
+    } else {
+      int i = this.getUniqueTag().compareTo(other.getUniqueTag());
+      if (i != 0) {
+        return i;
+      }
+    }
+
+    if (compareMemberData) {
+      return this.compareAdditionalData(other);
+    } else {
+      return 0;
+    }
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    // GemStone fix for 29125
+    if (!(obj instanceof GMSMemberData)) {
+      return false;
+    }
+    GMSMemberData other = (GMSMemberData) obj;
+
+    int myPort = getMembershipPort();
+    int otherPort = other.getMembershipPort();
+    if (myPort != otherPort) {
+      return false;
+    }
+
+    InetAddress myAddr = getInetAddress();
+    InetAddress otherAddr = other.getInetAddress();
+    if (myAddr == null && otherAddr == null) {
+      return true;
+    } else if (!Objects.equals(myAddr, otherAddr)) {
+      return false;
+    }
+
+    if (!isPartial() && !other.isPartial()) {
+      if (!Objects.equals(getName(), other.getName())) {
+        return false;
+      }
+    }
+
+    if (this.getUniqueTag() == null && other.getUniqueTag() == null) {
+      // not loners, so look at P2P view ID
+      int thisViewId = getVmViewId();
+      int otherViewId = other.getVmViewId();
+      if (thisViewId >= 0 && otherViewId >= 0) {
+        if (thisViewId != otherViewId) {
+          return false;
+        } // else they're the same, so continue
+      }
+    } else if (!Objects.equals(this.getUniqueTag(), other.getUniqueTag())) {
+      return false;
+    }
+
+    if (0 != this.compareAdditionalData(other)) {
+      return false;
+    }
+
+    // purposely avoid checking roles
+    // @todo Add durableClientAttributes to equals
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = 0;
+    result = result + getInetAddress().hashCode();
+    result = result + getMembershipPort();
+    return result;
+  }
+
+  private String shortName(String hostname) {
+    if (hostname == null)
+      return "<null inet_addr hostname>";
+    int index = hostname.indexOf('.');
+
+    if (index > 0 && !Character.isDigit(hostname.charAt(0)))
+      return hostname.substring(0, index);
+    else
+      return hostname;
+  }
+
+
+  /** the cached string description of this object */
+  private transient String cachedToString;
+
+  @Override
+  public String toString() {
+    String result = cachedToString;
+    if (result == null) {
+      final StringBuilder sb = new StringBuilder();
+      addFixedToString(sb, false);
+
+      // add version if not current
+      short version = getVersionOrdinal();
+      if (version != Version.CURRENT.ordinal()) {
+        sb.append("(version:").append(Version.toString(version)).append(')');
+      }
+
+      // leave out Roles on purpose
+
+      result = sb.toString();
+      cachedToString = result;
+    }
+    return result;
+  }
+
+  @Override
+  public void addFixedToString(StringBuilder sb, boolean useIpAddress) {
+    // Note: This method is used to generate the HARegion name. If it is changed, memory and GII
+    // issues will occur in the case of clients with subscriptions during rolling upgrade.
+    String host;
+
+    InetAddress add = getInetAddress();
+    if (add.isMulticastAddress() || useIpAddress)
+      host = add.getHostAddress();
+    else {
+      String hostName = getHostName();
+      InetAddressValidator inetAddressValidator = InetAddressValidator.getInstance();
+      boolean isIpAddress = inetAddressValidator.isValid(hostName);
+      host = isIpAddress ? hostName : shortName(hostName);
+    }
+
+    sb.append(host);
+
+    String myName = getName();
+    int vmPid = getProcessId();
+    int vmKind = getVmKind();
+    if (vmPid > 0 || vmKind != MemberIdentifier.NORMAL_DM_TYPE || !"".equals(myName)) {
+      sb.append("(");
+
+      if (!"".equals(myName)) {
+        sb.append(myName);
+        if (vmPid > 0) {
+          sb.append(':');
+        }
+      }
+
+      if (vmPid > 0)
+        sb.append(vmPid);
+
+      String vmStr = "";
+      switch (vmKind) {
+        case MemberIdentifier.NORMAL_DM_TYPE:
+          // vmStr = ":local"; // let this be silent
+          break;
+        case MemberIdentifier.LOCATOR_DM_TYPE:
+          vmStr = ":locator";
+          break;
+        case MemberIdentifier.ADMIN_ONLY_DM_TYPE:
+          vmStr = ":admin";
+          break;
+        case MemberIdentifier.LONER_DM_TYPE:
+          vmStr = ":loner";
+          break;
+        default:
+          vmStr = ":<unknown:" + vmKind + ">";
+          break;
+      }
+      sb.append(vmStr);
+      sb.append(")");
+    }
+    if (vmKind != MemberIdentifier.LONER_DM_TYPE
+        && preferredForCoordinator()) {
+      sb.append("<ec>");
+    }
+    int vmViewId = getVmViewId();
+    if (vmViewId >= 0) {
+      sb.append("<v" + vmViewId + ">");
+    }
+    sb.append(":");
+    sb.append(getMembershipPort());
+
+    if (vmKind == MemberIdentifier.LONER_DM_TYPE) {
+      // add some more info that was added in 4.2.1 for loner bridge clients
+      // impact on non-bridge loners is ok
+      if (this.getUniqueTag() != null && this.getUniqueTag().length() != 0) {
+        sb.append(":").append(this.getUniqueTag());
+      }
+      String name = getName();
+      if (name.length() != 0) {
+        sb.append(":").append(name);
+      }
+    }
+  }
+
+  private short readVersion(int flags, DataInput in) throws IOException {
+    if ((flags & VERSION_BIT) != 0) {
+      short version = Version.readOrdinal(in);
+      return version;
+    } else {
+      // prior to 7.1 member IDs did not serialize their version information
+      Version v = StaticSerialization.getVersionForDataStreamOrNull(in);
+      if (v != null) {
+        return v.ordinal();
+      }
+      return Version.CURRENT_ORDINAL;
+    }
+  }
+
+  /**
+   * For Externalizable
+   *
+   * @see Externalizable
+   */
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+    assert getVmKind() > 0;
+
+    // do it the way we like
+    byte[] address = getInetAddress().getAddress();
+
+    out.writeInt(address.length); // IPv6 compatible
+    out.write(address);
+    out.writeInt(getMembershipPort());
+
+    StaticSerialization.writeString(getHostName(), out);
+
+    int flags = 0;
+    if (isNetworkPartitionDetectionEnabled())
+      flags |= NPD_ENABLED_BIT;
+    if (preferredForCoordinator())
+      flags |= COORD_ENABLED_BIT;
+    if (this.isPartial())
+      flags |= PARTIAL_ID_BIT;
+    // always write product version but enable reading from older versions
+    // that do not have it
+    flags |= VERSION_BIT;
+    out.writeByte((byte) (flags & 0xff));
+
+    out.writeInt(getDirectChannelPort());
+    out.writeInt(getProcessId());
+    out.writeInt(getVmKind());
+    out.writeInt(getVmViewId());
+    StaticSerialization.writeStringArray(groups, out);
+
+    StaticSerialization.writeString(getName(), out);
+    StaticSerialization.writeString(getUniqueTag(), out);
+    String durableId = getDurableId();
+    StaticSerialization.writeString(durableId == null ? "" : durableId, out);
+    StaticSerialization.writeInteger(
+        Integer.valueOf(durableId == null ? 300 : getDurableTimeout()),
+        out);
+    Version.writeOrdinal(out, getVersionOrdinal(), true);
+    writeAdditionalData(out);
+  }
+
+  /**
+   * For Externalizable
+   *
+   * @see Externalizable
+   */
+  @Override
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    int len = in.readInt(); // IPv6 compatible
+    byte addr[] = new byte[len];
+    in.readFully(addr);
+    InetAddress inetAddr = InetAddress.getByAddress(addr);
+    int port = in.readInt();
+
+    String hostName = StaticSerialization.readString(in);
+
+    int flags = in.readUnsignedByte();
+    boolean sbEnabled = (flags & NPD_ENABLED_BIT) != 0;
+    boolean elCoord = (flags & COORD_ENABLED_BIT) != 0;
+    boolean isPartial = (flags & PARTIAL_ID_BIT) != 0;
+
+    int dcPort = in.readInt();
+    int vmPid = in.readInt();
+    int vmKind = in.readInt();
+    int vmViewId = in.readInt();
+    String[] groups = StaticSerialization.readStringArray(in);
+
+    String name = StaticSerialization.readString(in);
+    String uniqueTag = StaticSerialization.readString(in);
+    String durableId = StaticSerialization.readString(in);
+    int durableTimeout = in.readInt();
+
+    short version = readVersion(flags, in);
+
+    this.inetAddr = inetAddr;
+    this.hostName = hostName;
+    this.udpPort = port;
+    this.directPort = dcPort;
+    this.name = name;
+    this.networkPartitionDetectionEnabled = sbEnabled;
+    this.preferredForCoordinator = elCoord;
+    setVersionOrdinal(version);
+    this.processId = vmPid;
+    this.vmKind = vmKind;
+    this.vmViewId = vmViewId;
+    this.groups = groups;
+    this.durableId = durableId;
+    this.durableTimeout = durableTimeout;
+    this.isPartial = isPartial;
+    this.uniqueTag = uniqueTag;
+
+
+    if (version >= Version.GFE_90.ordinal()) {
+      try {
+        readAdditionalData(in);
+      } catch (java.io.EOFException e) {
+        // old version
+      }
+    }
+    assert getVmKind() > 0;
+  }
+
+  @Override
+  public int getDSFID() {
+    return DISTRIBUTED_MEMBER;
+  }
+
+  @Override
+  public void toData(DataOutput out,
+      SerializationContext context) throws IOException {
+    toDataPre_GFE_9_0_0_0(out, context);
+    if (getVersionOrdinal() >= Version.GFE_90.ordinal()) {
+      writeAdditionalData(out);
+    }
+  }
+
+  @Override
+  public void toDataPre_GFE_9_0_0_0(DataOutput out, SerializationContext context)
+      throws IOException {
+    // Assert.assertTrue(vmKind > 0);
+    // NOTE: If you change the serialized format of this class
+    // then bump Connection.HANDSHAKE_VERSION since an
+    // instance of this class is sent during Connection handshake.
+    StaticSerialization.writeInetAddress(getInetAddress(), out);
+    out.writeInt(getMembershipPort());
+
+    StaticSerialization.writeString(getHostName(), out);
+
+    int flags = 0;
+    if (isNetworkPartitionDetectionEnabled())
+      flags |= NPD_ENABLED_BIT;
+    if (preferredForCoordinator())
+      flags |= COORD_ENABLED_BIT;
+    if (this.isPartial())
+      flags |= PARTIAL_ID_BIT;
+    // always write product version but enable reading from older versions
+    // that do not have it
+    flags |= VERSION_BIT;
+
+    out.writeByte((byte) (flags & 0xff));
+
+    out.writeInt(getDirectChannelPort());
+    out.writeInt(getProcessId());
+    int vmKind = getVmKind();
+    out.writeByte(vmKind);
+    StaticSerialization.writeStringArray(groups, out);
+
+    StaticSerialization.writeString(getName(), out);
+    if (vmKind == MemberIdentifier.LONER_DM_TYPE) {
+      StaticSerialization.writeString(getUniqueTag(), out);
+    } else { // added in 6.5 for unique identifiers in P2P
+      StaticSerialization.writeString(String.valueOf(getVmViewId()), out);
+    }
+    String durableId = getDurableId();
+    StaticSerialization.writeString(durableId == null ? "" : durableId, out);
+    StaticSerialization.writeInteger(
+        Integer.valueOf(durableId == null ? 300 : getDurableTimeout()),
+        out);
+
+    short version = getVersionOrdinal();
+    Version.writeOrdinal(out, version, true);
+  }
+
+  @Override
+  public void toDataPre_GFE_7_1_0_0(DataOutput out, SerializationContext context)
+      throws IOException {
+    assert getVmKind() > 0;
+    // disabled to allow post-connect setting of the port for loner systems
+    // Assert.assertTrue(getPort() > 0);
+    // if (this.getPort() == 0) {
+    // InternalDistributedSystem.getLogger().warning(String.format("%s",
+    // "Serializing ID with zero port", new Exception("Stack trace")));
+    // }
+
+    // NOTE: If you change the serialized format of this class
+    // then bump Connection.HANDSHAKE_VERSION since an
+    // instance of this class is sent during Connection handshake.
+    StaticSerialization.writeInetAddress(getInetAddress(), out);
+    out.writeInt(getMembershipPort());
+
+    StaticSerialization.writeString(getHostName(), out);
+
+    int flags = 0;
+    if (isNetworkPartitionDetectionEnabled())
+      flags |= NPD_ENABLED_BIT;
+    if (preferredForCoordinator())
+      flags |= COORD_ENABLED_BIT;
+    if (this.isPartial())
+      flags |= PARTIAL_ID_BIT;
+    out.writeByte((byte) (flags & 0xff));
+
+    out.writeInt(getDirectChannelPort());
+    out.writeInt(getProcessId());
+    out.writeByte(getVmKind());
+    StaticSerialization.writeStringArray(groups, out);
+
+    StaticSerialization.writeString(getName(), out);
+    int vmKind = getVmKind();
+    if (vmKind == MemberIdentifier.LONER_DM_TYPE) {
+      StaticSerialization.writeString(getUniqueTag(), out);
+    } else { // added in 6.5 for unique identifiers in P2P
+      StaticSerialization.writeString(String.valueOf(getVmViewId()), out);
+    }
+    String durableId = getDurableId();
+    StaticSerialization.writeString(durableId == null ? "" : durableId, out);
+    StaticSerialization.writeInteger(
+        Integer.valueOf(durableId == null ? 300 : getDurableTimeout()),
+        out);
+  }
+
+  @Override
+  public void fromData(DataInput in,
+      DeserializationContext context) throws IOException, ClassNotFoundException {
+    fromDataPre_GFE_9_0_0_0(in, context);
+    // just in case this is just a non-versioned read
+    // from a file we ought to check the version
+    if (getVersionOrdinal() >= Version.GFE_90.ordinal()) {
+      try {
+        readAdditionalData(in);
+      } catch (EOFException e) {
+        // nope - it's from a pre-GEODE client or WAN site
+      }
+    }
+  }
+
+  @Override
+  public void fromDataPre_GFE_9_0_0_0(DataInput in, DeserializationContext context)
+      throws IOException, ClassNotFoundException {
+    InetAddress inetAddr = StaticSerialization.readInetAddress(in);
+    int port = in.readInt();
+
+    String hostName = StaticSerialization.readString(in);
+
+    int flags = in.readUnsignedByte();
+    boolean sbEnabled = (flags & NPD_ENABLED_BIT) != 0;
+    boolean elCoord = (flags & COORD_ENABLED_BIT) != 0;
+    boolean isPartial = (flags & PARTIAL_ID_BIT) != 0;
+
+    int dcPort = in.readInt();
+    int vmPid = in.readInt();
+    int vmKind = in.readUnsignedByte();
+    String[] groups = StaticSerialization.readStringArray(in);
+    int vmViewId = -1;
+
+    String name = StaticSerialization.readString(in);
+    String uniqueTag = null;
+    if (vmKind == MemberIdentifier.LONER_DM_TYPE) {
+      uniqueTag = StaticSerialization.readString(in);
+    } else {
+      String str = StaticSerialization.readString(in);
+      if (str != null) { // backward compatibility from earlier than 6.5
+        vmViewId = Integer.parseInt(str);
+      }
+    }
+
+    String durableId = StaticSerialization.readString(in);
+    int durableTimeout = in.readInt();
+
+    short version = readVersion(flags, in);
+
+    this.inetAddr = inetAddr;
+    this.hostName = hostName;
+    this.udpPort = port;
+    this.directPort = dcPort;
+    this.name = name;
+    this.networkPartitionDetectionEnabled = sbEnabled;
+    this.preferredForCoordinator = elCoord;
+    setVersionOrdinal(version);
+    this.processId = vmPid;
+    this.vmKind = vmKind;
+    this.vmViewId = vmViewId;
+    this.groups = groups;
+    this.durableId = durableId;
+    this.durableTimeout = durableTimeout;
+    this.isPartial = isPartial;
+    this.uniqueTag = uniqueTag;
+
+    assert getVmKind() > 0;
+  }
+
+  @Override
+  public void fromDataPre_GFE_7_1_0_0(DataInput in, DeserializationContext context)
+      throws IOException, ClassNotFoundException {
+    InetAddress inetAddr = StaticSerialization.readInetAddress(in);
+    int port = in.readInt();
+
+    String hostName = StaticSerialization.readString(in);
+
+    int flags = in.readUnsignedByte();
+    boolean sbEnabled = (flags & NPD_ENABLED_BIT) != 0;
+    boolean elCoord = (flags & COORD_ENABLED_BIT) != 0;
+    boolean isPartial = (flags & PARTIAL_ID_BIT) != 0;
+
+    int dcPort = in.readInt();
+    int vmPid = in.readInt();
+    int vmKind = in.readUnsignedByte();
+    String[] groups = StaticSerialization.readStringArray(in);
+    int vmViewId = -1;
+
+    String name = StaticSerialization.readString(in);
+    String uniqueTag = null;
+    if (vmKind == MemberIdentifier.LONER_DM_TYPE) {
+      uniqueTag = StaticSerialization.readString(in);
+    } else {
+      String str = StaticSerialization.readString(in);
+      if (str != null) { // backward compatibility from earlier than 6.5
+        vmViewId = Integer.parseInt(str);
+      }
+    }
+
+    String durableId = StaticSerialization.readString(in);
+    int durableTimeout = in.readInt();
+
+    short version = readVersion(flags, in);
+
+    this.inetAddr = inetAddr;
+    this.hostName = hostName;
+    this.udpPort = port;
+    this.directPort = dcPort;
+    this.name = name;
+    this.networkPartitionDetectionEnabled = sbEnabled;
+    this.preferredForCoordinator = elCoord;
+    setVersionOrdinal(version);
+    this.processId = vmPid;
+    this.vmKind = vmKind;
+    this.vmViewId = vmViewId;
+    this.groups = groups;
+    this.durableId = durableId;
+    this.durableTimeout = durableTimeout;
+    this.isPartial = isPartial;
+    this.uniqueTag = uniqueTag;
+
+    assert getVmKind() > 0;
+  }
+
+
+  @Override
+  public void _readEssentialData(DataInput in, Function<InetAddress, String> hostnameResolver)
+      throws IOException, ClassNotFoundException {
+    InetAddress inetAddr = StaticSerialization.readInetAddress(in);
+    int port = in.readInt();
+
+    String hostName = hostnameResolver.apply(inetAddr);
+
+    int flags = in.readUnsignedByte();
+    boolean sbEnabled = (flags & NPD_ENABLED_BIT) != 0;
+    boolean elCoord = (flags & COORD_ENABLED_BIT) != 0;
+
+    int vmKind = in.readUnsignedByte();
+    int vmViewId = -1;
+
+    String uniqueTag = null;
+    if (vmKind == MemberIdentifier.LONER_DM_TYPE) {
+      uniqueTag = StaticSerialization.readString(in);
+    } else {
+      String str = StaticSerialization.readString(in);
+      if (str != null) { // backward compatibility from earlier than 6.5
+        vmViewId = Integer.parseInt(str);
+      }
+    }
+
+    String name = StaticSerialization.readString(in);
+
+    short version = StaticSerialization.getVersionForDataStream(in).ordinal();
+
+    this.inetAddr = inetAddr;
+    this.hostName = hostName;
+    this.udpPort = port;
+    this.name = name;
+    this.networkPartitionDetectionEnabled = sbEnabled;
+    this.preferredForCoordinator = elCoord;
+    setVersionOrdinal(version);
+    this.vmKind = vmKind;
+    this.vmViewId = vmViewId;
+    this.uniqueTag = uniqueTag;
+
+    if (StaticSerialization.getVersionForDataStream(in).compareTo(Version.GFE_90) == 0) {
+      readAdditionalData(in);
+    }
+  }
+
+  @Override
+  public void writeEssentialData(DataOutput out) throws IOException {
+    assert getVmKind() > 0;
+    StaticSerialization.writeInetAddress(getInetAddress(), out);
+    out.writeInt(getMembershipPort());
+
+    int flags = 0;
+    if (isNetworkPartitionDetectionEnabled())
+      flags |= NPD_ENABLED_BIT;
+    if (preferredForCoordinator())
+      flags |= COORD_ENABLED_BIT;
+    flags |= PARTIAL_ID_BIT;
+    out.writeByte((byte) (flags & 0xff));
+
+    // out.writeInt(dcPort);
+    int vmKind = getVmKind();
+    out.writeByte(vmKind);
+
+    if (vmKind == MemberIdentifier.LONER_DM_TYPE) {
+      StaticSerialization.writeString(getUniqueTag(), out);
+    } else { // added in 6.5 for unique identifiers in P2P
+      StaticSerialization.writeString(String.valueOf(getVmViewId()), out);
+    }
+    // write name last to fix bug 45160
+    StaticSerialization.writeString(getName(), out);
+
+    Version outputVersion = StaticSerialization.getVersionForDataStream(out);
+    if (0 <= outputVersion.compareTo(Version.GFE_90)
+        && outputVersion.compareTo(Version.GEODE_1_1_0) < 0) {
+      writeAdditionalData(out);
+    }
+  }
+
+
+  @Override
+  public String getHost() {
+    return this.getInetAddress().getCanonicalHostName();
+  }
+
+  @Override
+  public String getId() {
+    return toString();
+  }
+
+  @Override
+  public String getUniqueId() {
+    StringBuilder sb = new StringBuilder();
+    addFixedToString(sb, false);
+
+    // add version if not current
+    short version = getVersionOrdinal();
+    if (version != Version.CURRENT.ordinal()) {
+      sb.append("(version:").append(Version.toString(version)).append(')');
+    }
+
+    return sb.toString();
+  }
+
+  @Override
+  public Version getVersionObject() {
+    return getVersion();
+  }
+
+  @Override
+  public Version[] getSerializationVersions() {
+    return dsfidVersions;
+  }
+
+
+  @Override
+  public boolean preferredForCoordinator() {
+    return preferredForCoordinator;
   }
 }

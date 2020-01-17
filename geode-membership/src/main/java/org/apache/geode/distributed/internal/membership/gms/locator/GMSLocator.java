@@ -287,7 +287,7 @@ public class GMSLocator<ID extends MemberIdentifier> implements Locator<ID>, Tcp
       // that entry - it's obviously an old member since the ID has been reused
       ID requestingMemberID = findRequest.getMemberID();
       for (ID id : responseView.getMembers()) {
-        if (requestingMemberID.getMemberData().compareTo(id.getMemberData(), false) == 0) {
+        if (requestingMemberID.compareTo(id, false) == 0) {
           GMSMembershipView<ID> newView =
               new GMSMembershipView<>(responseView, responseView.getViewId());
           newView.remove(id);
@@ -319,7 +319,7 @@ public class GMSLocator<ID extends MemberIdentifier> implements Locator<ID>, Tcp
           if (mbr != coordinator && (coordinator == null || Objects.compare(mbr, coordinator,
               services.getMemberFactory().getComparator()) < 0)) {
             if (!rejections.contains(mbr) && (mbr.preferredForCoordinator()
-                || !mbr.getMemberData().isNetworkPartitionDetectionEnabled())) {
+                || !mbr.isNetworkPartitionDetectionEnabled())) {
               coordinator = mbr;
             }
           }

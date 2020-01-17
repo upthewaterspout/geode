@@ -36,7 +36,7 @@ public class ThreadIdentifierJUnitTest {
   @Test
   public void testEqualsIgnoresUUIDBytes() throws Exception {
     InternalDistributedMember id = new InternalDistributedMember(InetAddress.getLocalHost(), 1234);
-    id.setVersionObjectForTest(Version.GFE_90);
+    id.setVersion(Version.GFE_90);
     byte[] memberIdBytes = EventID.getMembershipId(new ClientProxyMembershipID(id));
     byte[] memberIdBytesWithoutUUID = new byte[memberIdBytes.length - (2 * 8 + 1)];// UUID bytes +
                                                                                    // weight byte

@@ -381,15 +381,15 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
       for (final Entry<ID, Long> internalIDLongEntry : surpriseMembers
           .entrySet()) {
         ID mbr = internalIDLongEntry.getKey();
-        Version itsVersion = mbr.getVersionObject();
+        Version itsVersion = mbr.getVersion();
         if (itsVersion != null && version.compareTo(itsVersion) < 0) {
           version = itsVersion;
         }
       }
       for (ID mbr : newView.getMembers()) {
-        Version itsVersion = mbr.getVersionObject();
+        Version itsVersion = mbr.getVersion();
         if (itsVersion != null && itsVersion.compareTo(version) < 0) {
-          version = mbr.getVersionObject();
+          version = mbr.getVersion();
         }
       }
       disableMulticastForRollingUpgrade = !version.equals(Version.CURRENT);
@@ -421,7 +421,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
               surpriseMembers.entrySet().iterator(); iterator.hasNext();) {
             Entry<ID, Long> entry = iterator.next();
             if (entry.getKey().equals(m)) {
-              entry.getKey().setMemberData(m.getMemberData());
+              entry.getKey().setAll(m);
               iterator.remove();
               break;
             }
@@ -942,7 +942,7 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     ID oldID = sender;
     ID newID = this.services.getJoinLeave().getMemberID(oldID);
     if (newID != null && newID != oldID) {
-      sender.setMemberData(newID.getMemberData());
+      sender.setAll(newID);
       sender.setIsPartial(false);
     } else {
       MembershipView currentView = latestView;
@@ -1441,8 +1441,8 @@ public class GMSMembership<ID extends MemberIdentifier> implements Membership<ID
     for (int i = 0; i < addresses.length; i++) {
       ID id = addresses[i];
       if (id != null) {
-        if (!id.getMemberData().hasUUID()) {
-          id.setMemberData(view.getCanonicalID(id).getMemberData());
+        if (!id.hasUUID()) {
+          id.setAll(view.getCanonicalID(id));
         }
       }
     }

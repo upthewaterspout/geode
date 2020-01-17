@@ -59,9 +59,8 @@ import org.apache.geode.distributed.internal.ClusterDistributionManager;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.adapter.ServiceConfig;
 import org.apache.geode.distributed.internal.membership.api.Authenticator;
-import org.apache.geode.distributed.internal.membership.api.MemberData;
-import org.apache.geode.distributed.internal.membership.api.MemberDataBuilder;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
+import org.apache.geode.distributed.internal.membership.api.MemberIdentifierBuilder;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifierFactory;
 import org.apache.geode.distributed.internal.membership.api.MemberStartupException;
 import org.apache.geode.distributed.internal.membership.api.MembershipConfig;
@@ -147,7 +146,7 @@ public class GMSJoinLeaveJUnitTest {
     when(services.getMemberFactory())
         .thenReturn(new MemberIdentifierFactory<InternalDistributedMember>() {
           @Override
-          public InternalDistributedMember create(MemberData memberInfo) {
+          public InternalDistributedMember create(MemberIdentifier memberInfo) {
             return new InternalDistributedMember(memberInfo);
           }
 
@@ -158,7 +157,7 @@ public class GMSJoinLeaveJUnitTest {
         });
 
     gmsJoinLeaveMemberId = services.getMemberFactory().create(
-        MemberDataBuilder.newBuilderForLocalHost("localhost")
+        MemberIdentifierBuilder.newBuilderForLocalHost("localhost")
             .setMembershipPort(8887).build());
 
 
@@ -175,13 +174,13 @@ public class GMSJoinLeaveJUnitTest {
     mockMembers = new InternalDistributedMember[4];
     for (int i = 0; i < mockMembers.length; i++) {
       mockMembers[i] = services.getMemberFactory().create(
-          MemberDataBuilder.newBuilderForLocalHost("localhost")
+          MemberIdentifierBuilder.newBuilderForLocalHost("localhost")
               .setMembershipPort(8888 + i).build());
     }
     mockOldMember = services.getMemberFactory().create(
-        MemberDataBuilder.newBuilderForLocalHost("localhost")
+        MemberIdentifierBuilder.newBuilderForLocalHost("localhost")
             .setMembershipPort(8700).build());
-    ((InternalDistributedMember) mockOldMember).setVersionObjectForTest(Version.GFE_56);
+    mockOldMember.setVersion(Version.GFE_56);
     locatorClient = mock(TcpClient.class);
 
     if (useTestGMSJoinLeave) {
@@ -627,12 +626,12 @@ public class GMSJoinLeaveJUnitTest {
     // gmsJoinLeave mistakenly uses an old viewID when joining, making it a rogue member
     gmsJoinLeaveMemberId.setVmViewId(-1);
     MemberIdentifier previousMemberId = services.getMemberFactory().create(
-        MemberDataBuilder.newBuilder(gmsJoinLeaveMemberId.getInetAddress(),
+        MemberIdentifierBuilder.newBuilder(gmsJoinLeaveMemberId.getInetAddress(),
             gmsJoinLeaveMemberId.getHostName())
             .setMembershipPort(gmsJoinLeaveMemberId.getMembershipPort())
             .build());
     previousMemberId.setVmViewId(0);
-    previousMemberId.getMemberData().setUUID(gmsJoinLeaveMemberId.getMemberData().getUUID());
+    previousMemberId.setUUID(gmsJoinLeaveMemberId.getUUID());
     GMSMembershipView view = new GMSMembershipView(mockMembers[0], 1,
         createMemberList(mockMembers[0], previousMemberId, mockMembers[1]));
     InstallViewMessage viewMessage = new InstallViewMessage(view, 0, false);
@@ -867,7 +866,7 @@ public class GMSJoinLeaveJUnitTest {
     mbrs.add(mockMembers[2]);
     mbrs.add(gmsJoinLeaveMemberId);
 
-    mockMembers[1].getMemberData().setMemberWeight((byte) 20);
+    mockMembers[1].setMemberWeight((byte) 20);
 
     GMSMembershipView newView =
         new GMSMembershipView(mockMembers[0], gmsJoinLeave.getView().getViewId() + 1, mbrs);
@@ -917,7 +916,7 @@ public class GMSJoinLeaveJUnitTest {
     mbrs.add(mockMembers[2]);
     mbrs.add(gmsJoinLeaveMemberId);
 
-    mockMembers[1].getMemberData().setMemberWeight((byte) 20);
+    mockMembers[1].setMemberWeight((byte) 20);
 
     GMSMembershipView newView =
         new GMSMembershipView(mockMembers[0], gmsJoinLeave.getView().getViewId() + 1, mbrs,

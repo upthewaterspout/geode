@@ -39,8 +39,8 @@ public class MemberIdentifierFactoryImplTest {
   @Test
   public void testRemoteHost() throws UnknownHostException {
     InetAddress localhost = LocalHostUtil.getLocalHost();
-    MemberData memberData =
-        MemberDataBuilder.newBuilder(localhost, localhost.getHostName()).build();
+    MemberIdentifier memberData =
+        MemberIdentifierBuilder.newBuilder(localhost, localhost.getHostName()).build();
     MemberIdentifier data = factory.create(memberData);
     assertThat(data.getInetAddress()).isEqualTo(localhost);
     assertThat(data.getHostName()).isEqualTo(localhost.getHostName());
@@ -49,7 +49,8 @@ public class MemberIdentifierFactoryImplTest {
   @Test
   public void testNewBuilderForLocalHost() throws UnknownHostException {
     InetAddress localhost = LocalHostUtil.getLocalHost();
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname").build();
+    MemberIdentifier memberData =
+        MemberIdentifierBuilder.newBuilderForLocalHost("hostname").build();
     MemberIdentifier data = factory.create(memberData);
     assertThat(data.getInetAddress()).isEqualTo(localhost);
     assertThat(data.getHostName()).isEqualTo("hostname");
@@ -57,7 +58,7 @@ public class MemberIdentifierFactoryImplTest {
 
   @Test
   public void testSetMembershipPort() {
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setMembershipPort(1234).build();
     MemberIdentifier data = factory.create(memberData);
     assertThat(data.getMembershipPort()).isEqualTo(1234);
@@ -65,7 +66,7 @@ public class MemberIdentifierFactoryImplTest {
 
   @Test
   public void testSetVmKind() {
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setVmKind(12).build();
     MemberIdentifier data = factory.create(memberData);
     assertThat(data.getVmKind()).isEqualTo((byte) 12);
@@ -73,7 +74,7 @@ public class MemberIdentifierFactoryImplTest {
 
   @Test
   public void testSetVmViewId() {
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setVmViewId(1234).build();
     MemberIdentifier data = factory.create(memberData);
     assertThat(data.getVmViewId()).isEqualTo(1234);
@@ -82,7 +83,7 @@ public class MemberIdentifierFactoryImplTest {
   @Test
   public void testSetGroups() {
     String[] groups = new String[] {"group1", "group2"};
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setGroups(groups).build();
     MemberIdentifier data = factory.create(memberData);
     assertThat(data.getGroups()).isEqualTo(Arrays.asList(groups));
@@ -90,15 +91,15 @@ public class MemberIdentifierFactoryImplTest {
 
   @Test
   public void testSetDurableId() {
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setDurableId("myId").build();
     MemberIdentifier data = factory.create(memberData);
-    assertThat(data.getMemberData().getDurableId()).isEqualTo("myId");
+    assertThat(data.getDurableId()).isEqualTo("myId");
   }
 
   @Test
   public void testSetVersionOrdinal() {
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setVersionOrdinal(Version.CURRENT_ORDINAL).build();
     MemberIdentifier data = factory.create(memberData);
     assertThat(data.getVersionOrdinal()).isEqualTo(Version.CURRENT_ORDINAL);
@@ -106,23 +107,23 @@ public class MemberIdentifierFactoryImplTest {
 
   @Test
   public void membersAreEqual() {
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setMembershipPort(1).build();
-    MemberIdentifierImpl member1 = factory.create(memberData);
-    memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier member1 = factory.create(memberData);
+    memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setMembershipPort(1).build();
-    MemberIdentifierImpl member2 = factory.create(memberData);
+    MemberIdentifier member2 = factory.create(memberData);
     assertThat(factory.getComparator().compare(member1, member2)).isZero();
   }
 
   @Test
   public void membersAreNotEqual() {
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setMembershipPort(1).build();
-    MemberIdentifierImpl member1 = factory.create(memberData);
-    memberData = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier member1 = factory.create(memberData);
+    memberData = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setMembershipPort(2).build();
-    MemberIdentifierImpl member2 = factory.create(memberData);
+    MemberIdentifier member2 = factory.create(memberData);
     assertThat(factory.getComparator().compare(member1, member2)).isLessThan(0);
     assertThat(factory.getComparator().compare(member2, member1)).isGreaterThan(0);
   }

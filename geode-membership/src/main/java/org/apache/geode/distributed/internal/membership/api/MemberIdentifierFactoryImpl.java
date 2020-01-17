@@ -17,15 +17,15 @@ package org.apache.geode.distributed.internal.membership.api;
 import java.util.Comparator;
 
 public class MemberIdentifierFactoryImpl
-    implements MemberIdentifierFactory<MemberIdentifierImpl> {
+    implements MemberIdentifierFactory<MemberIdentifier> {
 
   @Override
-  public MemberIdentifierImpl create(MemberData memberInfo) {
-    return new MemberIdentifierImpl(memberInfo, null);
+  public MemberIdentifier create(MemberIdentifier memberInfo) {
+    return memberInfo;
   }
 
   @Override
-  public Comparator<MemberIdentifierImpl> getComparator() {
-    return MemberIdentifierImpl::compare;
+  public Comparator<MemberIdentifier> getComparator() {
+    return MemberIdentifier::compareWith;
   }
 }

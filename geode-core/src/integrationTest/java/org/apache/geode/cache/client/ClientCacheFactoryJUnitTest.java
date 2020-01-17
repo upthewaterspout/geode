@@ -346,7 +346,7 @@ public class ClientCacheFactoryJUnitTest {
     InternalDistributedMember memberID =
         (InternalDistributedMember) clientCache.getDistributedSystem().getDistributedMember();
     MemberIdentifier gmsID = memberID;
-    memberID.setVersionObjectForTest(Version.GFE_82);
+    memberID.setVersion(Version.GFE_82);
     assertThat(memberID.getVersionObject()).isEqualTo(Version.GFE_82);
 
     ClientProxyMembershipID clientID = ClientProxyMembershipID.getClientId(memberID);
@@ -362,11 +362,11 @@ public class ClientCacheFactoryJUnitTest {
     assertThat(newMemberID.getVersionObject()).isEqualTo(Version.GFE_82);
     assertThat(newID.getClientVersion()).isEqualTo(Version.GFE_82);
 
-    assertThat(newMemberID.getMemberData().getUuidLeastSignificantBits()).isEqualTo(0);
-    assertThat(newMemberID.getMemberData().getUuidMostSignificantBits()).isEqualTo(0);
+    assertThat(newMemberID.getUuidLeastSignificantBits()).isEqualTo(0);
+    assertThat(newMemberID.getUuidMostSignificantBits()).isEqualTo(0);
 
-    gmsID.getMemberData().setUUID(new UUID(1234L, 5678L));
-    memberID.setVersionObjectForTest(Version.CURRENT);
+    gmsID.setUUID(new UUID(1234L, 5678L));
+    memberID.setVersion(Version.CURRENT);
     clientID = ClientProxyMembershipID.getClientId(memberID);
     out = new HeapDataOutputStream(Version.CURRENT);
     DataSerializer.writeObject(clientID, out);
@@ -378,10 +378,10 @@ public class ClientCacheFactoryJUnitTest {
     assertThat(newMemberID.getVersionObject()).isEqualTo(Version.CURRENT);
     assertThat(newID.getClientVersion()).isEqualTo(Version.CURRENT);
 
-    assertThat(newMemberID.getMemberData().getUuidLeastSignificantBits())
-        .isEqualTo(gmsID.getMemberData().getUuidLeastSignificantBits());
-    assertThat(newMemberID.getMemberData().getUuidMostSignificantBits())
-        .isEqualTo(gmsID.getMemberData().getUuidMostSignificantBits());
+    assertThat(newMemberID.getUuidLeastSignificantBits())
+        .isEqualTo(gmsID.getUuidLeastSignificantBits());
+    assertThat(newMemberID.getUuidMostSignificantBits())
+        .isEqualTo(gmsID.getUuidMostSignificantBits());
   }
 
   @Test

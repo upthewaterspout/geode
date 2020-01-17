@@ -17,9 +17,8 @@ package org.apache.geode.distributed.internal.membership.gms;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import org.apache.geode.distributed.internal.membership.api.MemberData;
-import org.apache.geode.distributed.internal.membership.api.MemberDataBuilder;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
+import org.apache.geode.distributed.internal.membership.api.MemberIdentifierBuilder;
 import org.apache.geode.internal.serialization.Version;
 
 /**
@@ -27,7 +26,7 @@ import org.apache.geode.internal.serialization.Version;
  * MemberData and is exposed to geode-core to support construction of identifiers in
  * deserialization code and in tests.
  */
-public class MemberDataBuilderImpl implements MemberDataBuilder {
+public class MemberIdentifierBuilderImpl implements MemberIdentifierBuilder {
 
   private static final String EMPTY_STRING = "";
 
@@ -59,23 +58,31 @@ public class MemberDataBuilderImpl implements MemberDataBuilder {
   /**
    * Create a builder for the given host machine and host name
    */
-  public static MemberDataBuilderImpl newBuilder(InetAddress hostAddress, String hostName) {
-    return new MemberDataBuilderImpl(hostAddress, hostName);
+  public static MemberIdentifierBuilderImpl newBuilder(InetAddress hostAddress, String hostName) {
+    return new MemberIdentifierBuilderImpl(hostAddress, hostName);
   }
 
   /**
    * Create a builder for the machine hosting this process
    */
-  public static MemberDataBuilderImpl newBuilderForLocalHost(String hostName) {
-    return new MemberDataBuilderImpl(hostName);
+  public static MemberIdentifierBuilderImpl newBuilderForLocalHost(String hostName) {
+    return new MemberIdentifierBuilderImpl(hostName);
   }
 
-  private MemberDataBuilderImpl(InetAddress hostAddress, String hostName) {
+  public static MemberIdentifierBuilderImpl newBuilderForDeserialization() {
+    return new MemberIdentifierBuilderImpl();
+  }
+
+  private MemberIdentifierBuilderImpl() {
+
+  }
+
+  private MemberIdentifierBuilderImpl(InetAddress hostAddress, String hostName) {
     inetAddress = hostAddress;
     this.hostName = hostName;
   }
 
-  private MemberDataBuilderImpl(String fakeHostName) {
+  private MemberIdentifierBuilderImpl(String fakeHostName) {
     try {
       inetAddress = InetAddress.getLocalHost();
     } catch (UnknownHostException e2) {
@@ -84,89 +91,89 @@ public class MemberDataBuilderImpl implements MemberDataBuilder {
     hostName = fakeHostName;
   }
 
-  public MemberDataBuilderImpl setMembershipPort(int membershipPort) {
+  public MemberIdentifierBuilderImpl setMembershipPort(int membershipPort) {
     this.membershipPort = membershipPort;
     return this;
   }
 
-  public MemberDataBuilderImpl setDirectChannelPort(int directChannelPort) {
+  public MemberIdentifierBuilderImpl setDirectChannelPort(int directChannelPort) {
     this.directChannelPort = directChannelPort;
     return this;
   }
 
-  public MemberDataBuilderImpl setVmPid(int vmPid) {
+  public MemberIdentifierBuilderImpl setVmPid(int vmPid) {
     this.vmPid = vmPid;
     return this;
   }
 
-  public MemberDataBuilderImpl setVmKind(int vmKind) {
+  public MemberIdentifierBuilderImpl setVmKind(int vmKind) {
     this.vmKind = vmKind;
     return this;
   }
 
-  public MemberDataBuilderImpl setVmViewId(int vmViewId) {
+  public MemberIdentifierBuilderImpl setVmViewId(int vmViewId) {
     this.vmViewId = vmViewId;
     return this;
   }
 
-  public MemberDataBuilderImpl setName(String name) {
+  public MemberIdentifierBuilderImpl setName(String name) {
     this.name = name;
     return this;
   }
 
-  public MemberDataBuilderImpl setGroups(String[] groups) {
+  public MemberIdentifierBuilderImpl setGroups(String[] groups) {
     this.groups = groups;
     return this;
   }
 
-  public MemberDataBuilderImpl setDurableId(String durableId) {
+  public MemberIdentifierBuilderImpl setDurableId(String durableId) {
     this.durableId = durableId;
     return this;
   }
 
-  public MemberDataBuilderImpl setDurableTimeout(int durableTimeout) {
+  public MemberIdentifierBuilderImpl setDurableTimeout(int durableTimeout) {
     this.durableTimeout = durableTimeout;
     return this;
   }
 
-  public MemberDataBuilderImpl setPreferredForCoordinator(boolean preferredForCoordinator) {
+  public MemberIdentifierBuilderImpl setPreferredForCoordinator(boolean preferredForCoordinator) {
     this.preferredForCoordinator = preferredForCoordinator;
     return this;
   }
 
-  public MemberDataBuilderImpl setNetworkPartitionDetectionEnabled(
+  public MemberIdentifierBuilderImpl setNetworkPartitionDetectionEnabled(
       boolean networkPartitionDetectionEnabled) {
     this.networkPartitionDetectionEnabled = networkPartitionDetectionEnabled;
     return this;
   }
 
-  public MemberDataBuilderImpl setVersionOrdinal(short versionOrdinal) {
+  public MemberIdentifierBuilderImpl setVersionOrdinal(short versionOrdinal) {
     this.versionOrdinal = versionOrdinal;
     return this;
   }
 
-  public MemberDataBuilderImpl setUuidMostSignificantBits(long uuidMostSignificantBits) {
+  public MemberIdentifierBuilderImpl setUuidMostSignificantBits(long uuidMostSignificantBits) {
     this.uuidMostSignificantBits = uuidMostSignificantBits;
     return this;
   }
 
-  public MemberDataBuilderImpl setUuidLeastSignificantBits(long uuidLeastSignificantBits) {
+  public MemberIdentifierBuilderImpl setUuidLeastSignificantBits(long uuidLeastSignificantBits) {
     this.uuidLeastSignificantBits = uuidLeastSignificantBits;
     return this;
   }
 
-  public MemberDataBuilderImpl setIsPartial(boolean partial) {
+  public MemberIdentifierBuilderImpl setIsPartial(boolean partial) {
     this.isPartial = partial;
     return this;
   }
 
   @Override
-  public MemberDataBuilder setUniqueTag(String uniqueTag) {
+  public MemberIdentifierBuilder setUniqueTag(String uniqueTag) {
     this.uniqueTag = uniqueTag;
     return this;
   }
 
-  public MemberData build() {
+  public MemberIdentifier build() {
     return new GMSMemberData(inetAddress, hostName,
         membershipPort, vmPid, (byte) vmKind, directChannelPort,
         vmViewId, name, groups, durableId, durableTimeout,

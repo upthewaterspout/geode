@@ -22,16 +22,17 @@ import java.net.UnknownHostException;
 
 import org.junit.Test;
 
-import org.apache.geode.distributed.internal.membership.api.MemberData;
-import org.apache.geode.distributed.internal.membership.api.MemberDataBuilder;
+import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
+import org.apache.geode.distributed.internal.membership.api.MemberIdentifierBuilder;
 import org.apache.geode.internal.serialization.Version;
 
-public class MemberDataBuilderImplTest {
+public class MemberIdentifierBuilderImplTest {
 
   @Test
   public void testNewBuilder() throws UnknownHostException {
     InetAddress localhost = InetAddress.getLocalHost();
-    MemberData data = MemberDataBuilder.newBuilder(localhost, localhost.getHostName()).build();
+    MemberIdentifier data =
+        MemberIdentifierBuilder.newBuilder(localhost, localhost.getHostName()).build();
     assertThat(data.getInetAddress()).isEqualTo(localhost);
     assertThat(data.getHostName()).isEqualTo(localhost.getHostName());
   }
@@ -39,49 +40,49 @@ public class MemberDataBuilderImplTest {
   @Test
   public void testNewBuilderForLocalHost() throws UnknownHostException {
     InetAddress localhost = InetAddress.getLocalHost();
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname").build();
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname").build();
     assertThat(data.getInetAddress()).isEqualTo(localhost);
     assertThat(data.getHostName()).isEqualTo("hostname");
   }
 
   @Test
   public void testSetMembershipPort() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setMembershipPort(1234).build();
     assertThat(data.getMembershipPort()).isEqualTo(1234);
   }
 
   @Test
   public void testSetDirectPort() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setDirectChannelPort(1234).build();
     assertThat(data.getDirectChannelPort()).isEqualTo(1234);
   }
 
   @Test
   public void testSetVmPid() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setVmPid(1234).build();
     assertThat(data.getVmPid()).isEqualTo(1234);
   }
 
   @Test
   public void testSetVmKind() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setVmKind(12).build();
     assertThat(data.getVmKind()).isEqualTo((byte) 12);
   }
 
   @Test
   public void testSetVmViewId() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setVmViewId(1234).build();
     assertThat(data.getVmViewId()).isEqualTo(1234);
   }
 
   @Test
   public void testSetName() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setName("carlos").build();
     assertThat(data.getName()).isEqualTo("carlos");
   }
@@ -89,40 +90,40 @@ public class MemberDataBuilderImplTest {
   @Test
   public void testSetGroups() {
     String[] groups = new String[] {"group1", "group2"};
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setGroups(groups).build();
     assertThat(data.getGroups()).isEqualTo(groups);
   }
 
   @Test
   public void testSetDurableId() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setDurableId("myId").build();
     assertThat(data.getDurableId()).isEqualTo("myId");
   }
 
   @Test
   public void testSetDurableTimeout() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setDurableTimeout(1234).build();
     assertThat(data.getDurableTimeout()).isEqualTo(1234);
   }
 
   @Test
   public void testSetPreferredForCoordinator() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setPreferredForCoordinator(false).build();
-    MemberData data2 = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data2 = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setPreferredForCoordinator(true).build();
-    assertThat(data.isPreferredForCoordinator()).isEqualTo(false);
-    assertThat(data2.isPreferredForCoordinator()).isEqualTo(true);
+    assertThat(data.preferredForCoordinator()).isEqualTo(false);
+    assertThat(data2.preferredForCoordinator()).isEqualTo(true);
   }
 
   @Test
   public void testSetNetworkPartitionDetectionEnabled() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setNetworkPartitionDetectionEnabled(false).build();
-    MemberData data2 = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data2 = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setNetworkPartitionDetectionEnabled(true).build();
     assertThat(data.isNetworkPartitionDetectionEnabled()).isEqualTo(false);
     assertThat(data2.isNetworkPartitionDetectionEnabled()).isEqualTo(true);
@@ -130,21 +131,21 @@ public class MemberDataBuilderImplTest {
 
   @Test
   public void testSetVersionOrdinal() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setVersionOrdinal(Version.CURRENT_ORDINAL).build();
     assertThat(data.getVersionOrdinal()).isEqualTo(Version.CURRENT_ORDINAL);
   }
 
   @Test
   public void testSetUuidMostSignificantBits() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setUuidMostSignificantBits(1234).build();
     assertThat(data.getUuidMostSignificantBits()).isEqualTo(1234);
   }
 
   @Test
   public void testSetUuidLeastSignificantBits() {
-    MemberData data = MemberDataBuilder.newBuilderForLocalHost("hostname")
+    MemberIdentifier data = MemberIdentifierBuilder.newBuilderForLocalHost("hostname")
         .setUuidLeastSignificantBits(1234).build();
     assertThat(data.getUuidLeastSignificantBits()).isEqualTo(1234);
   }

@@ -19,27 +19,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import org.apache.geode.distributed.internal.membership.gms.MemberDataBuilderImpl;
+import org.apache.geode.distributed.internal.membership.gms.MemberIdentifierBuilderImpl;
 
 /**
  * Membership identifiers must hold a MemberData object. This builder let's you create
  * one.<br>
  * See {@link MemberIdentifierFactory}<br>
  */
-public interface MemberDataBuilder {
+public interface MemberIdentifierBuilder {
 
   /**
    * Create a builder for the given host machine and host name
    */
-  static MemberDataBuilder newBuilder(InetAddress hostAddress, String hostName) {
-    return MemberDataBuilderImpl.newBuilder(hostAddress, hostName);
+  static MemberIdentifierBuilder newBuilder(InetAddress hostAddress, String hostName) {
+    return MemberIdentifierBuilderImpl.newBuilder(hostAddress, hostName);
   }
 
   /**
    * Create a builder for the machine hosting this process
    */
-  static MemberDataBuilder newBuilderForLocalHost(String hostName) {
-    return MemberDataBuilderImpl.newBuilderForLocalHost(hostName);
+  static MemberIdentifierBuilder newBuilderForLocalHost(String hostName) {
+    return MemberIdentifierBuilderImpl.newBuilderForLocalHost(hostName);
+  }
+
+  /**
+   * Create a builder for a MemberIdentifier to deserialize itself
+   */
+  static MemberIdentifierBuilder newBuilderForDeserialization() {
+    return MemberIdentifierBuilderImpl.newBuilderForDeserialization();
   }
 
   /** Parses comma-separated-roles/groups into array of groups (strings). */
@@ -63,38 +70,39 @@ public interface MemberDataBuilder {
     }
   }
 
-  MemberDataBuilder setMembershipPort(int membershipPort);
+  MemberIdentifierBuilder setMembershipPort(int membershipPort);
 
-  MemberDataBuilder setDirectChannelPort(int directChannelPort);
+  MemberIdentifierBuilder setDirectChannelPort(int directChannelPort);
 
-  MemberDataBuilder setVmPid(int vmPid);
+  MemberIdentifierBuilder setVmPid(int vmPid);
 
-  MemberDataBuilder setVmKind(int vmKind);
+  MemberIdentifierBuilder setVmKind(int vmKind);
 
-  MemberDataBuilder setVmViewId(int vmViewId);
+  MemberIdentifierBuilder setVmViewId(int vmViewId);
 
-  MemberDataBuilder setName(String name);
+  MemberIdentifierBuilder setName(String name);
 
-  MemberDataBuilder setGroups(String[] groups);
+  MemberIdentifierBuilder setGroups(String[] groups);
 
-  MemberDataBuilder setDurableId(String durableId);
+  MemberIdentifierBuilder setDurableId(String durableId);
 
-  MemberDataBuilder setDurableTimeout(int durableTimeout);
+  MemberIdentifierBuilder setDurableTimeout(int durableTimeout);
 
-  MemberDataBuilder setPreferredForCoordinator(boolean preferredForCoordinator);
+  MemberIdentifierBuilder setPreferredForCoordinator(boolean preferredForCoordinator);
 
-  MemberDataBuilder setNetworkPartitionDetectionEnabled(boolean networkPartitionDetectionEnabled);
+  MemberIdentifierBuilder setNetworkPartitionDetectionEnabled(
+      boolean networkPartitionDetectionEnabled);
 
-  MemberDataBuilder setVersionOrdinal(short versionOrdinal);
+  MemberIdentifierBuilder setVersionOrdinal(short versionOrdinal);
 
-  MemberDataBuilder setUuidMostSignificantBits(long uuidMostSignificantBits);
+  MemberIdentifierBuilder setUuidMostSignificantBits(long uuidMostSignificantBits);
 
-  MemberDataBuilder setUuidLeastSignificantBits(long uuidLeastSignificantBits);
+  MemberIdentifierBuilder setUuidLeastSignificantBits(long uuidLeastSignificantBits);
 
-  MemberDataBuilder setIsPartial(boolean isPartial);
+  MemberIdentifierBuilder setIsPartial(boolean isPartial);
 
-  MemberDataBuilder setUniqueTag(String uniqueTag);
+  MemberIdentifierBuilder setUniqueTag(String uniqueTag);
 
-  MemberData build();
+  MemberIdentifier build();
 
 }

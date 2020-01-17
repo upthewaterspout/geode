@@ -26,6 +26,7 @@ import static org.apache.geode.test.awaitility.GeodeAwaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -59,7 +60,6 @@ import org.apache.geode.distributed.internal.SerialAckedMessage;
 import org.apache.geode.distributed.internal.membership.adapter.ServiceConfig;
 import org.apache.geode.distributed.internal.membership.adapter.auth.GMSAuthenticator;
 import org.apache.geode.distributed.internal.membership.api.LifecycleListener;
-import org.apache.geode.distributed.internal.membership.api.MemberData;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifierFactory;
 import org.apache.geode.distributed.internal.membership.api.MemberStartupException;
@@ -258,10 +258,10 @@ public class MembershipJUnitTest {
     final SecurityService securityService = SecurityServiceFactory.create();
     DSFIDSerializer serializer = InternalDataSerializer.getDSFIDSerializer();
     final MemberIdentifierFactory memberFactory = mock(MemberIdentifierFactory.class);
-    when(memberFactory.create(isA(MemberData.class))).thenAnswer(new Answer<MemberIdentifier>() {
+    when(memberFactory.create(any())).thenAnswer(new Answer<MemberIdentifier>() {
       @Override
       public MemberIdentifier answer(InvocationOnMock invocation) throws Throwable {
-        return new InternalDistributedMember((MemberData) invocation.getArgument(0));
+        return new InternalDistributedMember((MemberIdentifier) invocation.getArgument(0));
       }
     });
     LifecycleListener<InternalDistributedMember> lifeCycleListener = mock(LifecycleListener.class);
@@ -269,7 +269,7 @@ public class MembershipJUnitTest {
     final MemberIdentifierFactory<InternalDistributedMember> memberIdentifierFactory =
         new MemberIdentifierFactory<InternalDistributedMember>() {
           @Override
-          public InternalDistributedMember create(MemberData memberInfo) {
+          public InternalDistributedMember create(MemberIdentifier memberInfo) {
             return new InternalDistributedMember(memberInfo);
           }
 

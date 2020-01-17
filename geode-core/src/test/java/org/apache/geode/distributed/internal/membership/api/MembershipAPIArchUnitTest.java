@@ -27,7 +27,7 @@ import com.tngtech.archunit.junit.CacheMode;
 import com.tngtech.archunit.lang.ArchRule;
 import org.junit.runner.RunWith;
 
-import org.apache.geode.distributed.internal.membership.gms.MemberDataBuilderImpl;
+import org.apache.geode.distributed.internal.membership.gms.MemberIdentifierBuilderImpl;
 import org.apache.geode.distributed.internal.membership.gms.MembershipBuilderImpl;
 import org.apache.geode.distributed.internal.membership.gms.MembershipLocatorBuilderImpl;
 
@@ -51,5 +51,5 @@ public class MembershipAPIArchUnitTest {
               // allowed
               .or(type(MembershipBuilderImpl.class))
               .or(type(MembershipLocatorBuilderImpl.class))
-              .or(type(MemberDataBuilderImpl.class)));
+              .or(type(MemberIdentifierBuilderImpl.class)));
 }

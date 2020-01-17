@@ -14,10 +14,20 @@
  */
 package org.apache.geode.distributed.internal.membership.api;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.net.InetAddress;
 import java.util.List;
+import java.util.function.Function;
+
+import org.jgroups.util.UUID;
 
 import org.apache.geode.internal.serialization.DataSerializableFixedID;
+import org.apache.geode.internal.serialization.DeserializationContext;
+import org.apache.geode.internal.serialization.SerializationContext;
 import org.apache.geode.internal.serialization.Version;
 
 /**
@@ -26,7 +36,7 @@ import org.apache.geode.internal.serialization.Version;
  *
  * @see MemberIdentifierFactory - a factory to create identifiers you can inject into GMS
  * @see MembershipBuilder - where you inject the factory
- * @see MemberDataBuilder - used to build the MemberData objects held by identifiers
+ * @see MemberIdentifierBuilder - used to build the MemberData objects held by identifiers
  */
 public interface MemberIdentifier extends DataSerializableFixedID {
   /**
@@ -47,11 +57,6 @@ public interface MemberIdentifier extends DataSerializableFixedID {
   int LONER_DM_TYPE = 13;
 
   /**
-   * Return the GMSMemberData associated with this identifier
-   */
-  MemberData getMemberData();
-
-  /**
    * Return the hostname, if any, associated with this identifier (may be null)
    */
   String getHostName();
@@ -65,6 +70,10 @@ public interface MemberIdentifier extends DataSerializableFixedID {
    * Return the membership port associated with this identifier
    */
   int getMembershipPort();
+
+  String getUniqueId();
+
+  Version getVersionObject();
 
   /**
    * Return the serialization version ordinal associated with this identifier
@@ -90,7 +99,7 @@ public interface MemberIdentifier extends DataSerializableFixedID {
   /**
    * Returns the additional member weight assigned to this identifier
    */
-  int getMemberWeight();
+  byte getMemberWeight();
 
   /**
    * Returns the server group names associated with this identifier
@@ -118,10 +127,9 @@ public interface MemberIdentifier extends DataSerializableFixedID {
    */
   void setVmKind(int dmType);
 
-  /**
-   * Get the Geode version of this member
-   */
-  Version getVersionObject();
+  String getHost();
+
+  String getId();
 
   /**
    * Replace the current member data with the given member data. This can be used to fill out a
@@ -129,7 +137,7 @@ public interface MemberIdentifier extends DataSerializableFixedID {
    *
    * @param memberData the replacement member data
    */
-  void setMemberData(MemberData memberData);
+  void setAll(MemberIdentifier memberData);
 
   void setIsPartial(boolean b);
 
@@ -140,4 +148,110 @@ public interface MemberIdentifier extends DataSerializableFixedID {
    * @return true if this is a partial ID
    */
   boolean isPartial();
+
+  String getDurableId();
+
+  int getDurableTimeout();
+
+  Version getVersion();
+
+  String getUniqueTag();
+
+  void setVersionOrdinal(short versionOrdinal);
+
+  void setUUID(UUID u);
+
+  UUID getUUID();
+
+  long getUuidMostSignificantBits();
+
+  long getUuidLeastSignificantBits();
+
+  boolean isNetworkPartitionDetectionEnabled();
+
+  InetAddress getInetAddr();
+
+  int getProcessId();
+
+  int getDirectChannelPort();
+
+  String getName();
+
+  void setMembershipPort(int udpPort);
+
+  void setNetworkPartitionDetectionEnabled(boolean networkPartitionDetectionEnabled);
+
+  void setMemberWeight(byte memberWeight);
+
+  void setInetAddr(InetAddress inetAddr);
+
+  void setProcessId(int processId);
+
+  void setVersion(Version v);
+
+  void setName(String name);
+
+  void setGroups(String[] groups);
+
+  void addFixedToString(StringBuilder sb, boolean useIpAddress);
+
+  void writeExternal(ObjectOutput out) throws IOException;
+
+  void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
+
+  void toDataPre_GFE_9_0_0_0(DataOutput out, SerializationContext context)
+      throws IOException;
+
+  void toDataPre_GFE_7_1_0_0(DataOutput out, SerializationContext context)
+      throws IOException;
+
+  void fromDataPre_GFE_9_0_0_0(DataInput in, DeserializationContext context)
+      throws IOException, ClassNotFoundException;
+
+  void fromDataPre_GFE_7_1_0_0(DataInput in, DeserializationContext context)
+      throws IOException, ClassNotFoundException;
+
+  void _readEssentialData(DataInput in, Function<InetAddress, String> hostnameResolver)
+      throws IOException, ClassNotFoundException;
+
+  void writeEssentialData(DataOutput out) throws IOException;
+
+  /**
+   * checks to see if this address has UUID information needed to send messages via JGroups
+   */
+  boolean hasUUID();
+
+  void setHostName(String hostName);
+
+  void setDurableTimeout(int newValue);
+
+  void setDurableId(String id);
+
+
+  void writeEssentialData(DataOutput out,
+      SerializationContext context) throws IOException;
+
+  void readEssentialData(java.io.DataInput in,
+      DeserializationContext context) throws IOException, ClassNotFoundException;
+
+
+  boolean hasAdditionalData();
+
+  void writeAdditionalData(DataOutput out) throws IOException;
+
+  void readAdditionalData(java.io.DataInput in) throws ClassNotFoundException, IOException;
+
+
+  int compareWith(MemberIdentifier o);
+
+  int compareTo(MemberIdentifier o, boolean compareUUIDs);
+
+  int compareTo(MemberIdentifier o, boolean compareUUIDs, boolean compareViewIds);
+
+  int compareAdditionalData(MemberIdentifier his);
+
+  int getVmPid();
+
+  void setUniqueTag(String tag);
+
 }

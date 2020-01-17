@@ -72,7 +72,7 @@ public class GMSMemberDataJUnitTest {
     GMSMemberData member = new GMSMemberData();
     UUID uuid = new UUID(0, 0);
     member.setUUID(uuid);
-    assertEquals(0, member.compareTo(member));
+    assertEquals(0, member.compareWith(member));
   }
 
   private GMSMemberData createGMSMember(byte[] inetAddress, int viewId, long msb, long lsb) {
@@ -89,7 +89,7 @@ public class GMSMemberDataJUnitTest {
   public void testCompareToInetAddressIsLongerThan() {
     GMSMemberData member1 = createGMSMember(new byte[] {1, 1, 1, 1, 1}, 1, 1, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1, 1, 1, 1}, 1, 1, 1);
-    assertEquals(1, member1.compareTo(member2));
+    assertEquals(1, member1.compareWith(member2));
   }
 
   @Test
@@ -100,7 +100,7 @@ public class GMSMemberDataJUnitTest {
             member1.getVersionOrdinal(),
             member1.getUuidMostSignificantBits(), member1.getUuidLeastSignificantBits(),
             member1.getVmViewId());
-    assertEquals(0, member1.compareTo(member2));
+    assertEquals(0, member1.compareWith(member2));
   }
 
   @Test
@@ -116,63 +116,63 @@ public class GMSMemberDataJUnitTest {
   public void testCompareToInetAddressIsShorterThan() {
     GMSMemberData member1 = createGMSMember(new byte[] {1, 1, 1, 1}, 1, 1, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1, 1, 1, 1, 1}, 1, 1, 1);
-    assertEquals(-1, member1.compareTo(member2));
+    assertEquals(-1, member1.compareWith(member2));
   }
 
   @Test
   public void testCompareToInetAddressIsGreater() {
     GMSMemberData member1 = createGMSMember(new byte[] {1, 2, 1, 1, 1}, 1, 1, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1, 1, 1, 1, 1}, 1, 1, 1);
-    assertEquals(1, member1.compareTo(member2));
+    assertEquals(1, member1.compareWith(member2));
   }
 
   @Test
   public void testCompareToInetAddressIsLessThan() {
     GMSMemberData member1 = createGMSMember(new byte[] {1, 1, 1, 1, 1}, 1, 1, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1, 2, 1, 1, 1}, 1, 1, 1);
-    assertEquals(-1, member1.compareTo(member2));
+    assertEquals(-1, member1.compareWith(member2));
   }
 
   @Test
   public void testCompareToMyViewIdLarger() {
     GMSMemberData member1 = createGMSMember(new byte[] {1}, 2, 1, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1}, 1, 1, 1);
-    assertEquals(1, member1.compareTo(member2));
+    assertEquals(1, member1.compareWith(member2));
   }
 
   @Test
   public void testCompareToTheirViewIdLarger() {
     GMSMemberData member1 = createGMSMember(new byte[] {1}, 1, 1, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1}, 2, 1, 1);
-    assertEquals(-1, member1.compareTo(member2));
+    assertEquals(-1, member1.compareWith(member2));
   }
 
   @Test
   public void testCompareToMyMSBLarger() {
     GMSMemberData member1 = createGMSMember(new byte[] {1}, 1, 2, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1}, 1, 1, 1);
-    assertEquals(1, member1.compareTo(member2));
+    assertEquals(1, member1.compareWith(member2));
   }
 
   @Test
   public void testCompareToTheirMSBLarger() {
     GMSMemberData member1 = createGMSMember(new byte[] {1}, 1, 1, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1}, 1, 2, 1);
-    assertEquals(-1, member1.compareTo(member2));
+    assertEquals(-1, member1.compareWith(member2));
   }
 
   @Test
   public void testCompareToMyLSBLarger() {
     GMSMemberData member1 = createGMSMember(new byte[] {1}, 1, 1, 2);
     GMSMemberData member2 = createGMSMember(new byte[] {1}, 1, 1, 1);
-    assertEquals(1, member1.compareTo(member2));
+    assertEquals(1, member1.compareWith(member2));
   }
 
   @Test
   public void testCompareToTheirLSBLarger() {
     GMSMemberData member1 = createGMSMember(new byte[] {1}, 1, 1, 1);
     GMSMemberData member2 = createGMSMember(new byte[] {1}, 1, 1, 2);
-    assertEquals(-1, member1.compareTo(member2));
+    assertEquals(-1, member1.compareWith(member2));
   }
 
   @Test

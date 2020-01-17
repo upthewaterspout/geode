@@ -77,9 +77,8 @@ import org.apache.geode.distributed.internal.DistributionStats;
 import org.apache.geode.distributed.internal.InternalDistributedSystem;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.adapter.ServiceConfig;
-import org.apache.geode.distributed.internal.membership.api.MemberData;
-import org.apache.geode.distributed.internal.membership.api.MemberDataBuilder;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
+import org.apache.geode.distributed.internal.membership.api.MemberIdentifierBuilder;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifierFactoryImpl;
 import org.apache.geode.distributed.internal.membership.api.MemberStartupException;
 import org.apache.geode.distributed.internal.membership.api.MembershipConfig;
@@ -613,7 +612,7 @@ public class GMSHealthMonitorJUnitTest {
       gmsHealthMonitor.setNextNeighbor(v, memberToCheck);
       assertNotEquals(memberToCheck, gmsHealthMonitor.getNextNeighbor());
 
-      ((InternalDistributedMember) mockMembers.get(0)).setVersionObjectForTest(Version.GEODE_1_3_0);
+      mockMembers.get(0).setVersion(Version.GEODE_1_3_0);
       boolean retVal = gmsHealthMonitor.inlineCheckIfAvailable(mockMembers.get(0), v, true,
           memberToCheck, "Not responding");
 
@@ -853,9 +852,9 @@ public class GMSHealthMonitorJUnitTest {
 
     MemberIdentifier testMember =
         createGMSMember(Version.CURRENT_ORDINAL, viewId,
-            gmsMember.getMemberData().getUuidMostSignificantBits(),
-            gmsMember.getMemberData().getUuidLeastSignificantBits());
-    testMember.getMemberData().setUdpPort(9000);
+            gmsMember.getUuidMostSignificantBits(),
+            gmsMember.getUuidLeastSignificantBits());
+    testMember.setMembershipPort(9000);
 
     // We set to our expected test viewId in the IDM as well as resetting the gms member
     gmsMember.setVmViewId(viewId);
@@ -1001,7 +1000,7 @@ public class GMSHealthMonitorJUnitTest {
 
   private MemberIdentifier createGMSMember(short version, int viewId, long msb, long lsb)
       throws UnknownHostException {
-    MemberData memberData = MemberDataBuilder.newBuilderForLocalHost("localhost")
+    MemberIdentifier memberData = MemberIdentifierBuilder.newBuilderForLocalHost("localhost")
         .setVersionOrdinal(version)
         .setVmViewId(viewId)
         .setUuidMostSignificantBits(msb)

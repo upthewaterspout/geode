@@ -46,7 +46,7 @@ import org.apache.geode.distributed.DurableClientAttributes;
 import org.apache.geode.distributed.Role;
 import org.apache.geode.distributed.internal.locks.ElderState;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
-import org.apache.geode.distributed.internal.membership.api.MemberDataBuilder;
+import org.apache.geode.distributed.internal.membership.api.MemberIdentifierBuilder;
 import org.apache.geode.i18n.LogWriterI18n;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.inet.LocalHostUtil;
@@ -192,7 +192,7 @@ public class LonerDistributionManager implements DistributionManager {
       Version version) {
     for (Iterator<InternalDistributedMember> it = members.iterator(); it.hasNext();) {
       InternalDistributedMember id = it.next();
-      if (id.getVersionObject().compareTo(version) < 0) {
+      if (id.getVersion().compareTo(version) < 0) {
         it.remove();
       }
     }
@@ -203,7 +203,7 @@ public class LonerDistributionManager implements DistributionManager {
       Version version) {
     for (Iterator<InternalDistributedMember> it = members.iterator(); it.hasNext();) {
       InternalDistributedMember id = it.next();
-      if (id.getVersionObject().compareTo(version) >= 0) {
+      if (id.getVersion().compareTo(version) >= 0) {
         it.remove();
       }
     }
@@ -1216,7 +1216,7 @@ public class LonerDistributionManager implements DistributionManager {
       }
       result = new InternalDistributedMember(host, lonerPort, name, uniqueString,
           ClusterDistributionManager.LONER_DM_TYPE,
-          MemberDataBuilder.parseGroups(config.getRoles(), config.getGroups()), dac);
+          MemberIdentifierBuilder.parseGroups(config.getRoles(), config.getGroups()), dac);
 
     } catch (UnknownHostException ex) {
       throw new InternalGemFireError(
@@ -1237,7 +1237,7 @@ public class LonerDistributionManager implements DistributionManager {
         String.format("Updating membership port.  Port changed from %s to %s.  ID is now %s",
             new Object[] {this.lonerPort, newPort, getId()}));
     this.lonerPort = newPort;
-    this.getId().setPort(this.lonerPort);
+    this.getId().setMembershipPort(this.lonerPort);
   }
 
   @Override

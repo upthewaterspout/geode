@@ -62,7 +62,6 @@ import org.apache.geode.distributed.Locator;
 import org.apache.geode.distributed.Role;
 import org.apache.geode.distributed.internal.locks.ElderState;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
-import org.apache.geode.distributed.internal.membership.api.MemberData;
 import org.apache.geode.distributed.internal.membership.api.MemberDisconnectedException;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifierFactory;
@@ -1538,13 +1537,13 @@ public class ClusterDistributionManager implements DistributionManager {
   @Override
   public void retainMembersWithSameOrNewerVersion(Collection<InternalDistributedMember> members,
       Version version) {
-    members.removeIf(id -> id.getVersionObject().compareTo(version) < 0);
+    members.removeIf(id -> id.getVersion().compareTo(version) < 0);
   }
 
   @Override
   public void removeMembersWithSameOrNewerVersion(Collection<InternalDistributedMember> members,
       Version version) {
-    members.removeIf(id -> id.getVersionObject().compareTo(version) >= 0);
+    members.removeIf(id -> id.getVersion().compareTo(version) >= 0);
   }
 
   @Override
@@ -2906,10 +2905,10 @@ public class ClusterDistributionManager implements DistributionManager {
       implements MemberIdentifierFactory<InternalDistributedMember> {
     @Immutable
     private static final Comparator<InternalDistributedMember> idComparator =
-        InternalDistributedMember::compareTo;
+        MemberIdentifier::compareWith;
 
     @Override
-    public InternalDistributedMember create(MemberData memberInfo) {
+    public InternalDistributedMember create(MemberIdentifier memberInfo) {
       return new InternalDistributedMember(memberInfo);
     }
 

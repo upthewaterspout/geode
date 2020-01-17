@@ -27,7 +27,7 @@ public interface MemberIdentifierFactory<ID extends MemberIdentifier> {
   /**
    * Create a new identifier instance
    */
-  ID create(MemberData memberInfo);
+  ID create(MemberIdentifier memberInfo);
 
   /**
    * Create a Comparator for the implementation of identifiers provided by this factory
