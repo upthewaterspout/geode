@@ -5,19 +5,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
 
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.distributed.internal.membership.api.LifecycleListener;
@@ -33,18 +36,27 @@ import org.apache.geode.distributed.internal.membership.api.MembershipLocator;
 import org.apache.geode.distributed.internal.membership.api.MembershipLocatorBuilder;
 import org.apache.geode.distributed.internal.tcpserver.TcpClient;
 import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreator;
+import org.apache.geode.internal.AvailablePortHelper;
 import org.apache.geode.internal.InternalDataSerializer;
 import org.apache.geode.internal.admin.SSLConfig;
 import org.apache.geode.internal.net.SocketCreator;
 import org.apache.geode.internal.serialization.DSFIDSerializer;
 import org.apache.geode.logging.internal.executors.LoggingExecutors;
+import org.apache.geode.test.concurrency.ConcurrentTestRunner;
+import org.apache.geode.test.concurrency.ParallelExecutor;
+import org.apache.geode.test.concurrency.loop.LoopRunnerConfig;
 
+@RunWith(ConcurrentTestRunner.class)
+@LoopRunnerConfig(count = 100)
 public class MembershipIntegrationTest {
-  @Rule
-  public TemporaryFolder temporaryFolder = new TemporaryFolder();
+  // @Rule
+  // public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
   private InetAddress localHost;
   private DSFIDSerializer dsfidSerializer;
   private TcpSocketCreator socketCreator;
+
+
 
   @Before
   public void before() throws IOException, MembershipConfigurationException {
@@ -59,9 +71,9 @@ public class MembershipIntegrationTest {
   }
 
   @Test
-  public void oneMembershipCanStartWithALocator()
+  public void oneMembershipCanStartWithALocator(ParallelExecutor executor)
       throws IOException, MemberStartupException {
-    final MembershipLocator<InternalDistributedMember> locator = createLocator();
+    final MembershipLocator<InternalDistributedMember> locator = createLocator(0);
     locator.start();
 
     final Membership<InternalDistributedMember> membership = createMembership(locator,
@@ -72,12 +84,15 @@ public class MembershipIntegrationTest {
   }
 
   @Test
-  public void twoMembersCanStartWithOneLocator()
+  public void twoMembersCanStartWithOneLocator(ParallelExecutor executor)
       throws IOException, MemberStartupException {
-    MembershipLocator<InternalDistributedMember> locator = createLocator();
+    MembershipLocator<InternalDistributedMember> locator = createLocator(0);
     locator.start();
     int locatorPort = locator.getPort();
 
+    // TODO - should we have to pass our own port to ourselves? The MembershipConfig
+    // created in createLocator does not match the one created in createMembership, because
+    // we add ourselves to the locator string in the below createMembership call.
     Membership<InternalDistributedMember> membership1 = createMembership(locator, locatorPort);
     start(membership1);
 
@@ -89,17 +104,16 @@ public class MembershipIntegrationTest {
   }
 
   @Test
-  public void twoLocatorsCanStartSequentially()
+  public void twoLocatorsCanStartSequentially(ParallelExecutor executor)
       throws IOException, MemberStartupException {
-
-    MembershipLocator<InternalDistributedMember> locator1 = createLocator();
+    MembershipLocator<InternalDistributedMember> locator1 = createLocator(0);
     locator1.start();
     int locatorPort1 = locator1.getPort();
 
     Membership<InternalDistributedMember> membership1 = createMembership(locator1, locatorPort1);
     start(membership1);
 
-    MembershipLocator<InternalDistributedMember> locator2 = createLocator(locatorPort1);
+    MembershipLocator<InternalDistributedMember> locator2 = createLocator(0, locatorPort1);
     locator2.start();
     int locatorPort2 = locator2.getPort();
 
@@ -112,17 +126,17 @@ public class MembershipIntegrationTest {
   }
 
   @Test
-  public void secondMembershipCanJoinUsingATheSecondLocatorToStart()
+  public void secondMembershipCanJoinUsingATheSecondLocatorToStart(ParallelExecutor executor)
       throws IOException, MemberStartupException {
 
-    MembershipLocator<InternalDistributedMember> locator1 = createLocator();
+    MembershipLocator<InternalDistributedMember> locator1 = createLocator(0);
     locator1.start();
     int locatorPort1 = locator1.getPort();
 
     Membership<InternalDistributedMember> membership1 = createMembership(locator1, locatorPort1);
     start(membership1);
 
-    MembershipLocator<InternalDistributedMember> locator2 = createLocator(locatorPort1);
+    MembershipLocator<InternalDistributedMember> locator2 = createLocator(0, locatorPort1);
     locator2.start();
     int locatorPort2 = locator2.getPort();
 
@@ -138,12 +152,50 @@ public class MembershipIntegrationTest {
   }
 
   @Test
-  public void twoLocatorsCanStartConcurrently() {
+  public void twoLocatorsCanStartConcurrently(ParallelExecutor executor)
+      throws IOException, MemberStartupException, ExecutionException, InterruptedException {
+    before();
+
+    // TODO - Using AvailablePortHelper can case flakyness in the test if something
+    // grabs one of these ports after this call but before we use the port
+    // The problem is that we can want to test concurrently starting the locators, but
+    // the two locators need to know about each other as well.
+    //
+    // One option would be to sequentially create the ServerSockets before we get to the
+    // concurrent part of the test. The concern with that is that we might miss race conditions
+    // related to creating the ServerSocket concurrently with membership startup in other members
+    int[] ports = AvailablePortHelper.getRandomAvailableTCPPorts(2);
+
+    Future<Membership<InternalDistributedMember>> membershipFuture1 = executor.inParallel(() -> {
+      MembershipLocator<InternalDistributedMember> locator1 = createLocator(ports[0], ports);
+      locator1.start();
+
+      Membership<InternalDistributedMember> membership1 = createMembership(locator1, ports);
+      start(membership1);
+      return membership1;
+    });
+
+    Future<Membership<InternalDistributedMember>> membershipFuture2 = executor.inParallel(() -> {
+      MembershipLocator<InternalDistributedMember> locator2 = createLocator(ports[1], ports);
+      locator2.start();
+
+      Membership<InternalDistributedMember> membership2 = createMembership(locator2, ports);
+      start(membership2);
+      return membership2;
+    });
+
+    executor.execute();
+
+
+    // TODO - these assertions need an awailitity, because these members may have not received
+    // the updated view yet
+    assertThat(membershipFuture1.get().getView().getMembers()).hasSize(2);
+    assertThat(membershipFuture2.get().getView().getMembers()).hasSize(2);
 
   }
 
   @Test
-  public void oneMembershipFailsToStartWithoutRunningLocator() {
+  public void oneMembershipFailsToStartWithoutRunningLocator(ParallelExecutor executor) {
 
   }
 
@@ -219,12 +271,19 @@ public class MembershipIntegrationTest {
         .collect(Collectors.joining(","));
   }
 
-  private MembershipLocator<InternalDistributedMember> createLocator(int... locatorPorts)
+  private MembershipLocator<InternalDistributedMember> createLocator(int localPort,
+      int... locatorPorts)
       throws MembershipConfigurationException,
       IOException {
     final Supplier<ExecutorService> executorServiceSupplier =
         () -> LoggingExecutors.newCachedThreadPool("membership", false);
-    Path locatorDirectory = temporaryFolder.newFolder().toPath();
+    // Path locatorDirectory = temporaryFolder.newFolder().toPath();
+
+    // TODO - total hack!
+    File locatorFile = File.createTempFile("locator", "");
+    locatorFile.mkdirs();
+    FileUtils.forceDeleteOnExit(locatorFile);
+    Path locatorDirectory = locatorFile.toPath();
 
     MembershipConfig config = createMembershipConfig(true, locatorPorts);
 
@@ -236,6 +295,7 @@ public class MembershipIntegrationTest {
             locatorDirectory,
             executorServiceSupplier)
             .setConfig(config)
+            .setPort(localPort)
             .create();
 
     return membershipLocator;
