@@ -27,8 +27,7 @@ import org.apache.geode.distributed.internal.membership.api.MembershipLocator;
 import org.apache.geode.distributed.internal.membership.api.MembershipLocatorBuilder;
 import org.apache.geode.distributed.internal.tcpserver.TcpClient;
 import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreator;
-import org.apache.geode.internal.admin.SSLConfig;
-import org.apache.geode.internal.net.SocketCreator;
+import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreatorImpl;
 import org.apache.geode.internal.serialization.DSFIDSerializer;
 import org.apache.geode.internal.serialization.internal.DSFIDSerializerImpl;
 import org.apache.geode.logging.internal.executors.LoggingExecutors;
@@ -43,12 +42,8 @@ public class MembershipIntegrationTest {
   @Before
   public void before() throws IOException, MembershipConfigurationException {
     localHost = InetAddress.getLocalHost();
-
-
-    this.dsfidSerializer = new DSFIDSerializerImpl();
-
-    // TODO - stop using geode-core socket creator
-    socketCreator = new SocketCreator(new SSLConfig.Builder().build());
+    dsfidSerializer = new DSFIDSerializerImpl();
+    socketCreator = new TcpSocketCreatorImpl();
   }
 
   @Test
