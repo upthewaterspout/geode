@@ -17,7 +17,6 @@ import org.junit.rules.TemporaryFolder;
 
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifierFactoryImpl;
-import org.apache.geode.distributed.internal.membership.api.MemberIdentifierImpl;
 import org.apache.geode.distributed.internal.membership.api.MemberStartupException;
 import org.apache.geode.distributed.internal.membership.api.Membership;
 import org.apache.geode.distributed.internal.membership.api.MembershipBuilder;
@@ -49,10 +48,10 @@ public class MembershipIntegrationTest {
   @Test
   public void oneMembershipCanStartWithALocator()
       throws IOException, MemberStartupException {
-    final MembershipLocator<MemberIdentifierImpl> locator = createLocator();
+    final MembershipLocator<MemberIdentifier> locator = createLocator();
     locator.start();
 
-    final Membership<MemberIdentifierImpl> membership = createMembership(locator,
+    final Membership<MemberIdentifier> membership = createMembership(locator,
         locator.getPort());
     start(membership);
 
@@ -62,14 +61,14 @@ public class MembershipIntegrationTest {
   @Test
   public void twoMembersCanStartWithOneLocator()
       throws IOException, MemberStartupException {
-    MembershipLocator<MemberIdentifierImpl> locator = createLocator();
+    MembershipLocator<MemberIdentifier> locator = createLocator();
     locator.start();
     int locatorPort = locator.getPort();
 
-    Membership<MemberIdentifierImpl> membership1 = createMembership(locator, locatorPort);
+    Membership<MemberIdentifier> membership1 = createMembership(locator, locatorPort);
     start(membership1);
 
-    Membership<MemberIdentifierImpl> membership2 = createMembership(null, locatorPort);
+    Membership<MemberIdentifier> membership2 = createMembership(null, locatorPort);
     start(membership2);
 
     assertThat(membership1.getView().getMembers()).hasSize(2);
@@ -80,18 +79,18 @@ public class MembershipIntegrationTest {
   public void twoLocatorsCanStartSequentially()
       throws IOException, MemberStartupException {
 
-    MembershipLocator<MemberIdentifierImpl> locator1 = createLocator();
+    MembershipLocator<MemberIdentifier> locator1 = createLocator();
     locator1.start();
     int locatorPort1 = locator1.getPort();
 
-    Membership<MemberIdentifierImpl> membership1 = createMembership(locator1, locatorPort1);
+    Membership<MemberIdentifier> membership1 = createMembership(locator1, locatorPort1);
     start(membership1);
 
-    MembershipLocator<MemberIdentifierImpl> locator2 = createLocator(locatorPort1);
+    MembershipLocator<MemberIdentifier> locator2 = createLocator(locatorPort1);
     locator2.start();
     int locatorPort2 = locator2.getPort();
 
-    Membership<MemberIdentifierImpl> membership2 =
+    Membership<MemberIdentifier> membership2 =
         createMembership(locator2, locatorPort1, locatorPort2);
     start(membership2);
 
@@ -103,21 +102,21 @@ public class MembershipIntegrationTest {
   public void secondMembershipCanJoinUsingATheSecondLocatorToStart()
       throws IOException, MemberStartupException {
 
-    MembershipLocator<MemberIdentifierImpl> locator1 = createLocator();
+    MembershipLocator<MemberIdentifier> locator1 = createLocator();
     locator1.start();
     int locatorPort1 = locator1.getPort();
 
-    Membership<MemberIdentifierImpl> membership1 = createMembership(locator1, locatorPort1);
+    Membership<MemberIdentifier> membership1 = createMembership(locator1, locatorPort1);
     start(membership1);
 
-    MembershipLocator<MemberIdentifierImpl> locator2 = createLocator(locatorPort1);
+    MembershipLocator<MemberIdentifier> locator2 = createLocator(locatorPort1);
     locator2.start();
     int locatorPort2 = locator2.getPort();
 
     // Force the next membership to use locator2 by stopping locator1
     locator1.stop();
 
-    Membership<MemberIdentifierImpl> membership2 =
+    Membership<MemberIdentifier> membership2 =
         createMembership(locator2, locatorPort1, locatorPort2);
     start(membership2);
 
@@ -135,14 +134,14 @@ public class MembershipIntegrationTest {
 
   }
 
-  private void start(Membership<MemberIdentifierImpl> membership)
+  private void start(Membership<MemberIdentifier> membership)
       throws MemberStartupException {
     membership.start();
     membership.startEventProcessing();
   }
 
-  private Membership<MemberIdentifierImpl> createMembership(
-      MembershipLocator<MemberIdentifierImpl> embeddedLocator, int... locatorPorts)
+  private Membership<MemberIdentifier> createMembership(
+      MembershipLocator<MemberIdentifier> embeddedLocator, int... locatorPorts)
       throws MembershipConfigurationException {
     final boolean isALocator = embeddedLocator != null;
     MembershipConfig config = createMembershipConfig(isALocator, locatorPorts);
@@ -152,7 +151,7 @@ public class MembershipIntegrationTest {
     TcpClient locatorClient = new TcpClient(socketCreator, dsfidSerializer.getObjectSerializer(),
         dsfidSerializer.getObjectDeserializer());
 
-    return MembershipBuilder.<MemberIdentifierImpl>newMembershipBuilder(
+    return MembershipBuilder.<MemberIdentifier>newMembershipBuilder(
         socketCreator, locatorClient, dsfidSerializer, memberIdFactory)
         .setMembershipLocator(embeddedLocator)
         .setConfig(config)
@@ -182,7 +181,7 @@ public class MembershipIntegrationTest {
         .collect(Collectors.joining(","));
   }
 
-  private MembershipLocator<MemberIdentifierImpl> createLocator(int... locatorPorts)
+  private MembershipLocator<MemberIdentifier> createLocator(int... locatorPorts)
       throws MembershipConfigurationException,
       IOException {
     final Supplier<ExecutorService> executorServiceSupplier =
@@ -191,7 +190,7 @@ public class MembershipIntegrationTest {
 
     MembershipConfig config = createMembershipConfig(true, locatorPorts);
 
-    return MembershipLocatorBuilder.<MemberIdentifierImpl>newLocatorBuilder(
+    return MembershipLocatorBuilder.<MemberIdentifier>newLocatorBuilder(
         socketCreator,
         dsfidSerializer,
         locatorDirectory,
@@ -199,6 +198,5 @@ public class MembershipIntegrationTest {
         .setConfig(config)
         .create();
   }
-
 
 }
