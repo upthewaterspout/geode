@@ -45,11 +45,6 @@ public class TestScheduler implements TaskScheduler {
   }
 
   @Override
-  public void schedule(final CheckedThunk thunk) {
-    schedule(thunk, 0, TimeUnit.SECONDS);
-  }
-
-  @Override
   public void schedule(final CheckedThunk thunk, final long afterDelay, final TimeUnit delayUnit) {
     tasks.add(new Task(thunk, nanoTime.nanoTime() + delayUnit.toNanos(afterDelay)));
   }

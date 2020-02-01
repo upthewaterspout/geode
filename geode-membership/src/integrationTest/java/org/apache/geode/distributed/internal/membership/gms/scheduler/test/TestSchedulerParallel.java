@@ -12,18 +12,25 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.geode.distributed.internal.membership.gms.scheduler;
+package org.apache.geode.distributed.internal.membership.gms.scheduler.test;
 
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.geode.distributed.internal.membership.gms.functional.CheckedThunk;
+import org.apache.geode.distributed.internal.membership.gms.functional.Functions;
+import org.apache.geode.distributed.internal.membership.gms.scheduler.TaskScheduler;
 
-public interface TaskScheduler {
+public class TestSchedulerParallel implements TaskScheduler {
 
-  default void schedule(final CheckedThunk thunk) {
-    schedule(thunk, 0, TimeUnit.SECONDS);
+  private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+
+  public TestSchedulerParallel() {
+    scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(8);
   }
 
-  void schedule(final CheckedThunk thunk, final long afterDelay, final TimeUnit delayUnit);
-
+  @Override
+  public void schedule(final CheckedThunk thunk, final long afterDelay, final TimeUnit delayUnit) {
+    scheduledThreadPoolExecutor.schedule(Functions.unchecked(thunk), afterDelay, delayUnit);
+  }
 }

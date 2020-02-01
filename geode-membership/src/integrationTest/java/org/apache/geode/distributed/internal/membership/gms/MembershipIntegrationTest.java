@@ -25,8 +25,7 @@ import org.apache.geode.distributed.internal.membership.api.MembershipConfig;
 import org.apache.geode.distributed.internal.membership.api.MembershipConfigurationException;
 import org.apache.geode.distributed.internal.membership.api.MembershipLocator;
 import org.apache.geode.distributed.internal.membership.api.MembershipLocatorBuilder;
-import org.apache.geode.distributed.internal.membership.gms.scheduler.test.TestScheduler;
-import org.apache.geode.distributed.internal.membership.gms.scheduler.test.VirtualTime;
+import org.apache.geode.distributed.internal.membership.gms.scheduler.test.TestSchedulerParallel;
 import org.apache.geode.distributed.internal.tcpserver.TcpClient;
 import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreator;
 import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreatorImpl;
@@ -38,8 +37,9 @@ public class MembershipIntegrationTest {
   private InetAddress localHost;
   private DSFIDSerializer dsfidSerializer;
   private TcpSocketCreator socketCreator;
-  private VirtualTime time;
-  private TestScheduler scheduler;
+  // when using TestScheduler
+  // private VirtualTime time;
+  private TestSchedulerParallel scheduler;
 
   @Before
   public void before() throws IOException, MembershipConfigurationException {
@@ -47,8 +47,8 @@ public class MembershipIntegrationTest {
     dsfidSerializer = new DSFIDSerializerImpl();
     socketCreator = new TcpSocketCreatorImpl();
 
-    time = new VirtualTime();
-    scheduler = new TestScheduler(time);
+    // time = new VirtualTime();
+    scheduler = new TestSchedulerParallel();
   }
 
   @Test
@@ -156,7 +156,8 @@ public class MembershipIntegrationTest {
       membership2.set(membership);
     });
 
-    scheduler.triggerActions();
+    // when using TestScheduler
+    // scheduler.triggerActions();
 
     // TODO - these assertions need an awaitility, because these members may have not received
     // the updated view yet
