@@ -2,18 +2,19 @@ package org.apache.geode.distributed.internal.membership.gms;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifier;
 import org.apache.geode.distributed.internal.membership.api.MemberIdentifierFactoryImpl;
@@ -24,6 +25,8 @@ import org.apache.geode.distributed.internal.membership.api.MembershipConfig;
 import org.apache.geode.distributed.internal.membership.api.MembershipConfigurationException;
 import org.apache.geode.distributed.internal.membership.api.MembershipLocator;
 import org.apache.geode.distributed.internal.membership.api.MembershipLocatorBuilder;
+import org.apache.geode.distributed.internal.membership.gms.scheduler.test.TestScheduler;
+import org.apache.geode.distributed.internal.membership.gms.scheduler.test.VirtualTime;
 import org.apache.geode.distributed.internal.tcpserver.TcpClient;
 import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreator;
 import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreatorImpl;
@@ -32,23 +35,26 @@ import org.apache.geode.internal.serialization.internal.DSFIDSerializerImpl;
 import org.apache.geode.logging.internal.executors.LoggingExecutors;
 
 public class MembershipIntegrationTest {
-  @Rule
-  public TemporaryFolder temporaryFolder = new TemporaryFolder();
   private InetAddress localHost;
   private DSFIDSerializer dsfidSerializer;
   private TcpSocketCreator socketCreator;
+  private VirtualTime time;
+  private TestScheduler scheduler;
 
   @Before
   public void before() throws IOException, MembershipConfigurationException {
     localHost = InetAddress.getLocalHost();
     dsfidSerializer = new DSFIDSerializerImpl();
     socketCreator = new TcpSocketCreatorImpl();
+
+    time = new VirtualTime();
+    scheduler = new TestScheduler(time);
   }
 
   @Test
   public void oneMembershipCanStartWithALocator()
       throws IOException, MemberStartupException {
-    final MembershipLocator<MemberIdentifier> locator = createLocator();
+    final MembershipLocator<MemberIdentifier> locator = createLocator(0);
     locator.start();
 
     final Membership<MemberIdentifier> membership = createMembership(locator,
@@ -61,14 +67,14 @@ public class MembershipIntegrationTest {
   @Test
   public void twoMembersCanStartWithOneLocator()
       throws IOException, MemberStartupException {
-    MembershipLocator<MemberIdentifier> locator = createLocator();
+    final MembershipLocator<MemberIdentifier> locator = createLocator(0);
     locator.start();
-    int locatorPort = locator.getPort();
+    final int locatorPort = locator.getPort();
 
-    Membership<MemberIdentifier> membership1 = createMembership(locator, locatorPort);
+    final Membership<MemberIdentifier> membership1 = createMembership(locator, locatorPort);
     start(membership1);
 
-    Membership<MemberIdentifier> membership2 = createMembership(null, locatorPort);
+    final Membership<MemberIdentifier> membership2 = createMembership(null, locatorPort);
     start(membership2);
 
     assertThat(membership1.getView().getMembers()).hasSize(2);
@@ -79,16 +85,16 @@ public class MembershipIntegrationTest {
   public void twoLocatorsCanStartSequentially()
       throws IOException, MemberStartupException {
 
-    MembershipLocator<MemberIdentifier> locator1 = createLocator();
+    final MembershipLocator<MemberIdentifier> locator1 = createLocator(0);
     locator1.start();
-    int locatorPort1 = locator1.getPort();
+    final int locatorPort1 = locator1.getPort();
 
     Membership<MemberIdentifier> membership1 = createMembership(locator1, locatorPort1);
     start(membership1);
 
-    MembershipLocator<MemberIdentifier> locator2 = createLocator(locatorPort1);
+    final MembershipLocator<MemberIdentifier> locator2 = createLocator(0, locatorPort1);
     locator2.start();
-    int locatorPort2 = locator2.getPort();
+    final int locatorPort2 = locator2.getPort();
 
     Membership<MemberIdentifier> membership2 =
         createMembership(locator2, locatorPort1, locatorPort2);
@@ -102,14 +108,14 @@ public class MembershipIntegrationTest {
   public void secondMembershipCanJoinUsingATheSecondLocatorToStart()
       throws IOException, MemberStartupException {
 
-    MembershipLocator<MemberIdentifier> locator1 = createLocator();
+    final MembershipLocator<MemberIdentifier> locator1 = createLocator(0);
     locator1.start();
-    int locatorPort1 = locator1.getPort();
+    final int locatorPort1 = locator1.getPort();
 
-    Membership<MemberIdentifier> membership1 = createMembership(locator1, locatorPort1);
+    final Membership<MemberIdentifier> membership1 = createMembership(locator1, locatorPort1);
     start(membership1);
 
-    MembershipLocator<MemberIdentifier> locator2 = createLocator(locatorPort1);
+    final MembershipLocator<MemberIdentifier> locator2 = createLocator(0, locatorPort1);
     locator2.start();
     int locatorPort2 = locator2.getPort();
 
@@ -126,7 +132,36 @@ public class MembershipIntegrationTest {
 
   @Test
   public void twoLocatorsCanStartConcurrently() {
+    // TODO: maybe reinstate this after AvailablePortHelper breaks dependency on DistributionConfig
+    // final int[] ports = AvailablePortHelper.getRandomAvailableTCPPorts(2);
+    final int[] ports = new int[] {8010, 8011};
 
+    final AtomicReference<Membership<MemberIdentifier>> membership1 = new AtomicReference<>();
+    scheduler.schedule(() -> {
+      MembershipLocator<MemberIdentifier> locator1 = createLocator(ports[0], ports);
+      locator1.start();
+
+      final Membership<MemberIdentifier> membership = createMembership(locator1, ports);
+      start(membership);
+      membership1.set(membership);
+    });
+
+    final AtomicReference<Membership<MemberIdentifier>> membership2 = new AtomicReference<>();
+    scheduler.schedule(() -> {
+      MembershipLocator<MemberIdentifier> locator2 = createLocator(ports[1], ports);
+      locator2.start();
+
+      Membership<MemberIdentifier> membership = createMembership(locator2, ports);
+      start(membership);
+      membership2.set(membership);
+    });
+
+    scheduler.triggerActions();
+
+    // TODO - these assertions need an awaitility, because these members may have not received
+    // the updated view yet
+    assertThat(membership1.get().getView().getMembers()).hasSize(2);
+    assertThat(membership2.get().getView().getMembers()).hasSize(2);
   }
 
   @Test
@@ -134,22 +169,24 @@ public class MembershipIntegrationTest {
 
   }
 
-  private void start(Membership<MemberIdentifier> membership)
+  private void start(final Membership<MemberIdentifier> membership)
       throws MemberStartupException {
     membership.start();
     membership.startEventProcessing();
   }
 
   private Membership<MemberIdentifier> createMembership(
-      MembershipLocator<MemberIdentifier> embeddedLocator, int... locatorPorts)
+      final MembershipLocator<MemberIdentifier> embeddedLocator,
+      final int... locatorPorts)
       throws MembershipConfigurationException {
     final boolean isALocator = embeddedLocator != null;
-    MembershipConfig config = createMembershipConfig(isALocator, locatorPorts);
+    final MembershipConfig config = createMembershipConfig(isALocator, locatorPorts);
 
-    MemberIdentifierFactoryImpl memberIdFactory = new MemberIdentifierFactoryImpl();
+    final MemberIdentifierFactoryImpl memberIdFactory = new MemberIdentifierFactoryImpl();
 
-    TcpClient locatorClient = new TcpClient(socketCreator, dsfidSerializer.getObjectSerializer(),
-        dsfidSerializer.getObjectDeserializer());
+    final TcpClient locatorClient =
+        new TcpClient(socketCreator, dsfidSerializer.getObjectSerializer(),
+            dsfidSerializer.getObjectDeserializer());
 
     return MembershipBuilder.<MemberIdentifier>newMembershipBuilder(
         socketCreator, locatorClient, dsfidSerializer, memberIdFactory)
@@ -158,7 +195,9 @@ public class MembershipIntegrationTest {
         .create();
   }
 
-  private MembershipConfig createMembershipConfig(boolean isALocator, int[] locatorPorts) {
+  private MembershipConfig createMembershipConfig(
+      final boolean isALocator,
+      final int[] locatorPorts) {
     return new MembershipConfig() {
       public String getLocators() {
         return getLocatorString(locatorPorts);
@@ -174,21 +213,30 @@ public class MembershipIntegrationTest {
     };
   }
 
-  private String getLocatorString(int... locatorPorts) {
-    String hostName = localHost.getHostName();
+  private String getLocatorString(
+      final int... locatorPorts) {
+    final String hostName = localHost.getHostName();
     return Arrays.stream(locatorPorts)
         .mapToObj(port -> hostName + '[' + port + ']')
         .collect(Collectors.joining(","));
   }
 
-  private MembershipLocator<MemberIdentifier> createLocator(int... locatorPorts)
+  private MembershipLocator<MemberIdentifier> createLocator(
+      final int localPort,
+      final int... locatorPorts)
       throws MembershipConfigurationException,
       IOException {
     final Supplier<ExecutorService> executorServiceSupplier =
         () -> LoggingExecutors.newCachedThreadPool("membership", false);
-    Path locatorDirectory = temporaryFolder.newFolder().toPath();
+    // Path locatorDirectory = temporaryFolder.newFolder().toPath();
 
-    MembershipConfig config = createMembershipConfig(true, locatorPorts);
+    // TODO - total hack!
+    final File locatorFile = File.createTempFile("locator", "");
+    locatorFile.mkdirs();
+    FileUtils.forceDeleteOnExit(locatorFile);
+    final Path locatorDirectory = locatorFile.toPath();
+
+    final MembershipConfig config = createMembershipConfig(true, locatorPorts);
 
     return MembershipLocatorBuilder.<MemberIdentifier>newLocatorBuilder(
         socketCreator,
@@ -196,6 +244,7 @@ public class MembershipIntegrationTest {
         locatorDirectory,
         executorServiceSupplier)
         .setConfig(config)
+        .setPort(localPort)
         .create();
   }
 
