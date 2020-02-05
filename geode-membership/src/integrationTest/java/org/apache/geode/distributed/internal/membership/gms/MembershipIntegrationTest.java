@@ -32,6 +32,7 @@ import org.apache.geode.distributed.internal.tcpserver.TcpSocketCreatorImpl;
 import org.apache.geode.internal.serialization.DSFIDSerializer;
 import org.apache.geode.internal.serialization.internal.DSFIDSerializerImpl;
 import org.apache.geode.logging.internal.executors.LoggingExecutors;
+import org.apache.geode.test.awaitility.GeodeAwaitility;
 
 public class MembershipIntegrationTest {
   private InetAddress localHost;
@@ -159,8 +160,9 @@ public class MembershipIntegrationTest {
     // when using TestScheduler
     // scheduler.triggerActions();
 
-    // TODO - these assertions need an awaitility, because these members may have not received
-    // the updated view yet
+    GeodeAwaitility.await("waiting for memberships to start")
+        .until(() -> membership1.get() != null && membership2.get() != null);
+
     assertThat(membership1.get().getView().getMembers()).hasSize(2);
     assertThat(membership2.get().getView().getMembers()).hasSize(2);
   }
