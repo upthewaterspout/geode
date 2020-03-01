@@ -356,6 +356,7 @@ public class Connection implements Runnable {
 
   private boolean directAck;
 
+  private boolean asyncMode;
 
   /** is this connection used for serial message delivery? */
   boolean preserveOrder;
@@ -500,6 +501,7 @@ public class Connection implements Runnable {
     handshakeRead = false;
     handshakeCancelled = false;
     connected = true;
+    asyncMode = false;
 
     try {
       socket.setTcpNoDelay(true);
@@ -1152,6 +1154,7 @@ public class Connection implements Runnable {
     handshakeRead = false;
     handshakeCancelled = false;
     connected = true;
+    asyncMode = false;
 
     uniqueId = ID_COUNTER.getAndIncrement();
 
@@ -1487,7 +1490,7 @@ public class Connection implements Runnable {
         asyncClose(false);
         owner.removeAndCloseThreadOwnedSockets();
       } else {
-        if (sharedResource) {
+        if (sharedResource && !asyncMode) {
           asyncClose(false);
         }
       }
@@ -1643,7 +1646,7 @@ public class Connection implements Runnable {
 
             // Once we have read the handshake for unshared connections, the reader can skip
             // processing messages
-            if (!sharedResource) {
+            if (!sharedResource || asyncMode) {
               break;
             }
 
@@ -1700,7 +1703,7 @@ public class Connection implements Runnable {
         }
       }
     } finally {
-      if (!isHandShakeReader || sharedResource) {
+      if (!isHandShakeReader || (sharedResource && !asyncMode)) {
         synchronized (stateLock) {
           connectionState = STATE_IDLE;
         }
@@ -3108,6 +3111,10 @@ public class Connection implements Runnable {
           remoteVersion = Version.readVersion(dis, true);
           ioFilter.doneReading(peerDataBuffer);
           notifyHandshakeWaiter(true);
+          if (preserveOrder && asyncDistributionTimeout != 0) {
+            asyncMode = true;
+          }
+
           return;
         default:
           String err =
