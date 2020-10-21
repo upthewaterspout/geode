@@ -42,8 +42,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -216,7 +214,6 @@ import org.apache.geode.internal.sequencelog.EntryLogger;
 import org.apache.geode.internal.serialization.Version;
 import org.apache.geode.internal.statistics.StatisticsClock;
 import org.apache.geode.internal.util.concurrent.CopyOnWriteHashMap;
-import org.apache.geode.internal.util.concurrent.FutureResult;
 import org.apache.geode.internal.util.concurrent.StoppableCountDownLatch;
 import org.apache.geode.logging.internal.log4j.api.LogService;
 import org.apache.geode.pdx.JSONFormatter;
@@ -1497,65 +1494,8 @@ public class LocalRegion extends AbstractRegion implements LoaderHelperFactory,
       Object localValue, boolean disableCopyOnRead, boolean preferCD,
       ClientProxyMembershipID requestingClient, EntryEventImpl clientEvent,
       boolean returnTombstones) {
-    Object result = null;
-    FutureResult thisFuture = new FutureResult(stopper);
-    Future otherFuture = (Future) getFutures.putIfAbsent(keyInfo.getKey(), thisFuture);
-    // only one thread can get their future into the map for this key at a time
-    if (otherFuture != null) {
-      try {
-        Object[] valueAndVersion = (Object[]) otherFuture.get();
-        if (valueAndVersion != null) {
-          result = valueAndVersion[0];
-          if (clientEvent != null) {
-            clientEvent.setVersionTag((VersionTag) valueAndVersion[1]);
-          }
-          if (!preferCD && result instanceof CachedDeserializable) {
-            CachedDeserializable cd = (CachedDeserializable) result;
-            if (!disableCopyOnRead && (isCopyOnRead() || isProxy())) {
-              result = cd.getDeserializedWritableCopy(null, null);
-            } else {
-              result = cd.getDeserializedForReading();
-            }
-
-          } else if (!disableCopyOnRead) {
-            result = conditionalCopy(result);
-          }
-          // what was a miss is now a hit
-          if (isCreate) {
-            RegionEntry regionEntry = basicGetEntry(keyInfo.getKey());
-            updateStatsForGet(regionEntry, true);
-          }
-          return result;
-        }
-      } catch (InterruptedException ignore) {
-        Thread.currentThread().interrupt();
-        // TODO check a CancelCriterion here?
-        return null;
-      } catch (ExecutionException e) {
-        // unexpected since there is no background thread
-        // NOTE: this was creating InternalGemFireError and initCause with itself
-        throw new InternalGemFireError(
-            "unexpected exception", e);
-      }
-    }
-    try {
-      result =
-          getObject(keyInfo, isCreate, generateCallbacks, localValue, disableCopyOnRead, preferCD,
-              requestingClient, clientEvent, returnTombstones);
-
-    } finally {
-      if (otherFuture == null) {
-        if (result != null) {
-          VersionTag tag = clientEvent == null ? null : clientEvent.getVersionTag();
-          thisFuture.set(new Object[] {result, tag});
-        } else {
-          thisFuture.set(null);
-        }
-        getFutures.remove(keyInfo.getKey());
-      }
-    }
-
-    return result;
+    return getObject(keyInfo, isCreate, generateCallbacks, localValue, disableCopyOnRead, preferCD,
+        requestingClient, clientEvent, returnTombstones);
   }
 
 
