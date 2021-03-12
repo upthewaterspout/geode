@@ -294,6 +294,7 @@ class ProcessManager implements ChildVMLauncher {
     cmds.add("-XX:MetaspaceSize=512m");
     cmds.add("-XX:SoftRefLRUPolicyMSPerMB=1");
     cmds.add(agent);
+    cmds.add("-agentpath:/tmp/libyjpagent.dylib=disablestacktelemetry,exceptions=disable,delay=60000,sessionname=JVM_ROLE-JVM_ID");
     if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
       // needed for client stats gathering, see VMStats50 class, it's using class inspection
       // to call getProcessCpuTime method
