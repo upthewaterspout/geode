@@ -51,8 +51,8 @@ public class RedisResponse {
     }
   }
 
-  public ByteBuf encode(ByteBufAllocator allocator) {
-    return coderCallback.apply(allocator.buffer());
+  public ByteBuf encode(ByteBuf buf) {
+    return coderCallback.apply(buf);
   }
 
   public static RedisResponse integer(long numericValue) {
@@ -141,7 +141,7 @@ public class RedisResponse {
    * Be aware that this implementation will create extra garbage since it allocates from the heap.
    */
   public String toString() {
-    return encode(new UnpooledByteBufAllocator(false)).toString(Charset.defaultCharset());
+    return encode(new UnpooledByteBufAllocator(false).heapBuffer()).toString(Charset.defaultCharset());
   }
 
   public static RedisResponse bigDecimal(BigDecimal numericValue) {

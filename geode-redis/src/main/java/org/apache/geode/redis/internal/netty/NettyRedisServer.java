@@ -171,6 +171,8 @@ public class NettyRedisServer {
         addSSLIfEnabled(socketChannel, pipeline);
         pipeline.addLast(ByteToCommandDecoder.class.getSimpleName(),
             new ByteToCommandDecoder(redisStats));
+        pipeline.addLast(RedisResponseToBytesEncoder.class.getSimpleName(),
+            new RedisResponseToBytesEncoder());
         pipeline.addLast(new WriteTimeoutHandler(10));
         pipeline.addLast(ExecutionHandlerContext.class.getSimpleName(),
             new ExecutionHandlerContext(socketChannel, regionProvider, pubsub,
