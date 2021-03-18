@@ -23,6 +23,7 @@ import org.junit.rules.RuleChain;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.images.ImagePullPolicy;
 
 import org.apache.geode.logging.internal.log4j.api.LogService;
 import org.apache.geode.test.junit.rules.IgnoreOnWindowsRule;

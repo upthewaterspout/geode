@@ -34,7 +34,7 @@ import org.apache.geode.redis.internal.executor.cluster.RedisPartitionResolver;
 public class RedisKey extends ByteArrayWrapper
     implements DataSerializableFixedID, Serializable {
 
-  private Integer routingId;
+  private int routingId;
 
   public RedisKey() {}
 
