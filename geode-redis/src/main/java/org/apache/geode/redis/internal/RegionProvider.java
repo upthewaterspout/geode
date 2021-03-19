@@ -39,7 +39,7 @@ public class RegionProvider {
   public RegionProvider(InternalCache cache) {
 
     InternalRegionFactory<RedisKey, RedisData> redisDataRegionFactory =
-        cache.createInternalRegionFactory(RegionShortcut.PARTITION_REDUNDANT);
+        cache.createInternalRegionFactory(RegionShortcut.PARTITION_HEAP_LRU);
     // redisDataRegionFactory.setInternalRegion(true).setIsUsedForMetaRegion(true);
 
     PartitionAttributesFactory<RedisKey, RedisData> attributesFactory =
