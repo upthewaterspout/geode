@@ -298,8 +298,7 @@ public class PartitionedRegion extends LocalRegion
   /**
    * Changes scope of replication to secondary bucket to SCOPE.DISTRIBUTED_NO_ACK
    */
-  static final boolean DISABLE_SECONDARY_BUCKET_ACK =
-      Boolean.getBoolean(GeodeGlossary.GEMFIRE_PREFIX + "disablePartitionedRegionBucketAck");
+  static final boolean DISABLE_SECONDARY_BUCKET_ACK = true;
 
   /**
    * A debug flag used for testing calculation of starting bucket id
