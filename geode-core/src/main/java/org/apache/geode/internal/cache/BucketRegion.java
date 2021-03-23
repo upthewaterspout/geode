@@ -25,9 +25,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
+import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -681,11 +684,13 @@ public class BucketRegion extends DistributedRegion implements Bucket {
     public boolean clearConflict;
   }
 
+
+  private static final ExecutorService ASYNC_SENDER = Executors.newSingleThreadExecutor();
   private static final Disruptor<BasicPutPart2Event> disruptor;
       static {
         disruptor =
             new Disruptor<>(BasicPutPart2Event::new, 1024, DaemonThreadFactory.INSTANCE,
-                ProducerType.MULTI, new SleepingWaitStrategy());
+                ProducerType.MULTI, new BlockingWaitStrategy());
         disruptor.handleEventsWith((basicPutPart2, sequence, endOfBatch) -> {
           basicPutPart2.bucketRegion.basicPutPart2Sync(basicPutPart2.entryEvent,
               basicPutPart2.regionEntry, basicPutPart2.isInitialized, basicPutPart2.lastModified,
