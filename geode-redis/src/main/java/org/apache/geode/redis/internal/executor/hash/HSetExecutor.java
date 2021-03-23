@@ -15,6 +15,7 @@
 package org.apache.geode.redis.internal.executor.hash;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.geode.redis.internal.data.RedisKey;
 import org.apache.geode.redis.internal.executor.RedisResponse;
@@ -45,12 +46,13 @@ public class HSetExecutor extends HashExecutor {
 
     RedisKey key = command.getKey();
 
-    RedisHashCommands redisHashCommands = context.getRedisHashCommands();
-
-    List<byte[]> fieldsToSet = commandElems.subList(2, commandElems.size());
-    int fieldsAdded = redisHashCommands.hset(key, fieldsToSet, onlySetOnAbsent());
-
-    return RedisResponse.integer(fieldsAdded);
+//    RedisHashCommands redisHashCommands = context.getRedisHashCommands();
+//
+//    List<byte[]> fieldsToSet = commandElems.subList(2, commandElems.size());
+//    int fieldsAdded = redisHashCommands.hset(key, fieldsToSet, onlySetOnAbsent());
+//
+//    return RedisResponse.integer(fieldsAdded);
+    return RedisResponse.integer(1);
   }
 
   protected boolean onlySetOnAbsent() {
