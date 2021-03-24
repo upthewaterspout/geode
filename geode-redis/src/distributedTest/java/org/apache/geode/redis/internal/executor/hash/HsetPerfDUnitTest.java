@@ -98,6 +98,29 @@ public class HsetPerfDUnitTest {
   }
 
   @Test
+  public void testGetPut() {
+
+    String key = "key";
+
+    Map<String, String> testMap = makeHashMap(HASH_SIZE, "field-", "value-");
+
+    long keyRange = 10;
+
+    for (int i = 0; i < keyRange; i++) {
+      jedisCluster.hset(key + i, "key1", "value1");
+      jedisCluster.hset(key + i, "key2", "value2");
+      jedisCluster.hset(key + i, "key3", "value3");
+    }
+
+    for (int i = 0; i < keyRange; i++) {
+      assertThat(jedisCluster.hget(key + i, "key1")).isEqualTo("value1");
+      assertThat(jedisCluster.hget(key + i, "key2")).isEqualTo("value2");
+      assertThat(jedisCluster.hget(key + i, "key3")).isEqualTo("value3");
+    }
+
+  }
+
+  @Test
   public void performanceTest() {
 
     String key = "key";

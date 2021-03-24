@@ -1522,7 +1522,7 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
     if (obj instanceof byte[] || obj == null || obj instanceof CachedDeserializable
         || obj == Token.NOT_AVAILABLE || Token.isInvalidOrRemoved(obj)
         // don't serialize delta object already serialized
-        || obj instanceof Delta) { // internal delta
+        || obj instanceof Delta || obj instanceof RemoteEntryModification) { // internal delta
       return obj;
     }
     final CachedDeserializable cd;

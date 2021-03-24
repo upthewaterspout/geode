@@ -53,7 +53,7 @@ public class RedisHash extends AbstractRedisData {
   private Object2ObjectOpenCustomHashMap<byte[], byte[]> hash;
 
   public RedisHash(List<byte[]> fieldsToSet) {
-    hash = new Object2ObjectOpenCustomHashMap<>(fieldsToSet.size(), ByteArrays.HASH_STRATEGY);
+    hash = new Object2ObjectOpenCustomHashMap<>(fieldsToSet.size() / 2, ByteArrays.HASH_STRATEGY);
     hashPutFields(fieldsToSet);
   }
 
@@ -124,6 +124,7 @@ public class RedisHash extends AbstractRedisData {
         byte[] value = iterator.next();
         hashPut(field, value);
       }
+//      new Exception("Applied a delta to " + " with " + addsDeltaInfo.getAdds().size() / 2 + " deltas. Current hash is " + this).printStackTrace();
     } else {
       RemsDeltaInfo remsDeltaInfo = (RemsDeltaInfo) deltaInfo;
       for (byte[] field : remsDeltaInfo.getRemoves()) {

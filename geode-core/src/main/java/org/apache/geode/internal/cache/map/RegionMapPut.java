@@ -28,6 +28,7 @@ import org.apache.geode.internal.cache.EntryEventSerialization;
 import org.apache.geode.internal.cache.InternalRegion;
 import org.apache.geode.internal.cache.RegionClearedException;
 import org.apache.geode.internal.cache.RegionEntry;
+import org.apache.geode.internal.cache.RemoteEntryModification;
 import org.apache.geode.internal.cache.Token;
 import org.apache.geode.internal.cache.ValueComparisonHelper;
 import org.apache.geode.internal.cache.entries.AbstractRegionEntry;
@@ -73,7 +74,7 @@ public class RegionMapPut extends AbstractRegionMapPut {
     this.ifOld = ifOld;
     this.overwriteDestroyed = overwriteDestroyed;
     this.requireOldValue = requireOldValue;
-    this.retrieveOldValueForDelta = event.getDeltaBytes() != null && event.getRawNewValue() == null;
+    this.retrieveOldValueForDelta = event.getDeltaBytes() != null && event.getRawNewValue() == null || event.getRawNewValue() instanceof RemoteEntryModification;
     this.replaceOnClient = event.getOperation() == Operation.REPLACE && owner.hasServerProxy();
     this.onlyExisting = ifOld && !isReplaceOnClient();
     this.cacheWriter = owner.basicGetWriter();

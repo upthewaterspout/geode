@@ -33,7 +33,13 @@ import org.apache.geode.redis.internal.data.RedisKey;
 
 public class AddsDeltaInfo implements DeltaInfo, RemoteEntryModification<RedisKey, RedisHash>,
     DataSerializableFixedID {
-  private final List<byte[]> deltas;
+  private List<byte[]> deltas;
+
+
+  //TODO - only for serialiation. Can we avoid this??
+  public AddsDeltaInfo() {
+  }
+
 
   public AddsDeltaInfo(int size) {
     this(new ArrayList<>(size));
@@ -64,7 +70,7 @@ public class AddsDeltaInfo implements DeltaInfo, RemoteEntryModification<RedisKe
     else {
       redisHash.hashPutFields(this.deltas);
     }
-
+//    new Exception("Applying a modification to " + redisKey + " with " + deltas.size() / 2 + " deltas. Current hash is " + redisHash).printStackTrace();
     redisHash.setDelta(this);
     return redisHash;
   }
@@ -87,7 +93,7 @@ public class AddsDeltaInfo implements DeltaInfo, RemoteEntryModification<RedisKe
   public void fromData(DataInput in, DeserializationContext context)
       throws IOException, ClassNotFoundException {
     int length = in.readInt();
-    ArrayList<byte[]> deltas = new ArrayList<>(length);
+    deltas = new ArrayList<>(length);
     for(int i =0 ;i < length; i++) {
       deltas.add(DataSerializer.readByteArray(in));
     }
