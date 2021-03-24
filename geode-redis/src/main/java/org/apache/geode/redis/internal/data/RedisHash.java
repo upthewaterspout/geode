@@ -54,6 +54,10 @@ public class RedisHash extends AbstractRedisData {
 
   public RedisHash(List<byte[]> fieldsToSet) {
     hash = new Object2ObjectOpenCustomHashMap<>(fieldsToSet.size(), ByteArrays.HASH_STRATEGY);
+    hashPutFields(fieldsToSet);
+  }
+
+  public void hashPutFields(List<byte[]> fieldsToSet) {
     Iterator<byte[]> iterator = fieldsToSet.iterator();
     while (iterator.hasNext()) {
       hashPut(iterator.next(), iterator.next());

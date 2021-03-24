@@ -33,6 +33,7 @@ import org.apache.geode.redis.internal.data.RedisHash;
 import org.apache.geode.redis.internal.data.RedisKey;
 import org.apache.geode.redis.internal.data.RedisSet;
 import org.apache.geode.redis.internal.data.RedisString;
+import org.apache.geode.redis.internal.delta.AddsDeltaInfo;
 import org.apache.geode.redis.internal.executor.string.SetOptions;
 
 public class GeodeRedisService implements CacheService, ResourceEventsListener {
@@ -69,6 +70,9 @@ public class GeodeRedisService implements CacheService, ResourceEventsListener {
     InternalDataSerializer.getDSFIDSerializer().registerDSFID(
         DataSerializableFixedID.REDIS_HASH_ID,
         RedisHash.class);
+    InternalDataSerializer.getDSFIDSerializer().registerDSFID(
+        DataSerializableFixedID.REDIS_ADD_DELTAS,
+        AddsDeltaInfo.class);
     InternalDataSerializer.getDSFIDSerializer().registerDSFID(
         DataSerializableFixedID.REDIS_NULL_DATA_ID,
         NullRedisData.class);

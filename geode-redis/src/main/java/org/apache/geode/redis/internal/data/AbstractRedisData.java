@@ -167,7 +167,7 @@ public abstract class AbstractRedisData implements RedisData {
     expirationTimestamp = in.readLong();
   }
 
-  private void setDelta(DeltaInfo deltaInfo) {
+  public void setDelta(DeltaInfo deltaInfo) {
     this.deltaInfo = deltaInfo;
   }
 

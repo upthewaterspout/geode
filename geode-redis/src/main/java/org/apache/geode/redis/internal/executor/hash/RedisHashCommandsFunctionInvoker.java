@@ -39,8 +39,11 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.execute.FunctionService;
+import org.apache.geode.internal.cache.PartitionedRegion;
 import org.apache.geode.redis.internal.data.RedisData;
+import org.apache.geode.redis.internal.data.RedisHash;
 import org.apache.geode.redis.internal.data.RedisKey;
+import org.apache.geode.redis.internal.delta.AddsDeltaInfo;
 import org.apache.geode.redis.internal.executor.CommandFunction;
 import org.apache.geode.redis.internal.executor.RedisCommandsFunctionInvoker;
 
@@ -62,7 +65,10 @@ public class RedisHashCommandsFunctionInvoker extends RedisCommandsFunctionInvok
 
   @Override
   public int hset(RedisKey key, List<byte[]> fieldsToSet, boolean NX) {
-    return invokeCommandFunction(key, HSET, fieldsToSet, NX);
+    ((PartitionedRegion) region).compute(key, new AddsDeltaInfo(fieldsToSet));
+    //TODO - total hack, assumes all set fields were new fields.
+    return fieldsToSet.size() / 2;
+//    return invokeCommandFunction(key, HSET, fieldsToSet, NX);
   }
 
   @Override

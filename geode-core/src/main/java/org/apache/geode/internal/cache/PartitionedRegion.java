@@ -48,6 +48,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
+import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.Logger;
 
@@ -728,6 +729,15 @@ public class PartitionedRegion extends LocalRegion
         }
       }
       return sb.toString();
+    }
+  }
+
+  @Override
+  public Object compute(Object key, BiFunction remappingFunction) {
+    if(remappingFunction instanceof RemoteEntryModification) {
+      return this.put(key, remappingFunction);
+    } else {
+      return this.compute(key, remappingFunction);
     }
   }
 

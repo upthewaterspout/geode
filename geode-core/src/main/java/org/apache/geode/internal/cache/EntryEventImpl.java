@@ -1693,6 +1693,10 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
     if (this.deltaBytes != null && this.newValue == null && this.newValueBytes == null) {
       processDeltaBytes(oldValueForDelta);
     }
+    if(this.newValue instanceof RemoteEntryModification) {
+      RemoteEntryModification modification = (RemoteEntryModification) newValue;
+      this.newValue = applyModification(oldValueForDelta, modification);
+    }
 
     if (owner != null) {
       owner.generateAndSetVersionTag(this, reentry);
@@ -1789,6 +1793,24 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
     if (!isTombstone && wasTombstone) {
       owner.unscheduleTombstone(reentry);
     }
+  }
+
+  private Object applyModification(Object value, RemoteEntryModification modification) {
+    FilterProfile fp = getRegion().getFilterProfile();
+    boolean copy = getRegion().getCompressor() == null && (getRegion().isCopyOnRead()
+        || getRegion().getCloningEnabled() || (fp != null && fp.getCqCount() > 0));
+    if (value instanceof CachedDeserializable) {
+      if (copy) {
+        value = ((CachedDeserializable) value).getDeserializedWritableCopy(getRegion(), re);
+      } else {
+        value = ((CachedDeserializable) value).getDeserializedValue(getRegion(), re);
+      }
+    } else {
+      if (copy) {
+        value = CopyHelper.copy(value);
+      }
+    }
+    return modification.apply(this.keyInfo.getKey(), value);
   }
 
   /**
