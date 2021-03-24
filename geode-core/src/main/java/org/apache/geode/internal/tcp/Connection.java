@@ -1170,7 +1170,7 @@ public class Connection implements Runnable {
     owner.addConnectingSocket(channel.socket(), addr.getAddress());
 
     try {
-      channel.socket().setTcpNoDelay(true);
+      channel.socket().setTcpNoDelay(false);
       channel.socket().setKeepAlive(SocketCreator.ENABLE_TCP_KEEP_ALIVE);
 
       // If conserve-sockets is false, the socket can be used for receiving responses, so set the
