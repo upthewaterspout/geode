@@ -5962,7 +5962,7 @@ public class LocalRegion extends AbstractRegion implements LoaderHelperFactory,
       EntryEventImpl entryEvent = (EntryEventImpl) event;
       if (!entryEvent.isOriginRemote() && shouldGenerateVersionTag(entry, entryEvent)) {
         boolean eventHasDelta = getSystem().getConfig().getDeltaPropagation()
-            && !scope.isDistributedNoAck() && entryEvent.getDeltaBytes() != null;
+            && !scope.isDistributedNoAck() && entryEvent.hasDelta();
         VersionTag v = entry.generateVersionTag(null, eventHasDelta, this, entryEvent);
         if (logger.isDebugEnabled() && v != null) {
           logger.debug("generated version tag {} for {}", v, entryEvent.getKey());

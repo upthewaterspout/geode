@@ -74,7 +74,7 @@ public class RegionMapPut extends AbstractRegionMapPut {
     this.ifOld = ifOld;
     this.overwriteDestroyed = overwriteDestroyed;
     this.requireOldValue = requireOldValue;
-    this.retrieveOldValueForDelta = event.getDeltaBytes() != null && event.getRawNewValue() == null || event.getRawNewValue() instanceof RemoteEntryModification;
+    this.retrieveOldValueForDelta = event.hasDelta() && event.getRawNewValue() == null || event.getRawNewValue() instanceof RemoteEntryModification;
     this.replaceOnClient = event.getOperation() == Operation.REPLACE && owner.hasServerProxy();
     this.onlyExisting = ifOld && !isReplaceOnClient();
     this.cacheWriter = owner.basicGetWriter();

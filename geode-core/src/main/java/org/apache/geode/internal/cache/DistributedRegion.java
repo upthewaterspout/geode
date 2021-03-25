@@ -393,7 +393,7 @@ public class DistributedRegion extends LocalRegion implements InternalDistribute
         return super.virtualPut(event, ifNew, ifOld, expectedOldValue, requireOldValue,
             lastModified, overwriteDestroyed, invokeCallbacks, throwConcurrentModificaiton);
       } else {
-        if (event.getDeltaBytes() != null && event.getRawNewValue() == null) {
+        if (event.hasDelta() && event.getRawNewValue() == null) {
           // This means that this event has delta bytes but no full value.
           // Request the full value of this event.
           // The value in this vm may not be same as this event's value.

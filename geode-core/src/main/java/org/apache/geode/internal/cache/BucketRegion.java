@@ -534,7 +534,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
             expectedOldValue, requireOldValue, overwriteDestroyed);
         return oldEntry != null;
       }
-      if (event.getDeltaBytes() != null && event.getRawNewValue() == null) {
+      if (event.hasDelta() && event.getRawNewValue() == null) {
         // This means that this event has delta bytes but no full value.
         // Request the full value of this event.
         // The value in this vm may not be same as this event's value.
@@ -675,7 +675,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       }
       if (!event.isOriginRemote()) {
         if (event.getVersionTag() == null || event.getVersionTag().isGatewayTag()) {
-          boolean eventHasDelta = event.getDeltaBytes() != null;
+          boolean eventHasDelta = event.hasDelta();
           VersionTag v = entry.generateVersionTag(null, eventHasDelta, this, event);
           if (v != null) {
             if (logger.isDebugEnabled()) {
@@ -1852,7 +1852,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
 
   private void setDeltaIfNeeded(EntryEventImpl event) {
     if (partitionedRegion.getSystem().getConfig().getDeltaPropagation()
-        && event.getOperation().isUpdate() && event.getDeltaBytes() == null) {
+        && event.getOperation().isUpdate() && event.hasDelta()) {
       @Unretained
       Object rawNewValue = event.getRawNewValue();
       if (!(rawNewValue instanceof CachedDeserializable)) {

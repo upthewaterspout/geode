@@ -39,6 +39,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.apache.geode.DataSerializer;
+import org.apache.geode.InvalidDeltaException;
 import org.apache.geode.cache.Region;
 import org.apache.geode.internal.serialization.DeserializationContext;
 import org.apache.geode.internal.serialization.KnownVersion;
@@ -90,7 +91,7 @@ public class RedisHash extends AbstractRedisData {
       throws IOException, ClassNotFoundException {
     super.fromData(in, context);
     int size = DataSerializer.readInteger(in);
-    hash = new Object2ObjectOpenCustomHashMap<>(size, ByteArrays.HASH_STRATEGY);
+    hash = new Object2ObjectOpenCustomHashMap<>(size/2, ByteArrays.HASH_STRATEGY);
     for (int i = 0; i < size; i++) {
       hash.put(DataSerializer.readByteArray(in), DataSerializer.readByteArray(in));
     }
@@ -112,6 +113,17 @@ public class RedisHash extends AbstractRedisData {
 
   private synchronized byte[] hashRemove(byte[] field) {
     return hash.remove(field);
+  }
+
+  @Override
+  public void fromDelta(DataInput in) throws IOException, InvalidDeltaException {
+    AddsDeltaInfo  deltaInfo = null;
+    try {
+      deltaInfo = DataSerializer.readObject(in);
+    } catch (ClassNotFoundException e) {
+      throw new IOException(e);
+    }
+    applyDelta(deltaInfo);
   }
 
   @Override

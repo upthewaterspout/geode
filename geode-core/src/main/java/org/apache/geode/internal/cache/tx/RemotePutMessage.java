@@ -543,8 +543,8 @@ public class RemotePutMessage extends RemoteOperationMessageWithDirectReply
     }
     DistributedCacheOperation.writeValue(this.deserializationPolicy, this.valObj, getValBytes(),
         out);
-    if (this.event.getDeltaBytes() != null) {
-      DataSerializer.writeByteArray(this.event.getDeltaBytes(), out);
+    if (this.event.hasDelta()) {
+      event.writeDelta(out);
     }
     if (this.versionTag != null) {
       DataSerializer.writeObject(this.versionTag, out);
@@ -562,7 +562,7 @@ public class RemotePutMessage extends RemoteOperationMessageWithDirectReply
       s |= REQUIRED_OLD_VAL;
     if (this.hasOldValue)
       s |= HAS_OLD_VAL;
-    if (this.event.getDeltaBytes() != null)
+    if (this.event.hasDelta())
       s |= HAS_DELTA_BYTES;
     if (this.expectedOldValue != null)
       s |= HAS_EXPECTED_OLD_VAL;

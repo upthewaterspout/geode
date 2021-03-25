@@ -536,7 +536,7 @@ public class PutMessage extends PartitionMessageWithDirectReply implements NewVa
     PartitionedRegion region = null;
     try {
       boolean flag = internalDs.getConfig().getDeltaPropagation();
-      if (this.event.getDeltaBytes() != null && flag && this.sendDelta) {
+      if (this.event.hasDelta() && flag && this.sendDelta) {
         this.hasDelta = true;
       } else {
         // Reset the flag when sending full object.
@@ -552,7 +552,7 @@ public class PutMessage extends PartitionMessageWithDirectReply implements NewVa
       extraFlags |= HAS_BRIDGE_CONTEXT;
     if (this.deserializationPolicy != DistributedCacheOperation.DESERIALIZATION_POLICY_NONE
         && (this.valObj != null || getValBytes() != null) && this.sendDeltaWithFullValue
-        && this.event.getDeltaBytes() != null) {
+        && this.event.hasDelta()) {
       extraFlags |= HAS_DELTA_WITH_FULL_VALUE;
     }
     if (this.originalSender != null)
@@ -586,7 +586,7 @@ public class PutMessage extends PartitionMessageWithDirectReply implements NewVa
         throw new IOException(
             "Delta can not be extracted as region can't be found or is in an invalid state");
       }
-      DataSerializer.writeByteArray(this.event.getDeltaBytes(), out);
+      event.writeDelta(out);
       region.getCachePerfStats().incDeltasSent();
     } else {
       DistributedCacheOperation.writeValue(this.deserializationPolicy, this.valObj, getValBytes(),

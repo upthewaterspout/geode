@@ -165,7 +165,7 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
    * this holds the bytes representing the change in value effected by this event. It is used when
    * the value implements the Delta interface.
    */
-  private byte[] deltaBytes = null;
+  private Object delta = null;
 
   /** routing information for cache clients for this event */
   private FilterInfo filterInfo;
@@ -348,7 +348,7 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
           (GatewaySenderEventCallbackArgument) other.getRawCallbackArgument())));
     }
     this.context = other.context;
-    this.deltaBytes = other.deltaBytes;
+    this.delta = other.delta;
     this.tailKey = other.tailKey;
     this.versionTag = other.versionTag;
     // set possible duplicate
@@ -918,6 +918,7 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
   private boolean isOffHeapReference(Object ref) {
     return mayHaveOffHeapReferences() && StoredObject.isOffHeapReference(ref);
   }
+
 
   private class OldValueOwner {
     private EntryEventImpl getEvent() {
@@ -1690,12 +1691,16 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
 
     // If event contains new value, then it may mean that the delta bytes should
     // not be applied. This is possible if the event originated locally.
-    if (this.deltaBytes != null && this.newValue == null && this.newValueBytes == null) {
+    if (this.delta != null && this.newValue == null && this.newValueBytes == null) {
       processDeltaBytes(oldValueForDelta);
     }
     if(this.newValue instanceof RemoteEntryModification) {
       RemoteEntryModification modification = (RemoteEntryModification) newValue;
       this.newValue = applyModification(oldValueForDelta, modification);
+      //TODO - hack - this assumes the modification is also a valid delta, which
+      //is what we did for this hack - AddsDeltaInfo is both a computation and a delta.
+      // A real fix would just ship the computation to be applied on the remote side somehow.
+      this.delta = modification;
     }
 
     if (owner != null) {
@@ -1923,7 +1928,7 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
   void putValueTXEntry(final TXEntryState tx) {
     Object v = basicGetNewValue();
     if (v == null) {
-      if (deltaBytes != null) {
+      if (delta != null) {
         // since newValue is null, and we have deltaBytes
         // there must be a nearSidePendingValue
         processDeltaBytes(tx.getNearSidePendingValue());
@@ -2234,8 +2239,8 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
       buf.append(";id=");
       buf.append(this.eventID);
     }
-    if (this.deltaBytes != null) {
-      buf.append(";[").append(this.deltaBytes.length).append(" deltaBytes]");
+    if (this.delta != null) {
+      buf.append(";[").append("hasDelta]");
     }
     if (this.filterInfo != null) {
       buf.append(";routing=");
@@ -2589,7 +2594,19 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
    * @return delta bytes
    */
   public byte[] getDeltaBytes() {
-    return deltaBytes;
+    return (byte[]) delta;
+  }
+
+  public boolean hasDelta() {
+    return delta != null;
+  }
+
+  public void writeDelta(DataOutput out) throws IOException {
+    if(delta instanceof byte[]) {
+      DataSerializer.writeByteArray((byte[]) delta, out);
+    } else {
+      DataSerializer.writeObjectAsByteArray(delta, out);
+    }
   }
 
   /**
@@ -2597,7 +2614,7 @@ public class EntryEventImpl implements InternalEntryEvent, InternalCacheEvent,
    * setNewValue().</B>
    */
   public void setDeltaBytes(byte[] deltaBytes) {
-    this.deltaBytes = deltaBytes;
+    this.delta = deltaBytes;
   }
 
   // TODO (ashetkar) Can this.op.isCreate() be used instead?

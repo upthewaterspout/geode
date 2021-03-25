@@ -448,7 +448,7 @@ public class P2PDeltaPropagationDUnitTest extends JUnit4DistributedTestCase {
               check = Boolean.TRUE;
             }
           }
-          if (((EntryEventImpl) event).getDeltaBytes() != null) {
+          if (((EntryEventImpl) event).hasDelta()) {
             cache.getLogger().fine("delta bytes received. " + hasDeltaBytes);
             assertTrue("No full value received for event " + event,
                 ((EntryEventImpl) event).getNewValue() != null);

@@ -1772,7 +1772,7 @@ public class TXState implements TXStateInterface {
    * throws an exception when cloning is disabled while using delta
    */
   private void validateDelta(EntryEventImpl event) {
-    if (event.getDeltaBytes() != null && !event.getRegion().getAttributes().getCloningEnabled()) {
+    if (event.hasDelta() && !event.getRegion().getAttributes().getCloningEnabled()) {
       throw new UnsupportedOperationInTransactionException(
           "Delta without cloning cannot be used in transaction");
     }

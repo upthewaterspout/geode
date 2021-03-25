@@ -69,17 +69,17 @@ public class HsetPerfDUnitTest {
     locatorProperties.setProperty(MAX_WAIT_TIME_RECONNECT, "15000");
 
     locator = clusterStartUp.startLocatorVM(0, locatorProperties);
-    server1 = clusterStartUp.startRedisVM(1, locator.getPort());
+    server1 = clusterStartUp.startRedisVM(-1, locator.getPort());
     server2 = clusterStartUp.startRedisVM(2, locator.getPort());
 
-    redisServerPort1 = clusterStartUp.getRedisPort(1);
+    redisServerPort1 = clusterStartUp.getRedisPort(-1);
     redisServerPort2 = clusterStartUp.getRedisPort(2);
 
     final JedisPoolConfig poolConfig = new JedisPoolConfig();
     poolConfig.setMaxTotal(-1);
     poolConfig.setMaxIdle(-1);
     poolConfig.setLifo(false);
-    jedisCluster = new JedisCluster(new HostAndPort(LOCAL_HOST, redisServerPort1), poolConfig);
+    jedisCluster = new JedisCluster(new HostAndPort(LOCAL_HOST, redisServerPort1), 3600, poolConfig);
 //    jedis1 = new Jedis(LOCAL_HOST, redisServerPort1, JEDIS_TIMEOUT);
   }
 

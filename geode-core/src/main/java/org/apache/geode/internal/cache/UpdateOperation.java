@@ -315,17 +315,7 @@ public class UpdateOperation extends AbstractUpdateOperation {
       buff.append("; key=");
       buff.append(this.key);
       if (this.hasDelta()) {
-        byte[] bytes;
-        if (this.event != null) {
-          bytes = this.event.getDeltaBytes();
-        } else {
-          bytes = this.deltaBytes;
-        }
-        if (bytes == null) {
-          buff.append("; null delta bytes");
-        } else {
-          buff.append("; ").append(bytes.length).append(" delta bytes");
-        }
+        buff.append("; ").append(" has a delta");
       } else if (this.newValueObj != null) {
         buff.append("; newValueObj=");
         buff.append(this.newValueObj);
@@ -387,7 +377,7 @@ public class UpdateOperation extends AbstractUpdateOperation {
       if (this.eventId != null)
         extraFlags |= HAS_EVENTID;
       if (this.deserializationPolicy != DistributedCacheOperation.DESERIALIZATION_POLICY_NONE
-          && this.sendDeltaWithFullValue && this.event.getDeltaBytes() != null) {
+          && this.sendDeltaWithFullValue && this.event.hasDelta()) {
         extraFlags |= HAS_DELTA_WITH_FULL_VALUE;
       }
       out.writeByte(extraFlags);
@@ -411,13 +401,13 @@ public class UpdateOperation extends AbstractUpdateOperation {
       DataSerializer.writeObject(key, out);
 
       if (hasDelta()) {
-        DataSerializer.writeByteArray(this.event.getDeltaBytes(), out);
+        event.writeDelta(out);
         this.event.getRegion().getCachePerfStats().incDeltasSent();
       } else {
         DistributedCacheOperation.writeValue(this.deserializationPolicy, this.newValueObj,
             this.newValue, out);
         if ((extraFlags & HAS_DELTA_WITH_FULL_VALUE) != 0) {
-          DataSerializer.writeByteArray(this.event.getDeltaBytes(), out);
+          event.writeDelta(out);
         }
       }
     }
@@ -430,7 +420,7 @@ public class UpdateOperation extends AbstractUpdateOperation {
     private void setDeltaFlag(DistributedRegion region) {
       try {
         if (region != null && region.getSystem().getConfig().getDeltaPropagation() && this.sendDelta
-            && !region.scope.isDistributedNoAck() && this.event.getDeltaBytes() != null) {
+            && !region.scope.isDistributedNoAck() && this.event.hasDelta()) {
           setHasDelta(true);
           return;
         }
