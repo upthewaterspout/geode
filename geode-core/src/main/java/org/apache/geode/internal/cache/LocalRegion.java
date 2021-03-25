@@ -124,7 +124,6 @@ import org.apache.geode.cache.client.internal.ServerRegionProxy;
 import org.apache.geode.cache.control.ResourceManager;
 import org.apache.geode.cache.execute.Function;
 import org.apache.geode.cache.execute.ResultCollector;
-import org.apache.geode.cache.partition.PartitionRegionHelper;
 import org.apache.geode.cache.persistence.ConflictingPersistentDataException;
 import org.apache.geode.cache.query.FunctionDomainException;
 import org.apache.geode.cache.query.Index;
@@ -190,7 +189,6 @@ import org.apache.geode.internal.cache.persistence.query.IndexMap;
 import org.apache.geode.internal.cache.persistence.query.mock.IndexMapImpl;
 import org.apache.geode.internal.cache.tier.InterestType;
 import org.apache.geode.internal.cache.tier.sockets.CacheClientNotifier;
-import org.apache.geode.internal.cache.tier.sockets.ClientHealthMonitor;
 import org.apache.geode.internal.cache.tier.sockets.ClientProxyMembershipID;
 import org.apache.geode.internal.cache.tier.sockets.ClientTombstoneMessage;
 import org.apache.geode.internal.cache.tier.sockets.ClientUpdateMessage;
@@ -1346,15 +1344,22 @@ public class LocalRegion extends AbstractRegion implements LoaderHelperFactory,
         clientEvent, returnTombstones, opScopeIsLocal, false);
   }
 
+  Object get(final Object key, final Object aCallbackArgument, final boolean generateCallbacks,
+             final boolean disableCopyOnRead, final boolean preferCD, final ClientProxyMembershipID requestingClient,
+             final EntryEventImpl clientEvent, final boolean returnTombstones, final boolean opScopeIsLocal,
+             final boolean retainResult) throws TimeoutException, CacheLoaderException {
+    return get(key,  aCallbackArgument,  generateCallbacks, disableCopyOnRead,  preferCD,  requestingClient, clientEvent,  returnTombstones,  opScopeIsLocal, retainResult, null);
+  }
+
   /**
    * @param opScopeIsLocal if true then just check local storage for a value; if false then try to
    *        find the value if it is not local
    * @param retainResult if true then the result may be a retained off-heap reference.
    */
-  Object get(Object key, Object aCallbackArgument, boolean generateCallbacks,
-      boolean disableCopyOnRead, boolean preferCD, ClientProxyMembershipID requestingClient,
-      EntryEventImpl clientEvent, boolean returnTombstones, boolean opScopeIsLocal,
-      boolean retainResult) throws TimeoutException, CacheLoaderException {
+  Object get(final Object key, final Object aCallbackArgument, final boolean generateCallbacks,
+             final boolean disableCopyOnRead, final boolean preferCD, final ClientProxyMembershipID requestingClient,
+             final EntryEventImpl clientEvent, final boolean returnTombstones, final boolean opScopeIsLocal,
+             final boolean retainResult, KeyInfo keyInfo) throws TimeoutException, CacheLoaderException {
     assert !retainResult || preferCD;
     validateKey(key);
     checkReadiness();
@@ -1363,7 +1368,9 @@ public class LocalRegion extends AbstractRegion implements LoaderHelperFactory,
     long start = startGet();
     boolean isMiss = true;
     try {
-      KeyInfo keyInfo = getKeyInfo(key, aCallbackArgument);
+      if (null == keyInfo) {
+        keyInfo = getKeyInfo(key, aCallbackArgument);
+      }
       Object value = getDataView().getDeserializedValue(keyInfo, this, true, disableCopyOnRead,
           preferCD, clientEvent, returnTombstones, retainResult, true);
       final boolean isCreate = value == null;
@@ -1681,54 +1688,13 @@ public class LocalRegion extends AbstractRegion implements LoaderHelperFactory,
   }
 
   private void extractDeltaIntoEvent(Object value, EntryEventImpl event) {
-    // 1. Check for DS-level delta property.
-    // 2. Default value for operation type is UPDATE, so no need to check that here.
-    // 3. Check if it has server region proxy.
-    // We do not have a handle to event in PutOpImpl to check if we have
-    // delta bytes calculated already. So no need to calculate it here.
-    // 4. Check if value is instanceof org.apache.geode.Delta
-    // 5. Check if Region in PR with redundantCopies > 0. Set extractDelta.
-    // 6. Check if Region has peers. Set extractDelta.
-    // 7. Check if it has any delta proxies attached to it. Set extractDelta.
-    // 8. If extractDelta is set, check if it has delta.
-    // 9. If delta is found, extract it and set it into the event.
-    // 10. If any exception is caught while invoking the delta callbacks, throw it back.
-    // 11. Wrap any checked exception in InternalGemFireException before throwing it.
     try {
-      // How costly is this if check?
-      if (getSystem().getConfig().getDeltaPropagation() && value instanceof Delta) {
-        boolean extractDelta = false;
-        if (!hasServerProxy()) {
-          if (this instanceof PartitionedRegion) {
-            if (((PartitionedRegion) this).getRedundantCopies() > 0) {
-              extractDelta = true;
-            } else {
-              InternalDistributedMember ids = (InternalDistributedMember) PartitionRegionHelper
-                  .getPrimaryMemberForKey(this, event.getKey());
-              if (ids != null) {
-                extractDelta = !getSystem().getMemberId().equals(ids.getId())
-                    || hasAdjunctRecipientsNeedingDelta(event);
-              } else {
-                extractDelta = true;
-              }
-            }
-          } else if (this instanceof DistributedRegion
-              && !((DistributedRegion) this).scope.isDistributedNoAck()
-              && !((CacheDistributionAdvisee) this).getCacheDistributionAdvisor().adviseCacheOp()
-                  .isEmpty()) {
-            extractDelta = true;
-          }
-          if (!extractDelta && ClientHealthMonitor.getInstance() != null) {
-            extractDelta = ClientHealthMonitor.getInstance().hasDeltaClients();
-          }
-        } else if (getSystem().isDeltaEnabledOnServer()) {
-          // This is a client region
-          extractDelta = true;
-        }
-        if (extractDelta && ((Delta) value).hasDelta()) {
-          try (HeapDataOutputStream hdos = new HeapDataOutputStream(KnownVersion.CURRENT)) {
+      if (value instanceof Delta) {
+        final Delta deltaValue = (Delta) value;
+        if (deltaValue.hasDelta()) {
+          try (HeapDataOutputStream hdos = new HeapDataOutputStream(128, KnownVersion.CURRENT)) {
             try {
-              ((Delta) value).toDelta(hdos);
+              deltaValue.toDelta(hdos);
             } catch (RuntimeException re) {
               throw re;
             } catch (Exception e) {
@@ -5957,9 +5923,9 @@ public class LocalRegion extends AbstractRegion implements LoaderHelperFactory,
    * generate version tag if it does not exist and set it into the event.
    */
   @Override
-  public void generateAndSetVersionTag(InternalCacheEvent event, RegionEntry entry) {
+  public void generateAndSetVersionTag(final InternalCacheEvent event, final RegionEntry entry) {
     if (entry != null && event.getOperation().isEntry()) {
-      EntryEventImpl entryEvent = (EntryEventImpl) event;
+      final EntryEventImpl entryEvent = (EntryEventImpl) event;
       if (!entryEvent.isOriginRemote() && shouldGenerateVersionTag(entry, entryEvent)) {
         boolean eventHasDelta = getSystem().getConfig().getDeltaPropagation()
             && !scope.isDistributedNoAck() && entryEvent.hasDelta();

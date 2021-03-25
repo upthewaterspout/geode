@@ -37,6 +37,7 @@ import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.DistributedSystem;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.internal.HeapDataOutputStream;
+import org.apache.geode.internal.cache.event.DistributedEventTracker;
 import org.apache.geode.internal.cache.ha.HARegionQueue;
 import org.apache.geode.internal.cache.ha.ThreadIdentifier;
 import org.apache.geode.internal.cache.tier.sockets.ClientProxyMembershipID;
@@ -98,6 +99,8 @@ public class EventID implements DataSerializableFixedID, Serializable, Externali
   };
 
   private transient int hashCode = 0;
+
+  private transient ThreadIdentifier threadIdentifier;
 
   /**
    * the distributed system associated with the static client_side_event_identity
@@ -282,6 +285,13 @@ public class EventID implements DataSerializableFixedID, Serializable, Externali
 
   public void setThreadID(long threadID) {
     this.threadID = threadID;
+  }
+
+  public ThreadIdentifier getThreadIdentifier() {
+    if (null == threadIdentifier) {
+      threadIdentifier =  new ThreadIdentifier(membershipID, threadID);
+    }
+    return threadIdentifier;
   }
 
   public byte[] getMembershipID() {
@@ -481,12 +491,22 @@ public class EventID implements DataSerializableFixedID, Serializable, Externali
   public static int hashCodeMemberId(byte[] memberID) {
     if (memberID.length < (NULL_90_MEMBER_DATA_LENGTH + MINIMIM_ID_LENGTH)
         || !nullUUIDCheck(memberID, memberID.length - NULL_90_MEMBER_DATA_LENGTH)) {
-      return Arrays.hashCode(memberID);
+      return hashCode(memberID, memberID.length);
     }
-    byte[] newID = new byte[memberID.length - NULL_90_MEMBER_DATA_LENGTH];
-    System.arraycopy(memberID, 0, newID, 0, newID.length);
-    return Arrays.hashCode(newID);
+    return hashCode(memberID, memberID.length - NULL_90_MEMBER_DATA_LENGTH);
   }
+
+  public static int hashCode(final byte a[], final int length) {
+    if (a == null)
+      return 0;
+
+    int result = 1;
+    for (int i = 0; i < length; i++)
+      result = 31 * result + a[i];
+
+    return result;
+  }
+
 
   public int hashCode() {
     if (hashCode == 0) {

@@ -49,8 +49,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.util.TriConsumer;
 
 import org.apache.geode.CancelException;
 import org.apache.geode.InternalGemFireException;
@@ -299,8 +301,9 @@ public class PartitionedRegion extends LocalRegion
   /**
    * Changes scope of replication to secondary bucket to SCOPE.DISTRIBUTED_NO_ACK
    */
-  static final boolean DISABLE_SECONDARY_BUCKET_ACK =
-      Boolean.getBoolean(GeodeGlossary.GEMFIRE_PREFIX + "disablePartitionedRegionBucketAck");
+//  static final boolean DISABLE_SECONDARY_BUCKET_ACK =
+//      Boolean.getBoolean(GeodeGlossary.GEMFIRE_PREFIX + "disablePartitionedRegionBucketAck");
+  static final boolean DISABLE_SECONDARY_BUCKET_ACK = true;
 
   /**
    * A debug flag used for testing calculation of starting bucket id
@@ -630,6 +633,34 @@ public class PartitionedRegion extends LocalRegion
 
     try {
       r.run();
+    } finally {
+      br.doUnlockForPrimary();
+    }
+  }
+
+
+  public interface FourArgConsumer<Arg1, Arg2, Arg3, Arg4> {
+    void accept(final Arg1 arg1, final Arg2 arg2, final Arg3 arg3, final Arg4 arg4);
+  }
+
+  public <Arg1, Arg2, Arg3, Arg4> void computeWithPrimaryLocked(Object key, FourArgConsumer<Arg1, Arg2, Arg3, Arg4> r, Arg1 arg1, Arg2 arg2, Arg3 arg3, Arg4 arg4) throws PrimaryBucketLockException {
+    int bucketId = PartitionedRegionHelper.getHashKey(this, null, key, null, null);
+
+    BucketRegion br;
+    try {
+      br = this.dataStore.getInitializedBucketForId(key, bucketId);
+    } catch (ForceReattemptException e) {
+      throw new BucketMovedException(e);
+    }
+
+    try {
+      br.doLockForPrimary(false);
+    } catch (PrimaryBucketException e) {
+      throw new PrimaryBucketLockException("retry since primary lock failed: " + e);
+    }
+
+    try {
+      r.accept(arg1, arg2, arg3, arg4);
     } finally {
       br.doUnlockForPrimary();
     }
@@ -3532,7 +3563,7 @@ public class PartitionedRegion extends LocalRegion
       }
 
       obj = getFromBucket(targetNode, bucketId, key, aCallbackArgument, disableCopyOnRead, preferCD,
-          requestingClient, clientEvent, returnTombstones, allowRetry);
+          requestingClient, clientEvent, returnTombstones, allowRetry, keyInfo);
     } finally {
       this.prStats.endGet(startTime);
     }
@@ -4100,7 +4131,7 @@ public class PartitionedRegion extends LocalRegion
   private Object getFromBucket(final InternalDistributedMember targetNode, int bucketId,
       final Object key, final Object aCallbackArgument, boolean disableCopyOnRead, boolean preferCD,
       ClientProxyMembershipID requestingClient, EntryEventImpl clientEvent,
-      boolean returnTombstones, boolean allowRetry) {
+      boolean returnTombstones, boolean allowRetry, final KeyInfo keyInfo) {
     final boolean isDebugEnabled = logger.isDebugEnabled();
 
     final int retryAttempts = calcRetry();

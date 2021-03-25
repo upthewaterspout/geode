@@ -274,9 +274,19 @@ public class Coder {
     return buffer;
   }
 
+  private static final byte[][] longCache = new byte[1000][];
+
   public static ByteBuf getIntegerResponse(ByteBuf buffer, long l) {
     buffer.writeByte(INTEGER_ID);
-    buffer.writeBytes(longToBytes(l));
+    if (l < longCache.length) {
+      final int i = (int) l;
+      if (null == longCache[i]) {
+        longCache[i] = longToBytes(l);
+      }
+      buffer.writeBytes(longCache[i]);
+    } else {
+      buffer.writeBytes(longToBytes(l));
+    }
     buffer.writeBytes(CRLFar);
     return buffer;
   }
