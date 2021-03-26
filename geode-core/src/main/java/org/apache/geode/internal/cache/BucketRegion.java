@@ -65,6 +65,8 @@ import org.apache.geode.internal.cache.CreateRegionProcessor.CreateRegionReplyPr
 import org.apache.geode.internal.cache.FilterRoutingInfo.FilterInfo;
 import org.apache.geode.internal.cache.control.MemoryEvent;
 import org.apache.geode.internal.cache.event.EventSequenceNumberHolder;
+import org.apache.geode.internal.cache.event.EventTracker;
+import org.apache.geode.internal.cache.event.NonDistributedEventTracker;
 import org.apache.geode.internal.cache.eviction.EvictionController;
 import org.apache.geode.internal.cache.ha.ThreadIdentifier;
 import org.apache.geode.internal.cache.partitioned.Bucket;
@@ -242,6 +244,12 @@ public class BucketRegion extends DistributedRegion implements Bucket {
     redundancy = internalRegionArgs.getPartitionedRegionBucketRedundancy();
     partitionedRegion = internalRegionArgs.getPartitionedRegion();
     setEventSeqNum();
+  }
+
+  @Override
+  protected EventTracker createEventTracker() {
+    // Try turning off the event tracker entirely
+    return NonDistributedEventTracker.getInstance();
   }
 
   // Attempt to direct the GII process to the primary first
