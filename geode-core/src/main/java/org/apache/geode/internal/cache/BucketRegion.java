@@ -112,6 +112,8 @@ import org.apache.geode.util.internal.GeodeGlossary;
 public class BucketRegion extends DistributedRegion implements Bucket {
   private static final Logger logger = LogService.getLogger();
 
+  public static final boolean REDIS_DISABLE_EVENT_TRACKER = Boolean.getBoolean("redis.noEventTracker");
+
   @Immutable
   private static final RawValue NULLVALUE = new RawValue(null);
   @Immutable
@@ -248,8 +250,12 @@ public class BucketRegion extends DistributedRegion implements Bucket {
 
   @Override
   protected EventTracker createEventTracker() {
-    // Try turning off the event tracker entirely
-    return NonDistributedEventTracker.getInstance();
+    if(REDIS_DISABLE_EVENT_TRACKER) {
+      // Try turning off the event tracker entirely
+      return NonDistributedEventTracker.getInstance();
+    } else {
+      return super.createEventTracker();
+    }
   }
 
   // Attempt to direct the GII process to the primary first

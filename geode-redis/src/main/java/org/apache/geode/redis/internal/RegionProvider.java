@@ -32,6 +32,7 @@ public class RegionProvider {
   public static final int REDIS_REGION_BUCKETS = Integer.getInteger("redis.region.buckets", 128);
   public static final int REDIS_SLOTS = Integer.getInteger("redis.slots", 16384);
   public static final int REDIS_SLOTS_PER_BUCKET = REDIS_SLOTS / REDIS_REGION_BUCKETS;
+  public static final boolean REDIS_DISABLE_VERSION_TAGS = Boolean.getBoolean("redis.noVersionTags");
 
   private final Region<RedisKey, RedisData> dataRegion;
   private final Region<String, Object> configRegion;
@@ -40,7 +41,9 @@ public class RegionProvider {
 
     InternalRegionFactory<RedisKey, RedisData> redisDataRegionFactory =
         cache.createInternalRegionFactory(RegionShortcut.PARTITION_REDUNDANT);
-    redisDataRegionFactory.setConcurrencyChecksEnabled(false);
+    if(REDIS_DISABLE_VERSION_TAGS) {
+      redisDataRegionFactory.setConcurrencyChecksEnabled(false);
+    }
     // redisDataRegionFactory.setInternalRegion(true).setIsUsedForMetaRegion(true);
 
     PartitionAttributesFactory<RedisKey, RedisData> attributesFactory =
