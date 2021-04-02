@@ -105,7 +105,7 @@ public class NettyRedisServer {
     }
 
     selectorGroup = createEventLoopGroup("Selector", true, 1);
-    workerGroup = createEventLoopGroup("Worker", true, 0);
+    workerGroup = createEventLoopGroup("Worker", true, 32);
     subscriberGroup = createEventLoopGroup("Subscriber", true, 0);
 
     try {
