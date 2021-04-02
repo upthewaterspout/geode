@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import org.apache.geode.annotations.VisibleForTesting;
 import org.apache.geode.redis.internal.executor.GlobPattern;
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 
 /**
  * Class that manages both channel and pattern subscriptions.
@@ -98,7 +98,7 @@ public class Subscriptions {
     return subscriptions.size();
   }
 
-  public synchronized SubscribeResult subscribe(byte[] channel, ExecutionHandlerContext context,
+  public synchronized SubscribeResult subscribe(byte[] channel, NettyExecutionHandlerContext context,
       Client client) {
     Subscription createdSubscription = null;
     if (!exists(channel, client)) {
@@ -109,7 +109,7 @@ public class Subscriptions {
     return new SubscribeResult(createdSubscription, channelCount, channel);
   }
 
-  public SubscribeResult psubscribe(byte[] patternBytes, ExecutionHandlerContext context,
+  public SubscribeResult psubscribe(byte[] patternBytes, NettyExecutionHandlerContext context,
       Client client) {
     GlobPattern pattern = new GlobPattern(new String(patternBytes));
     Subscription createdSubscription = null;

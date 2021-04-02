@@ -43,7 +43,7 @@ public class HScanExecutor extends AbstractScanExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
 
     String cursorString = Coder.bytesToString(commandElems.get(2));

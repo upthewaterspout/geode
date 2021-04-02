@@ -26,7 +26,7 @@ public class SAddExecutor extends SetExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
 
     List<ByteArrayWrapper> commandElements = command.getProcessedCommandWrappers();
 

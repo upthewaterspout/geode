@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 
 /**
  * This class represents a single channel subscription as created by the SUBSCRIBE command
@@ -28,7 +28,7 @@ import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
 class ChannelSubscription extends AbstractSubscription {
   private byte[] channel;
 
-  public ChannelSubscription(Client client, byte[] channel, ExecutionHandlerContext context,
+  public ChannelSubscription(Client client, byte[] channel, NettyExecutionHandlerContext context,
       Subscriptions subscriptions) {
     super(client, context, subscriptions);
 

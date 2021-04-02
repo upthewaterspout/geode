@@ -23,7 +23,7 @@ import org.apache.geode.redis.internal.data.RedisData;
 import org.apache.geode.redis.internal.data.RedisKey;
 import org.apache.geode.redis.internal.executor.GlobPattern;
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 
 /**
  * Interface that represents the ability to Publish, Subscribe and Unsubscribe from channels.
@@ -50,7 +50,7 @@ public interface PubSub {
    * @param client a Client instance making the request
    * @return the result of the subscribe
    */
-  SubscribeResult subscribe(byte[] channel, ExecutionHandlerContext context, Client client);
+  SubscribeResult subscribe(byte[] channel, NettyExecutionHandlerContext context, Client client);
 
   /**
    * Subscribe to a pattern
@@ -60,7 +60,7 @@ public interface PubSub {
    * @param client a Client instance making the request
    * @return the result of the subscribe
    */
-  SubscribeResult psubscribe(byte[] pattern, ExecutionHandlerContext context, Client client);
+  SubscribeResult psubscribe(byte[] pattern, NettyExecutionHandlerContext context, Client client);
 
   /**
    * Unsubscribe a client from a channel

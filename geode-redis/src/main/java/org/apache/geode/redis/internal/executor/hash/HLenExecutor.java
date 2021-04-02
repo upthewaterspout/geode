@@ -37,7 +37,7 @@ public class HLenExecutor extends HashExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     RedisKey key = command.getKey();
     RedisHashCommands redisHashCommands = context.getRedisHashCommands();
     int len = redisHashCommands.hlen(key);

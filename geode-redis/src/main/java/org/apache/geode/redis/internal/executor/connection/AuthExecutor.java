@@ -28,7 +28,7 @@ public class AuthExecutor implements Executor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
 
     byte[] password = context.getAuthPassword();

@@ -35,6 +35,11 @@ public enum CommunicationMode {
    * communication mode bytes.
    */
   ProtobufClientServerProtocol((byte) 10, "Protobuf client"),
+
+  /**
+   * Redis messages start with * as the first char
+   */
+  RedisProtocol((byte) 42, "Redis client"),
   /**
    * Byte meaning that the Socket is being used for 'client to server' communication.
    */
@@ -144,6 +149,8 @@ public enum CommunicationMode {
     switch (modeNumber) {
       case 10:
         return ProtobufClientServerProtocol;
+      case 42:
+        return RedisProtocol;
       case 100:
         return ClientToServer;
       case 101:

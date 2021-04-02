@@ -34,7 +34,7 @@ public class InfoExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     String result;
     List<ByteArrayWrapper> commands =
         command.getProcessedCommandWrappers();

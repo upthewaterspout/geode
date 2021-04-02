@@ -1429,12 +1429,14 @@ public class AcceptorImpl implements Acceptor, Runnable {
     // communication, create a ServerConnection. If this socket is being used
     // for 'server to client' communication, send it to the CacheClientNotifier
     // for processing.
-    final CommunicationMode communicationMode;
+    CommunicationMode communicationMode = serverConnectionFactory.getKnownMode();
     try {
-      if (isSelector()) {
-        communicationMode = getCommunicationModeForSelector(socket);
-      } else {
-        communicationMode = getCommunicationModeForNonSelector(socket);
+      if(communicationMode == null) {
+        if (isSelector()) {
+          communicationMode = getCommunicationModeForSelector(socket);
+        } else {
+          communicationMode = getCommunicationModeForNonSelector(socket);
+        }
       }
       socket.setTcpNoDelay(tcpNoDelay);
 

@@ -28,6 +28,7 @@ import org.apache.geode.internal.cache.client.protocol.exception.ServiceLoadingF
 import org.apache.geode.internal.cache.client.protocol.exception.ServiceVersionNotFoundException;
 import org.apache.geode.internal.cache.tier.Acceptor;
 import org.apache.geode.internal.cache.tier.CachedRegionHelper;
+import org.apache.geode.internal.cache.tier.CommunicationMode;
 import org.apache.geode.internal.security.SecurityService;
 
 /**
@@ -51,7 +52,7 @@ public class ServerConnectionFactory {
     return clientProtocolService;
   }
 
-  ServerConnection makeServerConnection(final Socket socket, final InternalCache cache,
+  protected ServerConnection makeServerConnection(final Socket socket, final InternalCache cache,
       final CachedRegionHelper cachedRegionHelper, final CacheServerStats stats,
       final int hsTimeout, final int socketBufferSize, final String communicationModeStr,
       final byte communicationMode, final Acceptor acceptor, final SecurityService securityService)
@@ -87,5 +88,9 @@ public class ServerConnectionFactory {
     return new ProtobufServerConnection(socket, cache, cachedRegionHelper, stats, hsTimeout,
         socketBufferSize, communicationModeStr, communicationMode, acceptor, processor,
         securityService);
+  }
+
+  public CommunicationMode getKnownMode() {
+    return null;
   }
 }

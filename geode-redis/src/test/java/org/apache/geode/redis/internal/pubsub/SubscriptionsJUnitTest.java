@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import org.apache.geode.redis.internal.executor.GlobPattern;
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 
 public class SubscriptionsJUnitTest {
 
@@ -38,7 +38,7 @@ public class SubscriptionsJUnitTest {
     when(channel.closeFuture()).thenReturn(mock(ChannelFuture.class));
     Client client = new Client(channel);
 
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
 
     subscriptions
         .add(new ChannelSubscription(client, "subscriptions".getBytes(), context, subscriptions));
@@ -55,7 +55,7 @@ public class SubscriptionsJUnitTest {
     when(channel.closeFuture()).thenReturn(mock(ChannelFuture.class));
     Client client = new Client(channel);
 
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
 
     GlobPattern pattern = new GlobPattern("sub*s");
 
@@ -72,7 +72,7 @@ public class SubscriptionsJUnitTest {
     when(channel.closeFuture()).thenReturn(mock(ChannelFuture.class));
     Client client = new Client(channel);
 
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
 
     GlobPattern globPattern1 = new GlobPattern("sub*s");
     GlobPattern globPattern2 = new GlobPattern("subscriptions");
@@ -91,7 +91,7 @@ public class SubscriptionsJUnitTest {
     Channel channel = mock(Channel.class);
     when(channel.closeFuture()).thenReturn(mock(ChannelFuture.class));
     Client client = new Client(channel);
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
 
     GlobPattern globby = new GlobPattern("sub*s");
 
@@ -117,7 +117,7 @@ public class SubscriptionsJUnitTest {
   public void findSubscribers() {
     Subscriptions subscriptions = new Subscriptions();
 
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
     Channel mockChannelOne = mock(Channel.class);
     Channel mockChannelTwo = mock(Channel.class);
     when(mockChannelOne.closeFuture()).thenReturn(mock(ChannelFuture.class));
@@ -149,7 +149,7 @@ public class SubscriptionsJUnitTest {
     Client clientOne = new Client(mockChannelOne);
     Client clientTwo = new Client(mockChannelTwo);
 
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
 
     ChannelSubscription subscriptionOne =
         new ChannelSubscription(clientOne, "subscriptions".getBytes(), context, subscriptions);
@@ -173,7 +173,7 @@ public class SubscriptionsJUnitTest {
     when(channel.closeFuture()).thenReturn(mock(ChannelFuture.class));
     Client client = new Client(channel);
 
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
 
     ChannelSubscription channelSubscriberOne =
         new ChannelSubscription(client, "subscriptions".getBytes(), context, subscriptions);

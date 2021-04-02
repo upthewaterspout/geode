@@ -38,7 +38,7 @@ import org.apache.geode.redis.internal.data.RedisData;
 import org.apache.geode.redis.internal.data.RedisKey;
 import org.apache.geode.redis.internal.executor.GlobPattern;
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 
 /**
  * Concrete class that manages publish and subscribe functionality. Since Redis subscriptions
@@ -88,12 +88,12 @@ public class PubSubImpl implements PubSub {
   }
 
   @Override
-  public SubscribeResult subscribe(byte[] channel, ExecutionHandlerContext context, Client client) {
+  public SubscribeResult subscribe(byte[] channel, NettyExecutionHandlerContext context, Client client) {
     return subscriptions.subscribe(channel, context, client);
   }
 
   @Override
-  public SubscribeResult psubscribe(byte[] pattern, ExecutionHandlerContext context,
+  public SubscribeResult psubscribe(byte[] pattern, NettyExecutionHandlerContext context,
       Client client) {
     return subscriptions.psubscribe(pattern, context, client);
   }

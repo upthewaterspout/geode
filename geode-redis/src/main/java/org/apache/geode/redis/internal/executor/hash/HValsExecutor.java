@@ -44,13 +44,12 @@ public class HValsExecutor extends HashExecutor {
    * <pre>
    * 	redis>
    * </pre>
-   *
-   * @param command the command runtime handle
+   *  @param command the command runtime handle
    * @param context the context (ex: region provider)
    */
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     RedisKey key = command.getKey();
 
     RedisHashCommands redisHashCommands = context.getRedisHashCommands();

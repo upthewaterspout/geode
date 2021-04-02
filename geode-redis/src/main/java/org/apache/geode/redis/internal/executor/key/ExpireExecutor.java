@@ -31,7 +31,7 @@ public class ExpireExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
     int SECONDS_INDEX = 2;
 

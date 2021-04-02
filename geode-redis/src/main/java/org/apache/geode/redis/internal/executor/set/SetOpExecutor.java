@@ -28,7 +28,7 @@ public abstract class SetOpExecutor extends SetExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     int setsStartIndex = 1;
 
     if (isStorage()) {

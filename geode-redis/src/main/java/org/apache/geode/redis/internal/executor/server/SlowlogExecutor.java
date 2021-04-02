@@ -25,7 +25,7 @@ public class SlowlogExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     String subCommand = command.getStringKey().toLowerCase();
     switch (subCommand) {
       case "get":

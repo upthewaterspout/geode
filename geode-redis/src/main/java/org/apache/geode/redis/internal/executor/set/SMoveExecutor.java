@@ -34,7 +34,7 @@ public class SMoveExecutor extends SetExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
 
     RedisKey source = command.getKey();

@@ -44,7 +44,7 @@ public class HKeysExecutor extends HashExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     RedisKey key = command.getKey();
     RedisHashCommands redisHashCommands = context.getRedisHashCommands();
     Collection<byte[]> keys = redisHashCommands.hkeys(key);

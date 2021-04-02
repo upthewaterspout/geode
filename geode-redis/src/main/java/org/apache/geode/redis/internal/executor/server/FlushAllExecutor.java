@@ -26,7 +26,7 @@ public class FlushAllExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     RedisKeyCommands redisKeyCommands = getRedisKeyCommands(context);
 
     for (RedisKey skey : context.getRegionProvider().getDataRegion().keySet()) {

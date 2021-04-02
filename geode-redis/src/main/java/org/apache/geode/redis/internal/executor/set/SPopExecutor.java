@@ -27,7 +27,7 @@ public class SPopExecutor extends SetExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
 
     List<byte[]> commandElems = command.getProcessedCommand();
     boolean isCountPassed = false;

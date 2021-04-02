@@ -31,7 +31,7 @@ public class BitOpExecutor extends StringExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
 
     String operation = command.getStringKey().toUpperCase();

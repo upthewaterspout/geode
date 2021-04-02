@@ -27,7 +27,7 @@ public class TTLExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     RedisKey key = command.getKey();
 
     RedisKeyCommands redisKeyCommands = getRedisKeyCommands(context);

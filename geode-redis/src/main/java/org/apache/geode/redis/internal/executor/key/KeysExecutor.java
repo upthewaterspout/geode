@@ -38,7 +38,7 @@ public class KeysExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
     String glob = Coder.bytesToString(commandElems.get(1));
     Set<RedisKey> allKeys = getDataRegion(context).keySet();

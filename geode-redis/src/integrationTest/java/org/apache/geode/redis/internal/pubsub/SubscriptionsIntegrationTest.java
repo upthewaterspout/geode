@@ -32,7 +32,7 @@ import org.junit.Test;
 
 import org.apache.geode.redis.ConcurrentLoopingThreads;
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 import org.apache.geode.redis.mocks.DummySubscription;
 import org.apache.geode.test.junit.rules.ExecutorServiceRule;
 
@@ -106,7 +106,7 @@ public class SubscriptionsIntegrationTest {
     final Subscriptions subscriptions = new Subscriptions();
 
     List<Client> clients = new LinkedList<>();
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
     for (int i = 0; i < ITERATIONS; i++) {
       Channel channel = mock(Channel.class);
       when(channel.closeFuture()).thenReturn(mock(ChannelFuture.class));
@@ -129,7 +129,7 @@ public class SubscriptionsIntegrationTest {
     final Subscriptions subscriptions = new Subscriptions();
 
     List<Client> clients = new LinkedList<>();
-    ExecutionHandlerContext context = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext context = mock(NettyExecutionHandlerContext.class);
     for (int i = 0; i < ITERATIONS; i++) {
       Channel channel = mock(Channel.class);
       when(channel.closeFuture()).thenReturn(mock(ChannelFuture.class));

@@ -27,7 +27,7 @@ public class UnknownExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
 
     StringBuilder commandArguments = new StringBuilder();
     String commandText = null;

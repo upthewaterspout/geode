@@ -30,7 +30,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 import org.junit.Test;
 
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 
 
 public class PubSubImplJUnitTest {
@@ -38,7 +38,7 @@ public class PubSubImplJUnitTest {
   @Test
   public void testSubscriptionWithDeadClientIsPruned() {
     Subscriptions subscriptions = new Subscriptions();
-    ExecutionHandlerContext mockContext = mock(ExecutionHandlerContext.class);
+    NettyExecutionHandlerContext mockContext = mock(NettyExecutionHandlerContext.class);
 
     FailingChannelFuture mockFuture = new FailingChannelFuture();
     when(mockContext.writeToChannel(any())).thenReturn(mockFuture);

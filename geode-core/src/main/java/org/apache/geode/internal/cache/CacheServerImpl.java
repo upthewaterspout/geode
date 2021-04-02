@@ -108,7 +108,7 @@ public class CacheServerImpl extends AbstractCacheServer implements Distribution
   /**
    * The server connection factory, that provides a {@link ServerConnection}.
    */
-  private final ServerConnectionFactory serverConnectionFactory = new ServerConnectionFactory();
+  private ServerConnectionFactory serverConnectionFactory = new ServerConnectionFactory();
 
   /** The acceptor that does the actual serving */
   private volatile Acceptor acceptor;
@@ -165,6 +165,10 @@ public class CacheServerImpl extends AbstractCacheServer implements Distribution
     this.cacheClientNotifierProvider = cacheClientNotifierProvider;
     this.clientHealthMonitorProvider = clientHealthMonitorProvider;
     this.cacheServerAdvisorProvider = cacheServerAdvisorProvider;
+  }
+
+  public void setServerConnectionFactory(ServerConnectionFactory connectionFactory) {
+    this.serverConnectionFactory = connectionFactory;
   }
 
   @Override

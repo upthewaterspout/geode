@@ -47,7 +47,7 @@ public class HMSetExecutor extends HashExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
 
     RedisKey key = command.getKey();

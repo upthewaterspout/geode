@@ -27,7 +27,7 @@ public class TimeExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<String> results = new ArrayList<>();
     long timeStamp = System.currentTimeMillis();
     long seconds = timeStamp / 1000;

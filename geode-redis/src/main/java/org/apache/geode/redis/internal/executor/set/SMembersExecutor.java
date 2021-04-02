@@ -26,7 +26,7 @@ public class SMembersExecutor extends SetExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     RedisKey key = command.getKey();
     RedisSetCommands redisSetCommands = createRedisSetCommands(context);
     Set<ByteArrayWrapper> members = redisSetCommands.smembers(key);

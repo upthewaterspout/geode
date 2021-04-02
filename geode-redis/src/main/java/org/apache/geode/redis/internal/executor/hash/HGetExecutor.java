@@ -38,7 +38,7 @@ public class HGetExecutor extends HashExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
 
     byte[] field = commandElems.get(FIELD_INDEX);

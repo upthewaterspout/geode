@@ -24,12 +24,12 @@ import org.apache.logging.log4j.Logger;
 import org.apache.geode.logging.internal.log4j.api.LogService;
 import org.apache.geode.redis.internal.executor.RedisResponse;
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 
 public abstract class AbstractSubscription implements Subscription {
   private static final Logger logger = LogService.getLogger();
   private final Client client;
-  private final ExecutionHandlerContext context;
+  private final NettyExecutionHandlerContext context;
 
   // Two things have to happen before we are ready to publish:
   // 1 - we need to make sure the subscriber has switched EventLoopGroups
@@ -38,7 +38,7 @@ public abstract class AbstractSubscription implements Subscription {
   private final Subscriptions subscriptions;
   private boolean running = true;
 
-  AbstractSubscription(Client client, ExecutionHandlerContext context,
+  AbstractSubscription(Client client, NettyExecutionHandlerContext context,
       Subscriptions subscriptions) {
     if (client == null) {
       throw new IllegalArgumentException("client cannot be null");

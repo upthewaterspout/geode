@@ -25,21 +25,23 @@ import org.apache.geode.redis.internal.executor.AbstractExecutor;
 import org.apache.geode.redis.internal.executor.RedisResponse;
 import org.apache.geode.redis.internal.netty.Command;
 import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 import org.apache.geode.redis.internal.pubsub.SubscribeResult;
 
 public class PsubscribeExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
 
+    NettyExecutionHandlerContext nettyContext = (NettyExecutionHandlerContext) context;
     context.eventLoopReady();
 
     Collection<SubscribeResult> results = new ArrayList<>();
     for (int i = 1; i < command.getProcessedCommand().size(); i++) {
       byte[] patternBytes = command.getProcessedCommand().get(i);
       SubscribeResult result =
-          context.getPubSub().psubscribe(patternBytes, context, context.getClient());
+          context.getPubSub().psubscribe(patternBytes, nettyContext, context.getClient());
       results.add(result);
     }
 
@@ -67,7 +69,7 @@ public class PsubscribeExecutor extends AbstractExecutor {
         }
         subscriberLatch.countDown();
       };
-      context.changeChannelEventLoopGroup(context.getSubscriberGroup(), innerCallback);
+      nettyContext.changeChannelEventLoopGroup(nettyContext.getSubscriberGroup(), innerCallback);
     };
 
     RedisResponse response = RedisResponse.flattenedArray(items);

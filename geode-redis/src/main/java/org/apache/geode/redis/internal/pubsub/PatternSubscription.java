@@ -21,7 +21,7 @@ import java.util.List;
 
 import org.apache.geode.redis.internal.executor.GlobPattern;
 import org.apache.geode.redis.internal.netty.Client;
-import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
+import org.apache.geode.redis.internal.netty.NettyExecutionHandlerContext;
 
 /**
  * This class represents a pattern subscription as created by the PSUBSCRIBE command
@@ -29,7 +29,7 @@ import org.apache.geode.redis.internal.netty.ExecutionHandlerContext;
 class PatternSubscription extends AbstractSubscription {
   final GlobPattern pattern;
 
-  public PatternSubscription(Client client, GlobPattern pattern, ExecutionHandlerContext context,
+  public PatternSubscription(Client client, GlobPattern pattern, NettyExecutionHandlerContext context,
       Subscriptions subscriptions) {
     super(client, context, subscriptions);
 

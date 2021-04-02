@@ -54,7 +54,7 @@ public class HIncrByFloatExecutor extends HashExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
     List<byte[]> commandElems = command.getProcessedCommand();
 
     Pair<BigDecimal, RedisResponse> validated =

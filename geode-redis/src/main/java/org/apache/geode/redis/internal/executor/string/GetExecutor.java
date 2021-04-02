@@ -24,7 +24,7 @@ public class GetExecutor extends StringExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
 
     RedisKey key = command.getKey();
     RedisStringCommands redisStringCommands = getRedisStringCommands(context);

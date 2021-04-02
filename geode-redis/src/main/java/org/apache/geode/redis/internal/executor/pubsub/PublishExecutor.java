@@ -26,7 +26,7 @@ public class PublishExecutor extends AbstractExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
 
     List<byte[]> args = command.getProcessedCommand();
     byte[] channelName = args.get(1);

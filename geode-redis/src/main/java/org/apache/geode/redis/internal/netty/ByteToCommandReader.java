@@ -15,6 +15,8 @@
  */
 package org.apache.geode.redis.internal.netty;
 
+import java.io.DataInput;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,31 +24,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 
+import org.apache.geode.internal.cache.CountingDataInputStream;
 import org.apache.geode.redis.internal.statistics.RedisStats;
 
-/**
- * This is the first part of the channel pipeline for Netty. Here incoming bytes are read and a
- * created {@link Command} is sent down the pipeline. It is unfortunate that this class is not
- * {@link io.netty.channel.ChannelHandler.Sharable} because no state is kept in this class. State is
- * kept by {@link ByteToMessageDecoder}, it may be worthwhile to look at a different decoder setup
- * as to avoid allocating a decoder for every new connection.
- * <p>
- * The code flow of the protocol parsing may not be exactly Java like, but this is done very
- * intentionally. It was found that in cases where large Redis requests are sent that end up being
- * fragmented, throwing exceptions when the command could not be fully parsed took up an enormous
- * amount of cpu time. The simplicity of the Redis protocol allows us to just back out and wait for
- * more data, while exceptions are left to malformed requests which should never happen if using a
- * proper Redis client.
- */
-public class ByteToCommandDecoder extends ByteToMessageDecoder {
+public class ByteToCommandReader {
 
-  /**
-   * Important note
-   * <p>
-   * Do not use '' <-- java primitive chars. Redis uses {@link Coder#CHARSET} encoding so we should
-   * not risk java handling char to byte conversions, rather just hard code {@link Coder#CHARSET}
-   * chars as bytes
-   */
 
   private static final byte rID = 13; // '\r';
   private static final byte nID = 10; // '\n';
@@ -56,33 +38,24 @@ public class ByteToCommandDecoder extends ByteToMessageDecoder {
 
   private final RedisStats redisStats;
 
-  public ByteToCommandDecoder(RedisStats redisStats) {
+  public ByteToCommandReader(RedisStats redisStats) {
     this.redisStats = redisStats;
   }
 
-  @Override
-  protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+  protected void decode(CountingDataInputStream in, List<Object> out) throws Exception {
     Command c;
     long bytesRead = 0;
-    do {
-      int startReadIndex = in.readerIndex();
+      long startReadIndex = in.getCount();
       c = parse(in);
-      if (c == null) {
-        in.readerIndex(startReadIndex);
-        break;
-      }
-      bytesRead += in.readerIndex() - startReadIndex;
+      bytesRead += in.getCount() - startReadIndex;
       out.add(c);
-    } while (in.isReadable()); // Try to take advantage of pipelining if it is being used
     redisStats.incNetworkBytesRead(bytesRead);
   }
 
-  public Command parse(ByteBuf buffer) throws RedisCommandParserException {
+  public Command parse(CountingDataInputStream buffer)
+      throws RedisCommandParserException, IOException {
     if (buffer == null) {
       throw new NullPointerException();
-    }
-    if (!buffer.isReadable()) {
-      return null;
     }
 
     byte firstB = buffer.readByte();
@@ -99,13 +72,10 @@ public class ByteToCommandDecoder extends ByteToMessageDecoder {
     return new Command(commandElems);
   }
 
-  private List<byte[]> parseArray(ByteBuf buffer)
-      throws RedisCommandParserException {
+  private List<byte[]> parseArray(CountingDataInputStream buffer)
+      throws RedisCommandParserException, IOException {
     byte currentChar;
     int arrayLength = parseCurrentNumber(buffer);
-    if (arrayLength == Integer.MIN_VALUE || !parseRN(buffer)) {
-      return null;
-    }
     if (arrayLength < 0 || arrayLength > 1000000000) {
       throw new RedisCommandParserException("invalid multibulk length");
     }
@@ -113,9 +83,6 @@ public class ByteToCommandDecoder extends ByteToMessageDecoder {
     List<byte[]> commandElems = new ArrayList<>(arrayLength);
 
     for (int i = 0; i < arrayLength; i++) {
-      if (!buffer.isReadable()) {
-        return null;
-      }
       currentChar = buffer.readByte();
       if (currentChar == bulkStringID) {
         byte[] newBulkString = parseBulkString(buffer);
@@ -138,24 +105,16 @@ public class ByteToCommandDecoder extends ByteToMessageDecoder {
    * @return byte[] representation of the Bulk String read
    * @throws RedisCommandParserException Thrown when there is illegal syntax
    */
-  private byte[] parseBulkString(ByteBuf buffer) throws RedisCommandParserException {
+  private byte[] parseBulkString(CountingDataInputStream buffer)
+      throws RedisCommandParserException, IOException {
     int bulkStringLength = parseCurrentNumber(buffer);
-    if (bulkStringLength == Integer.MIN_VALUE) {
-      return null;
-    }
     if (bulkStringLength > MAX_BULK_STRING_LENGTH) {
       throw new RedisCommandParserException(
           "invalid bulk length, cannot exceed max length of " + MAX_BULK_STRING_LENGTH);
     }
-    if (!parseRN(buffer)) {
-      return null;
-    }
 
-    if (!buffer.isReadable(bulkStringLength)) {
-      return null;
-    }
     byte[] bulkString = new byte[bulkStringLength];
-    buffer.readBytes(bulkString);
+    buffer.readFully(bulkString);
 
     if (!parseRN(buffer)) {
       return null;
@@ -170,22 +129,26 @@ public class ByteToCommandDecoder extends ByteToMessageDecoder {
    * @param buffer Buffer to read
    * @return The number found at the beginning of the buffer
    */
-  private int parseCurrentNumber(ByteBuf buffer) {
+  private int parseCurrentNumber(CountingDataInputStream buffer)
+      throws IOException, RedisCommandParserException {
     int number = 0;
-    int readerIndex = buffer.readerIndex();
     byte b = 0;
     while (true) {
-      if (!buffer.isReadable()) {
-        return Integer.MIN_VALUE;
-      }
       b = buffer.readByte();
       if (Character.isDigit(b)) {
         number = number * 10 + (int) (b - '0');
-        readerIndex++;
-      } else {
-        buffer.readerIndex(readerIndex);
+      } else if (b == rID) {
         break;
+      } else {
+        throw new RedisCommandParserException(
+            "expected \'" + (char) rID + "\', got \'" + (char) b + "\'");
       }
+    }
+    //Expected a \r\n. The loop above terminated on the \r
+    b = buffer.readByte();
+    if (b != nID) {
+      throw new RedisCommandParserException(
+          "expected: \'" + (char) nID + "\', got \'" + (char) b + "\'");
     }
     return number;
   }
@@ -196,10 +159,7 @@ public class ByteToCommandDecoder extends ByteToMessageDecoder {
    * @param buffer Buffer to read from
    * @throws RedisCommandParserException Thrown when the next two characters are not "\r\n"
    */
-  private boolean parseRN(ByteBuf buffer) throws RedisCommandParserException {
-    if (!buffer.isReadable(2)) {
-      return false;
-    }
+  private boolean parseRN(CountingDataInputStream buffer) throws RedisCommandParserException, IOException {
     byte b = buffer.readByte();
     if (b != rID) {
       throw new RedisCommandParserException(

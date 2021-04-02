@@ -14,10 +14,12 @@
  */
 package org.apache.geode.redis.internal;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.logging.log4j.Logger;
 
+import org.apache.geode.InternalGemFireError;
 import org.apache.geode.annotations.VisibleForTesting;
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
@@ -66,7 +68,7 @@ public class GeodeRedisServer {
 
   // private final PassiveExpirationManager passiveExpirationManager;
 
-  private final NettyRedisServer nettyRedisServer;
+  private final CacheServerBasedRedisServer nettyRedisServer;
 
   private final RegionProvider regionProvider;
   private final PubSub pubSub;
@@ -101,10 +103,16 @@ public class GeodeRedisServer {
     // passiveExpirationManager =
     // new PassiveExpirationManager(regionProvider.getDataRegion(), redisStats);
     redisCommandExecutor = LoggingExecutors.newCachedThreadPool("GeodeRedisServer-Command-", true);
-    nettyRedisServer = new NettyRedisServer(() -> cache.getInternalDistributedSystem().getConfig(),
-        regionProvider, pubSub,
-        this::allowUnsupportedCommands, this::shutdown, port, bindAddress, redisStats,
-        redisCommandExecutor);
+//    nettyRedisServer = new NettyRedisServer(() -> cache.getInternalDistributedSystem().getConfig(),
+//        regionProvider, pubSub,
+//        this::allowUnsupportedCommands, this::shutdown, port, bindAddress, redisStats,
+//        redisCommandExecutor);
+    nettyRedisServer = new CacheServerBasedRedisServer(cache, bindAddress, port, regionProvider, pubSub, this::allowUnsupportedCommands, this::shutdown, redisStats);
+    try {
+      nettyRedisServer.start();
+    } catch (IOException e) {
+      throw new InternalGemFireError(e);
+    }
 
     BucketRetrievalFunction.register(bindAddress, nettyRedisServer.getPort());
     ShowSecondaryBucketsFunction.register();

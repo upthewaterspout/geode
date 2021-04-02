@@ -37,7 +37,7 @@ public class SetExecutor extends StringExecutor {
 
   @Override
   public RedisResponse executeCommand(Command command,
-      ExecutionHandlerContext context) {
+                                      ExecutionHandlerContext context) {
 
     RedisKey keyToSet = command.getKey();
     List<byte[]> commandElementsBytes = command.getProcessedCommand();

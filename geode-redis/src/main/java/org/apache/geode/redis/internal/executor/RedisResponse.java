@@ -52,7 +52,12 @@ public class RedisResponse {
   }
 
   public ByteBuf encode(ByteBufAllocator allocator) {
-    return coderCallback.apply(allocator.buffer());
+    final ByteBuf buffer = allocator.buffer();
+    return encode(buffer);
+  }
+
+  public ByteBuf encode(ByteBuf buffer) {
+    return coderCallback.apply(buffer);
   }
 
   public static RedisResponse integer(long numericValue) {
