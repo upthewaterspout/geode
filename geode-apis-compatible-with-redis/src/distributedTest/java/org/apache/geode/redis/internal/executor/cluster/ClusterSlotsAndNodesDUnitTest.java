@@ -19,13 +19,19 @@ import static org.apache.geode.redis.internal.RegionProvider.REDIS_REGION_BUCKET
 import static org.apache.geode.redis.internal.RegionProvider.REDIS_SLOTS_PER_BUCKET;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.assertj.core.data.Offset;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 import org.apache.geode.cache.control.RebalanceFactory;
 import org.apache.geode.cache.control.ResourceManager;
@@ -35,11 +41,15 @@ import org.apache.geode.test.awaitility.GeodeAwaitility;
 import org.apache.geode.test.dunit.rules.ClusterStartupRule;
 import org.apache.geode.test.dunit.rules.MemberVM;
 import org.apache.geode.test.dunit.rules.RedisClusterStartupRule;
+import org.apache.geode.test.junit.rules.ExecutorServiceRule;
 
 public class ClusterSlotsAndNodesDUnitTest {
 
   @ClassRule
   public static RedisClusterStartupRule cluster = new RedisClusterStartupRule();
+
+  @Rule
+  public ExecutorServiceRule executor = new ExecutorServiceRule();
 
   private static final int JEDIS_TIMEOUT =
       Math.toIntExact(GeodeAwaitility.getTimeout().toMillis());
@@ -137,6 +147,55 @@ public class ClusterSlotsAndNodesDUnitTest {
     info = jedis1.clusterInfo();
     assertThat(info).contains("cluster_known_nodes:2");
     assertThat(info).contains("cluster_size:2");
+  }
+
+  @Test
+  public void slotsAreNotMissingOrDuplicatedWhenPrimariesAreMoving()
+      throws ExecutionException, InterruptedException {
+
+    long endTime = System.currentTimeMillis() + 60_000;
+    AtomicBoolean done = new AtomicBoolean();
+    CompletableFuture<Void> startupShutdownFuture = executor.runAsync(() -> {
+      while (!done.get()) {
+        MemberVM server3 = cluster.startRedisVM(3, locator.getPort());
+        rebalanceAllRegions(server3);
+        server3.stop();
+
+      }
+    });
+
+    CompletableFuture<Integer> getSlotsFuture = executor.supplyAsync(() -> {
+      int iterations = 0;
+      while (System.currentTimeMillis() < endTime) {
+        List<Object> slots = null;
+        try {
+          slots = jedis1.clusterSlots();
+        } catch (JedisDataException e) {
+          // TODO -working around a bug where the function is not registered, which is
+          // currently causing this exception. Catching that exception just to see
+          // if we can get further and see slot failures!
+          continue;
+        }
+        List<ClusterNode> nodes = ClusterNodes.parseClusterSlots(slots).getNodes();
+
+        /// Ensure there is no missing or duplicate slot info
+        BitSet missingSlots = new BitSet();
+        // Set all bits as missing
+        missingSlots.flip(0, 16364);
+        nodes.stream()
+            .flatMap(node -> node.slots.stream())
+            .forEach(slot -> missingSlots.flip(slot.getLeft().intValue(),
+                slot.getRight().intValue() + 1));
+
+        assertThat(missingSlots.stream().toArray()).isEmpty();
+        iterations++;
+      }
+      return iterations;
+    });
+    int iterations = getSlotsFuture.get();
+    done.set(true);
+    startupShutdownFuture.get();
+    assertThat(iterations).isGreaterThan(0);
   }
 
   @Test
