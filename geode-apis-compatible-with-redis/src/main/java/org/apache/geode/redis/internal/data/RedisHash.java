@@ -54,7 +54,7 @@ public class RedisHash extends AbstractRedisData {
   // added. if our internal implementation changes, these values may be incorrect. the tests will
   // catch this change. an increase in overhead should be carefully considered.
   protected static final int BASE_REDIS_HASH_OVERHEAD = 184;
-  protected static final int HASH_MAP_VALUE_PAIR_OVERHEAD = 48;
+  protected static final int HASH_MAP_VALUE_PAIR_OVERHEAD = 52;
 
   private Object2ObjectOpenCustomHashMapWithCursor<byte[], byte[]> hash;
 

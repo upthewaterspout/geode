@@ -226,6 +226,7 @@ public class RedisHashTest {
     // Used to compute the average per field overhead
     double totalOverhead = 0;
     final int totalFields = 1000;
+    long totalDataSize = 0;
 
     // Generate pseudo-random data, but use fixed seed so the test is deterministic
     Random random = new Random(0);
@@ -234,16 +235,19 @@ public class RedisHashTest {
     for (int fieldCount = 1; fieldCount < totalFields; fieldCount++) {
 
       // Add a random field
-      byte[] data = new byte[random.nextInt(30)];
-      random.nextBytes(data);
-      hash.hashPut(data, data);
+      byte[] key = new byte[random.nextInt(30)];
+      byte[] value = new byte[random.nextInt(30)];
+      random.nextBytes(key);
+      random.nextBytes(value);
+      hash.hashPut(key, value);
 
       // Compute the measured size
-      int size = reflectionObjectSizer.sizeof(hash);
-      final int dataSize = 2 * data.length;
+      long size = reflectionObjectSizer.sizeof(hash);
+      totalDataSize += key.length + value.length;
 
       // Compute per field overhead with this number of fields
-      int overHeadPerField = (size - BASE_REDIS_HASH_OVERHEAD - dataSize) / fieldCount;
+      long overHeadPerField = (size - BASE_REDIS_HASH_OVERHEAD - totalDataSize) / fieldCount;
+
       totalOverhead += overHeadPerField;
     }
 
