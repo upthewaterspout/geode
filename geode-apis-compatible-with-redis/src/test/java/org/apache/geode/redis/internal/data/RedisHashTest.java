@@ -235,8 +235,8 @@ public class RedisHashTest {
     for (int fieldCount = 1; fieldCount < totalFields; fieldCount++) {
 
       // Add a random field
-      byte[] key = new byte[random.nextInt(30)];
-      byte[] value = new byte[random.nextInt(30)];
+      byte[] key = new byte[random.nextInt(32)];
+      byte[] value = new byte[random.nextInt(32)];
       random.nextBytes(key);
       random.nextBytes(value);
       hash.hashPut(key, value);
@@ -269,7 +269,7 @@ public class RedisHashTest {
     final int expected = reflectionObjectSizer.sizeof(redisHash);
     final int actual = redisHash.getSizeInBytes();
 
-    final Offset<Integer> offset = Offset.offset((int) round(expected * 0.03));
+    final Offset<Integer> offset = Offset.offset((int) round(expected * 0.05));
 
     assertThat(actual).isCloseTo(expected, offset);
   }
@@ -282,7 +282,7 @@ public class RedisHashTest {
     final int expected = reflectionObjectSizer.sizeof(redisHash);
     final int actual = redisHash.getSizeInBytes();
 
-    final Offset<Integer> offset = Offset.offset((int) round(expected * 0.03));
+    final Offset<Integer> offset = Offset.offset((int) round(expected * 0.05));
 
     assertThat(actual).isCloseTo(expected, offset);
   }
@@ -292,10 +292,15 @@ public class RedisHashTest {
     final String baseField = "longerbase";
     final String baseValue = "base";
 
+    Random random = new Random(0);
     ArrayList<byte[]> elements = new ArrayList<>();
     for (int i = 0; i < 10_000; i++) {
-      elements.add(Coder.stringToBytes(baseField + i));
-      elements.add(Coder.stringToBytes(baseValue + i));
+      byte[] field = new byte[random.nextInt(20)];
+      byte[] value = new byte[random.nextInt(20)];
+      random.nextBytes(field);
+      random.nextBytes(value);
+      elements.add(field);
+      elements.add(value);
     }
     RedisHash hash = new RedisHash(elements);
 
