@@ -38,6 +38,8 @@ dependencies {
     implementation('commons-validator:commons-validator')
     //Jgroups is a core component of our membership system.
     implementation('org.jgroups:jgroups')
+    //Bouncy Castle is used for it's DTLS implementation
+    implementation group: 'org.bouncycastle', name: 'bctls-fips', version: '1.0.12.1'
 
 
     testImplementation(project(':geode-junit'))
